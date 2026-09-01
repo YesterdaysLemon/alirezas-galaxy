@@ -478,7 +478,7 @@ export function GalaxyIndex() {
     scene.add(backdrop);
 
     const distantGalaxySpecs = [
-      { position: [4.7, 7.2, -20], scale: [4.7, 1.62], opacity: 0.66 },
+      { position: [4.9, 6.1, -20], scale: [3.2, 1.06], opacity: 0.88 },
       { position: [-3.7, -4.8, -25], scale: [1.45, 0.5], opacity: 0.42 },
       { position: [4.2, -5.7, -29], scale: [1.02, 0.37], opacity: 0.38 },
       { position: [-2.8, 8.8, -31], scale: [0.75, 0.27], opacity: 0.35 },
@@ -497,7 +497,7 @@ export function GalaxyIndex() {
       const material = createPointsMaterial(
         pixelRatio,
         spec.opacity,
-        index === 0 ? 1.18 : 0.92,
+        index === 0 ? 1.58 : 0.92,
       );
       material.depthTest = false;
       const points = new THREE.Points(
@@ -511,6 +511,24 @@ export function GalaxyIndex() {
       scene.add(points);
       return points;
     });
+
+    // The nearby galaxy is still built from points; this small additive core
+    // supplies the bloom and central light source those particles scatter.
+    const distantCoreTexture = createGlowTexture();
+    const distantCoreMaterial = new THREE.SpriteMaterial({
+      map: distantCoreTexture,
+      color: 0xffe0cf,
+      transparent: true,
+      opacity: 0.54,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const distantCore = new THREE.Sprite(distantCoreMaterial);
+    distantCore.position.set(4.9, 6.1, -19.96);
+    distantCore.scale.set(2.45, 0.82, 1);
+    distantCore.renderOrder = -1;
+    scene.add(distantCore);
 
     const galaxy = new THREE.Group();
     galaxy.rotation.x = -0.08;
@@ -1028,12 +1046,7 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-        const previewWidth = previewElement.offsetWidth || 166;
-        const opensLeft =
-          screenX + previewWidth - 31 > bounds.width - (isCompact ? 8 : 14);
-        const anchorOffset = opensLeft ? previewWidth - 31 : 31;
-        previewElement.dataset.edge = opensLeft ? 'right' : 'left';
-        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-${anchorOffset}px, -50%)`;
+        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
         previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 
@@ -1084,6 +1097,8 @@ export function GalaxyIndex() {
       galaxyMistMaterial.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();
+      distantCoreTexture?.dispose();
+      distantCoreMaterial.dispose();
       nearGalaxyGeometry.dispose();
       farGalaxyGeometry.dispose();
       distantGalaxies.forEach(({ material }) => material.dispose());
