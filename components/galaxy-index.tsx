@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import * as THREE from 'three';
 
 type Destination = {
@@ -8,6 +8,8 @@ type Destination = {
   kind: string;
   url: string;
   description: string;
+  iconSrc?: string;
+  glyph: string;
   color: number;
   radius: number;
   angle: number;
@@ -18,8 +20,10 @@ const destinations: Destination[] = [
   {
     name: 'Alireza Afshan',
     kind: 'Portfolio · homeworld',
-    url: 'https://alirezaafshan.com',
+    url: 'https://portfolio.alirezaafshan.com',
     description: 'The person and the work at the center of this little galaxy.',
+    iconSrc: 'https://alirezaafshan.com/apple-touch-icon.png',
+    glyph: 'A♦',
     color: 0x70dfff,
     radius: 8.6,
     angle: 1.73,
@@ -31,6 +35,9 @@ const destinations: Destination[] = [
     url: 'https://worm.alirezaafshan.com',
     description:
       'A 302-neuron connectome and body running as one browser loop.',
+    iconSrc:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 16C7 7 12 25 16 16s6-9 13 0' fill='none' stroke='%23e2a04a' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E",
+    glyph: '〰',
     color: 0x9affeb,
     radius: 5.05,
     angle: 2.82,
@@ -42,6 +49,7 @@ const destinations: Destination[] = [
     url: 'https://proof-bonsai.alirezaafshan.com',
     description:
       'A living map of scoped proof progress, open branches, and scars.',
+    glyph: '♣',
     color: 0xffe67d,
     radius: 8.15,
     angle: 0.16,
@@ -53,6 +61,7 @@ const destinations: Destination[] = [
     url: 'https://fish.alirezaafshan.com',
     description:
       'A small fish tank that was apparently not allowed to stay simple.',
+    glyph: '🐠',
     color: 0x72a8ff,
     radius: 8.9,
     angle: 4.28,
@@ -63,6 +72,7 @@ const destinations: Destination[] = [
     kind: 'Daily field note',
     url: 'https://birds.alirezaafshan.com',
     description: 'One recent bird gets the whole front page for a day.',
+    glyph: '🐦',
     color: 0xffa6e4,
     radius: 10.65,
     angle: 5.52,
@@ -74,6 +84,9 @@ const destinations: Destination[] = [
     url: 'https://job-application-batch-builder.alirezaafshan4.chatgpt.site',
     description:
       'Evidence-first application batches without the polished nonsense.',
+    iconSrc:
+      'https://job-application-batch-builder.alirezaafshan4.chatgpt.site/_sites/dispatch-assets/favicon.svg',
+    glyph: '▤',
     color: 0xbda2ff,
     radius: 7.45,
     angle: 3.57,
@@ -84,6 +97,8 @@ const destinations: Destination[] = [
     kind: 'Open research',
     url: 'https://www.learn2design2026.com/',
     description: 'Open, reproducible optimizer research for Learn2Design 2026.',
+    iconSrc: 'https://www.learn2design2026.com/asl_icon.png',
+    glyph: '◎',
     color: 0xffba6b,
     radius: 10.2,
     angle: 2.02,
@@ -328,14 +343,18 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
 
 export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLAnchorElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   const activeIndexRef = useRef(0);
+  const focusRotationRef = useRef<number | null>(
+    destinations[0].angle - Math.PI / 2,
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [ready, setReady] = useState(false);
   const active = destinations[activeIndex];
 
   const selectDestination = (index: number) => {
     activeIndexRef.current = index;
+    focusRotationRef.current = destinations[index].angle - Math.PI / 2;
     setActiveIndex(index);
   };
 
@@ -587,6 +606,7 @@ export function GalaxyIndex() {
 
     const onPointerDown = (event: PointerEvent) => {
       isDragging = true;
+      focusRotationRef.current = null;
       pointerId = event.pointerId;
       lastX = event.clientX;
       lastY = event.clientY;
@@ -620,7 +640,11 @@ export function GalaxyIndex() {
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
       if (dragDistance < 8 && hoveredIndex >= 0) {
-        window.location.assign(destinations[hoveredIndex].url);
+        angularVelocity = 0;
+        activeIndexRef.current = hoveredIndex;
+        focusRotationRef.current =
+          destinations[hoveredIndex].angle - Math.PI / 2;
+        setActiveIndex(hoveredIndex);
       }
       pointerId = -1;
     };
@@ -688,11 +712,23 @@ export function GalaxyIndex() {
       frame += 1;
 
       if (!isDragging) {
-        galaxy.rotation.y += angularVelocity * delta;
-        angularVelocity *= Math.pow(0.949, delta);
-        tiltVelocity *= Math.pow(0.9, delta);
-        if (!reduceMotion && Math.abs(angularVelocity) < 0.0012) {
-          galaxy.rotation.y += 0.00035 * delta;
+        const focusRotation = focusRotationRef.current;
+        if (focusRotation !== null && Math.abs(angularVelocity) < 0.02) {
+          const rotationDelta = Math.atan2(
+            Math.sin(focusRotation - galaxy.rotation.y),
+            Math.cos(focusRotation - galaxy.rotation.y),
+          );
+          galaxy.rotation.y += rotationDelta * 0.065 * delta;
+          if (Math.abs(rotationDelta) < 0.0018) {
+            galaxy.rotation.y = focusRotation;
+          }
+        } else {
+          galaxy.rotation.y += angularVelocity * delta;
+          angularVelocity *= Math.pow(0.949, delta);
+          tiltVelocity *= Math.pow(0.9, delta);
+          if (!reduceMotion && Math.abs(angularVelocity) < 0.0012) {
+            galaxy.rotation.y += 0.00035 * delta;
+          }
         }
       }
 
@@ -722,10 +758,6 @@ export function GalaxyIndex() {
           const nextIndex = hit.object.userData.destinationIndex as number;
           hoveredIndex = nextIndex;
           renderer.domElement.style.cursor = 'pointer';
-          if (activeIndexRef.current !== nextIndex) {
-            activeIndexRef.current = nextIndex;
-            setActiveIndex(nextIndex);
-          }
         } else {
           hoveredIndex = -1;
           renderer.domElement.style.cursor = 'grab';
@@ -738,32 +770,42 @@ export function GalaxyIndex() {
       nodes.forEach(({ planet, marker }, index) => {
         const destination = destinations[index];
         const isSelected = index === selectedIndex;
+        const isHovered = index === hoveredIndex;
         const pulse =
           reduceMotion || !isSelected ? 1 : 1 + Math.sin(time * 0.0035) * 0.07;
         const markerTarget =
-          destination.size * (isSelected ? 0.48 : 0.35) * pulse;
-        const planetTarget = isSelected ? 0.7 : 0.38;
+          destination.size *
+          (isSelected ? 0.48 : isHovered ? 0.43 : 0.35) *
+          pulse;
+        const planetTarget = isSelected ? 0.7 : isHovered ? 0.5 : 0.38;
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
-          ((isSelected ? 1 : 0.68) - marker.material.opacity) * 0.11;
+          ((isSelected ? 1 : isHovered ? 0.88 : 0.68) -
+            marker.material.opacity) *
+          0.11;
         planet.scale.x += (planetTarget - planet.scale.x) * 0.11;
         planet.scale.y += (planetTarget - planet.scale.y) * 0.11;
         planet.scale.z += (planetTarget - planet.scale.z) * 0.11;
         planet.rotation.y += (0.0022 + index * 0.00025) * delta;
       });
 
-      const label = labelRef.current;
-      if (label) {
+      const detail = detailRef.current;
+      if (detail) {
         labelPosition.copy(nodes[selectedIndex].position);
         galaxy.localToWorld(labelPosition);
         labelPosition.project(camera);
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
-        const labelOffset = screenX > bounds.width - 205 ? -176 : 58;
-        label.style.transform = `translate3d(${screenX + labelOffset}px, ${screenY - 13}px, 0)`;
-        label.style.opacity = labelPosition.z > 1 ? '0' : '1';
+        const panelX = isCompact
+          ? bounds.width / 2
+          : THREE.MathUtils.clamp(screenX, 310, bounds.width - 310);
+        const panelY = isCompact
+          ? bounds.height - 160
+          : THREE.MathUtils.clamp(screenY, 300, bounds.height - 165);
+        detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0) translate(-50%, -50%)`;
+        detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
       }
 
       for (let index = portraitSprites.length - 1; index >= 0; index -= 1) {
@@ -835,61 +877,106 @@ export function GalaxyIndex() {
       <header className="spore-corner" aria-label="Main menu">
         <a
           className="sprawl-mark"
-          href="https://alirezaafshan.com"
-          aria-label="Sprawl — Alireza Afshan"
+          href="#galaxy"
+          aria-label="Afshan Software — return to the galaxy"
         >
-          sprawl
-          <sup>β</sup>
+          afshan
         </a>
         <nav className="spore-menu" aria-label="Primary">
           <a className="spore-menu-item is-active" href="#galaxy">
             <span aria-hidden="true">▶</span>
-            Explore
-          </a>
-          <a className="spore-menu-item" href="https://alirezaafshan.com/about">
-            <span aria-hidden="true">✦</span>
-            About
+            Galaxy
           </a>
           <a
             className="spore-menu-item"
-            href="https://alirezaafshan.com/projects"
+            href="https://portfolio.alirezaafshan.com"
           >
-            <span aria-hidden="true">▦</span>
-            Projects
+            <span aria-hidden="true">♙</span>
+            Portfolio
           </a>
           <a
             className="spore-menu-item"
-            href="https://github.com/YesterdaysLemon/alirezas-galaxy"
+            href="https://github.com/YesterdaysLemon"
           >
-            <span aria-hidden="true">⌁</span>
-            Source
+            <span aria-hidden="true">⚙</span>
+            Workshop
+          </a>
+          <a className="spore-menu-item" href="mailto:mail@alirezaafshan.com">
+            <span aria-hidden="true">✉</span>
+            Signal
           </a>
         </nav>
       </header>
 
       <p className="spore-invitation">
-        Click a world to visit it!
-        <span>Drag the galaxy to look around.</span>
+        Choose a world, then launch it!
+        <span>Drag the galaxy to look around. Spin it if you must.</span>
       </p>
 
-      <a ref={labelRef} href={active.url} className="world-label">
-        <strong>{active.name}</strong>
-        <span>{active.kind}</span>
-      </a>
+      <section
+        ref={detailRef}
+        className="world-detail"
+        aria-label={`Selected world: ${active.name}`}
+        style={
+          {
+            '--world-color': `#${active.color.toString(16).padStart(6, '0')}`,
+          } as CSSProperties
+        }
+      >
+        <div className="world-copy">
+          <span className="world-kind">{active.kind}</span>
+          <h2>{active.name}</h2>
+          <p>{active.description}</p>
+        </div>
+
+        <div className="world-stage">
+          <div className="world-orbit" aria-hidden="true">
+            <div className="world-face">
+              <span>{active.glyph}</span>
+              {active.iconSrc ? (
+                // Remote favicons are tiny, optional UI texture—not LCP content.
+                // oxlint-disable-next-line next/no-img-element
+                <img
+                  key={active.iconSrc}
+                  src={active.iconSrc}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+
+          <a
+            href={active.url}
+            className="world-play"
+            aria-label={`Launch ${active.name}`}
+          >
+            <span className="play-triangle" aria-hidden="true">
+              ▶
+            </span>
+            <span>
+              <small>open world</small>
+              <strong>Launch</strong>
+            </span>
+          </a>
+        </div>
+      </section>
 
       <div className="spore-dock" aria-label="Quick links">
         <a href="#galaxy" aria-label="Return to galaxy" className="dock-orb">
           ◎
         </a>
         <a
-          href="https://alirezaafshan.com/projects"
-          aria-label="Project index"
+          href="https://github.com/YesterdaysLemon"
+          aria-label="Open the workshop"
           className="dock-grid"
         >
-          ▦
+          ⚙
         </a>
-        <a href="https://alirezaafshan.com" className="dock-pill">
-          portfolio
+        <a href="mailto:mail@alirezaafshan.com" className="dock-pill">
+          send a signal
         </a>
       </div>
 
@@ -900,13 +987,14 @@ export function GalaxyIndex() {
 
       <nav className="sr-only" aria-label="Website worlds">
         {destinations.map((destination, index) => (
-          <a
+          <button
+            type="button"
             key={destination.url}
-            href={destination.url}
             onFocus={() => selectDestination(index)}
+            onClick={() => selectDestination(index)}
           >
             {destination.name}: {destination.description}
-          </a>
+          </button>
         ))}
       </nav>
 
