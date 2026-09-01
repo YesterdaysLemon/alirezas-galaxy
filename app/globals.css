@@ -100,12 +100,17 @@ button {
       rgba(25, 38, 102, 0.12) 61%,
       transparent 82%
     );
-  clip-path: ellipse(103% 82% at 0 0);
+  -webkit-mask-image: radial-gradient(
+    circle 185px at 258px 128px,
+    transparent 0 97.5%,
+    rgba(0, 0, 0, 0.86) 99%,
+    black 100%
+  );
   mask-image: radial-gradient(
-    ellipse 112% 94% at 0 0,
-    black 0 57%,
-    rgba(0, 0, 0, 0.78) 70%,
-    transparent 93%
+    circle 185px at 258px 128px,
+    transparent 0 97.5%,
+    rgba(0, 0, 0, 0.86) 99%,
+    black 100%
   );
 }
 
@@ -130,11 +135,17 @@ button {
       rgba(17, 35, 82, 0.25) 72%,
       transparent
     );
-  mask-image: linear-gradient(
-    90deg,
-    black,
-    rgba(0, 0, 0, 0.72) 58%,
-    transparent
+  -webkit-mask-image: radial-gradient(
+    circle 185px at 258px 36px,
+    transparent 0 97.5%,
+    rgba(0, 0, 0, 0.8) 99%,
+    black 100%
+  );
+  mask-image: radial-gradient(
+    circle 185px at 258px 36px,
+    transparent 0 97.5%,
+    rgba(0, 0, 0, 0.8) 99%,
+    black 100%
   );
 }
 
@@ -188,14 +199,27 @@ button {
   border: 0;
   border-radius: 18px;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.015em;
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.018em;
   line-height: 1;
   text-decoration: none;
   text-shadow:
-    0 2px 2px rgba(0, 0, 0, 0.92),
-    0 0 5px rgba(5, 18, 45, 0.95);
+    0 2px 1px rgba(0, 0, 0, 0.96),
+    0 0 2px rgba(226, 242, 255, 0.5),
+    0 0 7px rgba(38, 130, 221, 0.46);
+  background: linear-gradient(
+    90deg,
+    rgba(12, 35, 74, 0.74),
+    rgba(10, 31, 70, 0.36) 62%,
+    rgba(8, 24, 57, 0.08) 86%,
+    transparent
+  );
+  box-shadow:
+    inset 1px 0 rgba(116, 190, 246, 0.46),
+    inset 0 1px rgba(118, 181, 231, 0.18),
+    inset 0 -1px rgba(47, 102, 159, 0.32);
   outline: none;
   transition:
     color 100ms ease,
@@ -252,8 +276,11 @@ button {
     rgba(239, 182, 30, 0.13) 88%,
     transparent 100%
   );
+  box-shadow: none;
   filter: drop-shadow(0 0 7px rgba(255, 207, 45, 0.58));
-  text-shadow: 0 1px rgba(255, 255, 255, 0.66);
+  text-shadow:
+    0 1px rgba(255, 255, 255, 0.7),
+    0 0 1px rgba(82, 47, 0, 0.38);
 }
 
 .spore-menu-item.is-active::before {
@@ -269,7 +296,19 @@ button {
 }
 
 .spore-menu-item.is-active::after {
-  display: none;
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 18px;
+  content: '';
+  background:
+    linear-gradient(90deg, rgba(255, 255, 226, 0.92), transparent 90%) top /
+      100% 1px no-repeat,
+    linear-gradient(90deg, rgba(211, 145, 0, 0.82), transparent 90%) bottom /
+      100% 1px no-repeat,
+    linear-gradient(rgba(255, 252, 202, 0.95), rgba(219, 155, 6, 0.88)) left /
+      2px 100% no-repeat;
+  pointer-events: none;
 }
 
 .spore-menu-item.is-active > span {
@@ -340,8 +379,8 @@ button {
 .world-preview-face {
   position: relative;
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   overflow: hidden;
   border: 1px solid rgba(244, 253, 255, 0.9);
   border-radius: 50%;
@@ -350,19 +389,48 @@ button {
     900 16px Arial,
     sans-serif;
   text-shadow: 0 1px 2px #00172a;
-  background: radial-gradient(
-    circle at 35% 28%,
-    color-mix(in srgb, var(--world-color) 90%, white),
-    color-mix(in srgb, var(--world-color) 58%, #08213b) 58%,
-    #06111e 100%
-  );
+  background: radial-gradient(circle, rgba(22, 29, 47, 0.62), #01030a 72%);
   box-shadow:
-    inset -5px -6px 9px rgba(0, 0, 0, 0.38),
-    inset 3px 3px 5px rgba(255, 255, 255, 0.34);
+    inset 0 0 10px rgba(0, 0, 0, 0.86),
+    0 0 7px color-mix(in srgb, var(--world-color) 72%, transparent);
   place-items: center;
 }
 
-.world-preview-face img,
+.world-preview-face::before {
+  position: absolute;
+  z-index: 0;
+  inset: -8px;
+  content: '';
+  opacity: 0.9;
+  background:
+    linear-gradient(90deg, transparent 48%, white 49.5% 50.5%, transparent 52%),
+    linear-gradient(transparent 48%, white 49.5% 50.5%, transparent 52%),
+    linear-gradient(
+      45deg,
+      transparent 49%,
+      rgba(255, 244, 193, 0.82) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 49%,
+      rgba(255, 244, 193, 0.82) 50%,
+      transparent 51%
+    );
+  filter: drop-shadow(0 0 5px rgba(255, 241, 170, 0.92));
+}
+
+.world-preview-face img {
+  position: absolute;
+  z-index: 1;
+  inset: 7px;
+  width: calc(100% - 14px);
+  height: calc(100% - 14px);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .world-face img {
   position: absolute;
   z-index: 1;
@@ -392,6 +460,20 @@ button {
     rgba(9, 27, 50, 0.95)
   );
   box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.14);
+}
+
+.world-preview[data-edge='right'] {
+  flex-direction: row-reverse;
+}
+
+.world-preview[data-edge='right'] .world-preview-label {
+  margin-right: -5px;
+  margin-left: 0;
+  padding-right: 14px;
+  padding-left: 12px;
+  border: 1px solid rgba(157, 207, 238, 0.52);
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
 }
 
 .world-detail {
@@ -700,9 +782,31 @@ button {
   z-index: 10;
   bottom: 6px;
   left: 5px;
+  isolation: isolate;
   display: flex;
   height: 58px;
   align-items: center;
+}
+
+.spore-dock::before {
+  position: absolute;
+  z-index: 0;
+  top: 10px;
+  right: 0;
+  bottom: 10px;
+  left: 28px;
+  border: 2px solid rgba(157, 207, 238, 0.58);
+  border-radius: 20px;
+  content: '';
+  background: linear-gradient(
+    180deg,
+    rgba(72, 112, 151, 0.92),
+    rgba(9, 25, 47, 0.96)
+  );
+  box-shadow:
+    inset 0 1px rgba(223, 245, 255, 0.24),
+    inset 0 0 10px rgba(130, 205, 255, 0.16),
+    0 0 7px rgba(34, 123, 185, 0.28);
 }
 
 .spore-dock a,
@@ -773,6 +877,8 @@ button {
 }
 
 .dock-signal-group {
+  position: relative;
+  z-index: 1;
   display: flex;
   height: 40px;
   margin-left: -4px;
@@ -786,17 +892,17 @@ button {
   height: 34px;
   margin-left: -5px;
   padding: 0 28px 0 31px;
-  border: 2px solid rgba(157, 207, 238, 0.58);
-  border-left: 0;
+  border: 0;
   border-radius: 0 18px 18px 0;
   color: #92ff63 !important;
-  font-size: 13px;
-  background: linear-gradient(
-    180deg,
-    rgba(66, 102, 140, 0.88),
-    rgba(10, 26, 48, 0.94)
-  );
-  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.15);
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.025em;
+  text-shadow:
+    0 1px 1px rgba(0, 26, 17, 0.95),
+    0 0 4px rgba(113, 255, 93, 0.62);
+  background: transparent;
+  box-shadow: none;
 }
 
 .spore-dock a:hover,
@@ -822,6 +928,7 @@ button {
   border: 1px solid rgba(151, 214, 255, 0.58);
   border-radius: 12px 12px 12px 3px;
   color: #e7f7ff;
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
   background:
     repeating-linear-gradient(
       0deg,
@@ -866,6 +973,66 @@ button {
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.dock-slider-row {
+  display: block;
+  padding: 7px 8px 8px;
+  border-top: 1px solid rgba(184, 226, 255, 0.18);
+  color: white;
+  font-size: 11px;
+  background: linear-gradient(90deg, rgba(55, 126, 174, 0.27), transparent);
+}
+
+.dock-slider-row > span {
+  display: flex;
+  margin-bottom: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dock-slider-row output {
+  color: #99ff73;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 4px rgba(105, 255, 77, 0.55);
+}
+
+.dock-slider-row input {
+  width: 100%;
+  height: 5px;
+  border: 1px solid rgba(139, 210, 251, 0.48);
+  border-radius: 999px;
+  appearance: none;
+  cursor: ew-resize;
+  background: linear-gradient(90deg, #5ed7ff, #fff2a5);
+  box-shadow: inset 0 1px 2px rgba(1, 10, 24, 0.88);
+}
+
+.dock-slider-row input::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d8f4ff;
+  border-radius: 50%;
+  appearance: none;
+  background: radial-gradient(circle at 35% 30%, #8ce7ff, #147eb9 70%);
+  box-shadow: 0 0 5px rgba(89, 202, 255, 0.72);
+}
+
+.dock-slider-row input::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #d8f4ff;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #8ce7ff, #147eb9 70%);
+  box-shadow: 0 0 5px rgba(89, 202, 255, 0.72);
+}
+
+.world-preview-label,
+.world-kind,
+.world-detail h2,
+.world-play {
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
 }
 
 @media (max-width: 720px) {
@@ -971,8 +1138,9 @@ button {
   }
 
   .dock-pill {
-    min-width: 102px;
-    padding: 0 15px;
+    min-width: 132px;
+    padding: 0 18px 0 24px;
+    font-size: 13px;
   }
 }
 

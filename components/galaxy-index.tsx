@@ -181,6 +181,52 @@ function createGlowTexture() {
   return texture;
 }
 
+function createDistantGalaxyTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  context.translate(128, 128);
+  context.scale(1, 0.42);
+  const halo = context.createRadialGradient(0, 0, 2, 0, 0, 116);
+  halo.addColorStop(0, 'rgba(255,246,211,.94)');
+  halo.addColorStop(0.08, 'rgba(255,205,183,.72)');
+  halo.addColorStop(0.28, 'rgba(169,131,255,.31)');
+  halo.addColorStop(0.62, 'rgba(72,92,255,.12)');
+  halo.addColorStop(1, 'rgba(32,37,120,0)');
+  context.fillStyle = halo;
+  context.beginPath();
+  context.arc(0, 0, 116, 0, Math.PI * 2);
+  context.fill();
+
+  context.globalCompositeOperation = 'lighter';
+  context.lineCap = 'round';
+  [0, Math.PI].forEach((offset) => {
+    context.beginPath();
+    for (let step = 0; step < 68; step += 1) {
+      const progress = step / 67;
+      const angle = offset + progress * Math.PI * 2.25;
+      const radius = 8 + progress * 98;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (step === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.strokeStyle = 'rgba(190,179,255,.16)';
+    context.lineWidth = 11;
+    context.stroke();
+    context.strokeStyle = 'rgba(245,220,255,.26)';
+    context.lineWidth = 2.4;
+    context.stroke();
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function createMarkerTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
@@ -189,32 +235,54 @@ function createMarkerTexture() {
   if (!context) return null;
 
   context.translate(128, 128);
-  const aura = context.createRadialGradient(0, 0, 2, 0, 0, 104);
+  const aura = context.createRadialGradient(0, 0, 1, 0, 0, 108);
   aura.addColorStop(0, 'rgba(255,255,255,1)');
-  aura.addColorStop(0.035, 'rgba(255,243,177,.98)');
-  aura.addColorStop(0.08, 'rgba(255,235,196,.35)');
-  aura.addColorStop(0.18, 'rgba(255,210,131,.06)');
-  aura.addColorStop(0.31, 'rgba(255,255,255,0)');
+  aura.addColorStop(0.025, 'rgba(255,247,193,1)');
+  aura.addColorStop(0.075, 'rgba(255,235,196,.42)');
+  aura.addColorStop(0.2, 'rgba(255,210,131,.08)');
+  aura.addColorStop(0.34, 'rgba(255,255,255,0)');
   aura.addColorStop(1, 'rgba(255,255,255,0)');
   context.fillStyle = aura;
   context.fillRect(-128, -128, 256, 256);
 
+  const lens = context.createRadialGradient(-8, -10, 2, 0, 0, 39);
+  lens.addColorStop(0, 'rgba(34,37,55,.48)');
+  lens.addColorStop(0.58, 'rgba(7,9,18,.9)');
+  lens.addColorStop(1, 'rgba(0,1,7,.98)');
+  context.fillStyle = lens;
+  context.beginPath();
+  context.arc(0, 0, 38, 0, Math.PI * 2);
+  context.fill();
+
   context.strokeStyle = 'rgba(255, 244, 194, .94)';
   context.lineWidth = 4;
-  [44, 67, 91].forEach((radius, index) => {
+  [43, 65, 89].forEach((radius, index) => {
     context.globalAlpha = 1 - index * 0.24;
     context.beginPath();
     context.arc(0, 0, radius, 0, Math.PI * 2);
     context.stroke();
   });
-  context.globalAlpha = 0.9;
-  context.lineWidth = 3;
+
+  context.globalAlpha = 1;
+  context.strokeStyle = 'rgba(255,255,241,.96)';
+  context.shadowColor = 'rgba(255,246,182,1)';
+  context.shadowBlur = 10;
+  context.lineWidth = 2.2;
   context.beginPath();
-  context.moveTo(-43, 0);
-  context.lineTo(43, 0);
-  context.moveTo(0, -43);
-  context.lineTo(0, 43);
+  context.moveTo(-31, 0);
+  context.lineTo(31, 0);
+  context.moveTo(0, -31);
+  context.lineTo(0, 31);
+  context.moveTo(-15, -15);
+  context.lineTo(15, 15);
+  context.moveTo(15, -15);
+  context.lineTo(-15, 15);
   context.stroke();
+  context.shadowBlur = 0;
+  context.fillStyle = 'white';
+  context.beginPath();
+  context.arc(0, 0, 3.4, 0, Math.PI * 2);
+  context.fill();
   context.globalAlpha = 1;
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -248,6 +316,7 @@ export function GalaxyIndex() {
   const expandedRef = useRef(false);
   const cameraModeRef = useRef<'default' | 'expanded' | 'manual'>('default');
   const ambientMotionRef = useRef(true);
+  const coreExposureRef = useRef(0.82);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
@@ -256,6 +325,7 @@ export function GalaxyIndex() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [ambientMotion, setAmbientMotion] = useState(true);
+  const [coreExposure, setCoreExposure] = useState(0.82);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
@@ -290,6 +360,35 @@ export function GalaxyIndex() {
       return !current;
     });
   };
+
+  const updateCoreExposure = (value: number) => {
+    const nextValue = THREE.MathUtils.clamp(value, 0.55, 1);
+    coreExposureRef.current = nextValue;
+    setCoreExposure(nextValue);
+    try {
+      window.localStorage.setItem('afshan-core-exposure', String(nextValue));
+    } catch {
+      // The visual control still works when storage is unavailable.
+    }
+  };
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const storedExposure = Number(
+          window.localStorage.getItem('afshan-core-exposure'),
+        );
+        if (storedExposure >= 0.55 && storedExposure <= 1) {
+          coreExposureRef.current = storedExposure;
+          setCoreExposure(storedExposure);
+        }
+      } catch {
+        // Keep the tuned default when storage is unavailable.
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -346,6 +445,34 @@ export function GalaxyIndex() {
     const backdrop = new THREE.Points(backdropGeometry, backdropMaterial);
     scene.add(backdrop);
 
+    const distantGalaxyTexture = createDistantGalaxyTexture();
+    const distantGalaxySpecs = [
+      { position: [4.7, 7.2, -20], scale: [7.8, 2.95], opacity: 0.3 },
+      { position: [-3.7, -4.8, -25], scale: [2.6, 0.92], opacity: 0.19 },
+      { position: [4.2, -5.7, -29], scale: [1.8, 0.68], opacity: 0.17 },
+      { position: [-2.8, 8.8, -31], scale: [1.3, 0.46], opacity: 0.15 },
+      { position: [1.8, -9.2, -34], scale: [0.92, 0.34], opacity: 0.14 },
+      { position: [-4.5, 3.1, -38], scale: [0.72, 0.26], opacity: 0.13 },
+    ] as const;
+    const distantGalaxies = distantGalaxySpecs.map((spec, index) => {
+      const material = new THREE.SpriteMaterial({
+        map: distantGalaxyTexture,
+        color: index === 0 ? 0xb99cff : index % 2 === 0 ? 0x87b5ff : 0xffc7e8,
+        transparent: true,
+        opacity: spec.opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+        rotation: index * 0.71 - 0.38,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(spec.position[0], spec.position[1], spec.position[2]);
+      sprite.scale.set(spec.scale[0], spec.scale[1], 1);
+      sprite.renderOrder = -2;
+      scene.add(sprite);
+      return sprite;
+    });
+
     const galaxy = new THREE.Group();
     galaxy.rotation.x = -0.08;
     galaxy.rotation.y = 0.16;
@@ -372,7 +499,7 @@ export function GalaxyIndex() {
       map: glowTexture,
       color: 0xffffff,
       transparent: true,
-      opacity: 1,
+      opacity: coreExposureRef.current,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       depthTest: false,
@@ -388,7 +515,7 @@ export function GalaxyIndex() {
         map: glowTexture,
         color: 0x7d5dff,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.3 * coreExposureRef.current,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         depthTest: false,
@@ -404,8 +531,7 @@ export function GalaxyIndex() {
     galaxy.add(keyLight);
 
     const markerTexture = createMarkerTexture();
-    const planetGeometry = new THREE.SphereGeometry(0.25, 18, 12);
-    const hitGeometry = new THREE.SphereGeometry(0.68, 8, 6);
+    const hitGeometry = new THREE.SphereGeometry(0.72, 8, 6);
     const hitMaterial = new THREE.MeshBasicMaterial({
       colorWrite: false,
       depthTest: false,
@@ -417,22 +543,12 @@ export function GalaxyIndex() {
         0.38 + index * 0.018,
         Math.sin(destination.angle) * destination.radius,
       );
-      const planetMaterial = new THREE.MeshStandardMaterial({
-        color: destination.color,
-        emissive: destination.color,
-        emissiveIntensity: index === 0 ? 0.38 : 0.2,
-        roughness: 0.82,
-        metalness: 0.05,
-      });
-      const planet = new THREE.Mesh(planetGeometry, planetMaterial);
-      planet.position.copy(position);
-      planet.scale.setScalar(index === 0 ? 0.7 : 0.38);
-      planet.userData.destinationIndex = index;
-      galaxy.add(planet);
-
       const markerMaterial = new THREE.SpriteMaterial({
         map: markerTexture,
-        color: destination.color,
+        color: new THREE.Color(destination.color).lerp(
+          new THREE.Color(0xffe6a6),
+          0.58,
+        ),
         transparent: true,
         opacity: index === 0 ? 1 : 0.75,
         blending: THREE.AdditiveBlending,
@@ -441,7 +557,7 @@ export function GalaxyIndex() {
       });
       const marker = new THREE.Sprite(markerMaterial);
       marker.position.copy(position);
-      marker.scale.setScalar(destination.size * (index === 0 ? 0.48 : 0.35));
+      marker.scale.setScalar(destination.size * (index === 0 ? 0.68 : 0.48));
       marker.userData.destinationIndex = index;
       marker.renderOrder = 8;
       galaxy.add(marker);
@@ -451,7 +567,7 @@ export function GalaxyIndex() {
       hitArea.userData.destinationIndex = index;
       galaxy.add(hitArea);
 
-      return { planet, marker, hitArea, position };
+      return { marker, hitArea, position };
     });
 
     const portraitGroup = new THREE.Group();
@@ -733,7 +849,17 @@ export function GalaxyIndex() {
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
       if (ambientMotionRef.current && !reduceMotion) {
         backdrop.rotation.y -= 0.00006 * delta;
+        distantGalaxies.forEach((sprite, index) => {
+          sprite.material.rotation +=
+            (index % 2 === 0 ? 0.000012 : -0.000009) * delta;
+        });
       }
+      glowMaterial.opacity +=
+        (coreExposureRef.current - glowMaterial.opacity) * 0.075 * delta;
+      softGlow.material.opacity +=
+        (coreExposureRef.current * 0.3 - softGlow.material.opacity) *
+        0.075 *
+        delta;
 
       const selectedIndex = activeIndexRef.current;
       cameraFollowPosition.copy(nodes[selectedIndex].position);
@@ -773,7 +899,7 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      nodes.forEach(({ planet, marker }, index) => {
+      nodes.forEach(({ marker }, index) => {
         const destination = destinations[index];
         const isSelected = expandedRef.current && index === selectedIndex;
         const isPreviewed =
@@ -785,23 +911,15 @@ export function GalaxyIndex() {
             : 1 + Math.sin(time * 0.0035) * 0.07;
         const markerTarget =
           destination.size *
-          (isSelected ? 0.52 : isHovered || isPreviewed ? 0.44 : 0.35) *
+          (isSelected ? 0.82 : isHovered || isPreviewed ? 0.68 : 0.48) *
           pulse;
-        const planetTarget = isSelected
-          ? 0.76
-          : isHovered || isPreviewed
-            ? 0.52
-            : 0.38;
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
           ((isSelected ? 1 : isHovered || isPreviewed ? 0.9 : 0.68) -
             marker.material.opacity) *
           0.11;
-        planet.scale.x += (planetTarget - planet.scale.x) * 0.11;
-        planet.scale.y += (planetTarget - planet.scale.y) * 0.11;
-        planet.scale.z += (planetTarget - planet.scale.z) * 0.11;
-        planet.rotation.y += (0.0022 + index * 0.00025) * delta;
+        marker.material.rotation += (0.00016 + index * 0.000025) * delta;
       });
 
       const detail = detailRef.current;
@@ -831,7 +949,12 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-31px, -50%)`;
+        const previewWidth = previewElement.offsetWidth || 166;
+        const opensLeft =
+          screenX + previewWidth - 31 > bounds.width - (isCompact ? 8 : 14);
+        const anchorOffset = opensLeft ? previewWidth - 31 : 31;
+        previewElement.dataset.edge = opensLeft ? 'right' : 'left';
+        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-${anchorOffset}px, -50%)`;
         previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 
@@ -881,13 +1004,11 @@ export function GalaxyIndex() {
       galaxyMistMaterial.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();
-      planetGeometry.dispose();
+      distantGalaxyTexture?.dispose();
+      distantGalaxies.forEach(({ material }) => material.dispose());
       hitGeometry.dispose();
       hitMaterial.dispose();
-      nodes.forEach(({ planet, marker }) => {
-        planet.material.dispose();
-        marker.material.dispose();
-      });
+      nodes.forEach(({ marker }) => marker.material.dispose());
       renderer.dispose();
       renderer.domElement.remove();
     };
@@ -1073,6 +1194,23 @@ export function GalaxyIndex() {
               <span>galactic drift</span>
               <strong>{ambientMotion ? 'on' : 'off'}</strong>
             </button>
+            <label className="dock-slider-row">
+              <span>
+                <span>core exposure</span>
+                <output>{Math.round(coreExposure * 100)}%</output>
+              </span>
+              <input
+                type="range"
+                min="0.55"
+                max="1"
+                step="0.01"
+                value={coreExposure}
+                aria-label="Galaxy core exposure"
+                onChange={(event) =>
+                  updateCoreExposure(Number(event.currentTarget.value))
+                }
+              />
+            </label>
             <button
               type="button"
               className="dock-setting-row"
@@ -1091,9 +1229,9 @@ export function GalaxyIndex() {
           onClick={() => resetGalaxyRef.current()}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M19 8a8 8 0 1 0 1 6" />
-            <path d="M16 4h4v4" />
-            <circle cx="12" cy="12" r="2.2" />
+            <path d="M12.1 11.9c.6-2.3 3.9-2.8 5.3-.8 1.7 2.4.2 5.8-2.7 7-4.2 1.8-9-.9-9.8-5.3-.9-5 3-9.6 7.9-10 5.5-.4 10.2 4.2 9.4 9.7" />
+            <path d="M12.1 11.9c-1.4 1.5-4 .8-4.3-1.3-.3-2 1.6-3.7 3.6-3.2 1.7.4 2.6 2.3 1.8 3.8-.7 1.4-2.7 1.8-3.9.8" />
+            <circle cx="12" cy="12" r="1.25" />
           </svg>
         </button>
         <div className="dock-signal-group">
