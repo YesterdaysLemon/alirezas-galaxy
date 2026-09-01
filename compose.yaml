@@ -1,0 +1,17 @@
+services:
+  galaxy-menu:
+    build:
+      context: .
+    image: galaxy-menu:local
+    ports:
+      - '${GALAXY_PORT:-3000}:3000'
+    environment:
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      PORT: 3000
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

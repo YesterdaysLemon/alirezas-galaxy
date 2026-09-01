@@ -15,6 +15,25 @@ npm install
 npm run dev
 ```
 
+## Run on a VPS
+
+The production image is a self-contained Vinext Node server. Build and run it
+with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+It listens on port `3000` by default. Set `GALAXY_PORT` to publish a different
+host port, then place your deploy manager or reverse proxy in front of it. The
+container runs unprivileged, with a read-only filesystem and a built-in health
+check.
+
+Pushes to `main` build and publish `ghcr.io/yesterdayslemon/alirezas-galaxy`
+through the Container workflow; pull requests build the same image without
+publishing it. A VPS deploy manager can watch the `latest` or immutable
+`sha-<commit>` tag and only replace healthy containers.
+
 ## What is in the base
 
 - Seven real destinations, with the portfolio selected by default
@@ -32,9 +51,10 @@ npm run dev
 ## Performance shape
 
 The scene uses one compact galaxy buffer rendered in a crisp pass and a mist
-pass, one buffer for the distant field, shared low-poly planet geometry, capped
-device pixel ratio, adaptive particle counts, and throttled raycasting against
-only seven markers. Rendering pauses when the page is hidden or offscreen.
+pass, one buffer for the distant field, two shared buffers for particle-built
+background galaxies, capped device pixel ratio, adaptive particle counts, and
+throttled raycasting against only seven markers. Rendering pauses when the page
+is hidden or offscreen.
 
 ## Personalize it
 

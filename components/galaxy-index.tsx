@@ -181,50 +181,61 @@ function createGlowTexture() {
   return texture;
 }
 
-function createDistantGalaxyTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
+function createDistantGalaxyGeometry(count: number, seed: number) {
+  const random = seededRandom(seed);
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const alphas = new Float32Array(count);
+  const core = new THREE.Color(0xffedcf);
+  const rose = new THREE.Color(0xe4a9ff);
+  const violet = new THREE.Color(0x706cff);
+  const color = new THREE.Color();
+  const arms = 3;
 
-  context.translate(128, 128);
-  context.scale(1, 0.42);
-  const halo = context.createRadialGradient(0, 0, 2, 0, 0, 116);
-  halo.addColorStop(0, 'rgba(255,246,211,.94)');
-  halo.addColorStop(0.08, 'rgba(255,205,183,.72)');
-  halo.addColorStop(0.28, 'rgba(169,131,255,.31)');
-  halo.addColorStop(0.62, 'rgba(72,92,255,.12)');
-  halo.addColorStop(1, 'rgba(32,37,120,0)');
-  context.fillStyle = halo;
-  context.beginPath();
-  context.arc(0, 0, 116, 0, Math.PI * 2);
-  context.fill();
+  for (let index = 0; index < count; index += 1) {
+    const normalizedRadius = Math.pow(random(), 0.64);
+    const arm = index % arms;
+    const radius = Math.max(
+      0.015,
+      normalizedRadius + gaussian(random) * (0.025 + normalizedRadius * 0.07),
+    );
+    const angle =
+      (arm / arms) * Math.PI * 2 +
+      radius * Math.PI * 2.35 +
+      gaussian(random) * (0.045 + normalizedRadius * 0.12);
+    const offset = index * 3;
 
-  context.globalCompositeOperation = 'lighter';
-  context.lineCap = 'round';
-  [0, Math.PI].forEach((offset) => {
-    context.beginPath();
-    for (let step = 0; step < 68; step += 1) {
-      const progress = step / 67;
-      const angle = offset + progress * Math.PI * 2.25;
-      const radius = 8 + progress * 98;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      if (step === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    }
-    context.strokeStyle = 'rgba(190,179,255,.16)';
-    context.lineWidth = 11;
-    context.stroke();
-    context.strokeStyle = 'rgba(245,220,255,.26)';
-    context.lineWidth = 2.4;
-    context.stroke();
-  });
+    positions[offset] = Math.cos(angle) * radius;
+    positions[offset + 1] = Math.sin(angle) * radius;
+    positions[offset + 2] = gaussian(random) * 0.035;
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
+    color
+      .copy(core)
+      .lerp(
+        normalizedRadius < 0.38 ? rose : violet,
+        normalizedRadius < 0.38
+          ? THREE.MathUtils.smoothstep(normalizedRadius, 0.04, 0.38)
+          : THREE.MathUtils.smoothstep(normalizedRadius, 0.38, 1),
+      );
+    colors[offset] = color.r;
+    colors[offset + 1] = color.g;
+    colors[offset + 2] = color.b;
+    sizes[index] =
+      normalizedRadius < 0.14
+        ? 4.4 + random() * 4.8
+        : 1.2 + random() * (random() > 0.88 ? 4.6 : 2.1);
+    alphas[index] =
+      normalizedRadius < 0.18 ? 0.58 + random() * 0.38 : 0.25 + random() * 0.52;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 function createMarkerTexture() {
@@ -254,10 +265,10 @@ function createMarkerTexture() {
   context.arc(0, 0, 38, 0, Math.PI * 2);
   context.fill();
 
-  context.strokeStyle = 'rgba(255, 244, 194, .94)';
-  context.lineWidth = 4;
-  [43, 65, 89].forEach((radius, index) => {
-    context.globalAlpha = 1 - index * 0.24;
+  context.strokeStyle = 'rgba(255, 247, 207, .98)';
+  context.lineWidth = 4.6;
+  [43, 61].forEach((radius, index) => {
+    context.globalAlpha = 1 - index * 0.2;
     context.beginPath();
     context.arc(0, 0, radius, 0, Math.PI * 2);
     context.stroke();
@@ -290,6 +301,27 @@ function createMarkerTexture() {
   return texture;
 }
 
+function createSignalWaveTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  context.translate(128, 128);
+  context.strokeStyle = 'rgba(255, 247, 205, .96)';
+  context.shadowColor = 'rgba(255, 220, 151, .92)';
+  context.shadowBlur = 10;
+  context.lineWidth = 4;
+  context.beginPath();
+  context.arc(0, 0, 94, 0, Math.PI * 2);
+  context.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
   return new THREE.ShaderMaterial({
     uniforms: {
@@ -316,7 +348,7 @@ export function GalaxyIndex() {
   const expandedRef = useRef(false);
   const cameraModeRef = useRef<'default' | 'expanded' | 'manual'>('default');
   const ambientMotionRef = useRef(true);
-  const coreExposureRef = useRef(0.82);
+  const coreExposureRef = useRef(0.92);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
@@ -325,7 +357,7 @@ export function GalaxyIndex() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [ambientMotion, setAmbientMotion] = useState(true);
-  const [coreExposure, setCoreExposure] = useState(0.82);
+  const [coreExposure, setCoreExposure] = useState(0.92);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
@@ -366,7 +398,7 @@ export function GalaxyIndex() {
     coreExposureRef.current = nextValue;
     setCoreExposure(nextValue);
     try {
-      window.localStorage.setItem('afshan-core-exposure', String(nextValue));
+      window.localStorage.setItem('afshan-core-exposure-v2', String(nextValue));
     } catch {
       // The visual control still works when storage is unavailable.
     }
@@ -376,7 +408,7 @@ export function GalaxyIndex() {
     const frame = window.requestAnimationFrame(() => {
       try {
         const storedExposure = Number(
-          window.localStorage.getItem('afshan-core-exposure'),
+          window.localStorage.getItem('afshan-core-exposure-v2'),
         );
         if (storedExposure >= 0.55 && storedExposure <= 1) {
           coreExposureRef.current = storedExposure;
@@ -445,32 +477,39 @@ export function GalaxyIndex() {
     const backdrop = new THREE.Points(backdropGeometry, backdropMaterial);
     scene.add(backdrop);
 
-    const distantGalaxyTexture = createDistantGalaxyTexture();
     const distantGalaxySpecs = [
-      { position: [4.7, 7.2, -20], scale: [7.8, 2.95], opacity: 0.3 },
-      { position: [-3.7, -4.8, -25], scale: [2.6, 0.92], opacity: 0.19 },
-      { position: [4.2, -5.7, -29], scale: [1.8, 0.68], opacity: 0.17 },
-      { position: [-2.8, 8.8, -31], scale: [1.3, 0.46], opacity: 0.15 },
-      { position: [1.8, -9.2, -34], scale: [0.92, 0.34], opacity: 0.14 },
-      { position: [-4.5, 3.1, -38], scale: [0.72, 0.26], opacity: 0.13 },
+      { position: [4.7, 7.2, -20], scale: [4.7, 1.62], opacity: 0.66 },
+      { position: [-3.7, -4.8, -25], scale: [1.45, 0.5], opacity: 0.42 },
+      { position: [4.2, -5.7, -29], scale: [1.02, 0.37], opacity: 0.38 },
+      { position: [-2.8, 8.8, -31], scale: [0.75, 0.27], opacity: 0.35 },
+      { position: [1.8, -9.2, -34], scale: [0.55, 0.2], opacity: 0.32 },
+      { position: [-4.5, 3.1, -38], scale: [0.44, 0.16], opacity: 0.3 },
     ] as const;
+    const nearGalaxyGeometry = createDistantGalaxyGeometry(
+      isCompact ? 620 : 1050,
+      8317,
+    );
+    const farGalaxyGeometry = createDistantGalaxyGeometry(
+      isCompact ? 210 : 340,
+      1911,
+    );
     const distantGalaxies = distantGalaxySpecs.map((spec, index) => {
-      const material = new THREE.SpriteMaterial({
-        map: distantGalaxyTexture,
-        color: index === 0 ? 0xb99cff : index % 2 === 0 ? 0x87b5ff : 0xffc7e8,
-        transparent: true,
-        opacity: spec.opacity,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        depthTest: false,
-        rotation: index * 0.71 - 0.38,
-      });
-      const sprite = new THREE.Sprite(material);
-      sprite.position.set(spec.position[0], spec.position[1], spec.position[2]);
-      sprite.scale.set(spec.scale[0], spec.scale[1], 1);
-      sprite.renderOrder = -2;
-      scene.add(sprite);
-      return sprite;
+      const material = createPointsMaterial(
+        pixelRatio,
+        spec.opacity,
+        index === 0 ? 1.18 : 0.92,
+      );
+      material.depthTest = false;
+      const points = new THREE.Points(
+        index === 0 ? nearGalaxyGeometry : farGalaxyGeometry,
+        material,
+      );
+      points.position.set(spec.position[0], spec.position[1], spec.position[2]);
+      points.scale.set(spec.scale[0], spec.scale[1], 1);
+      points.rotation.z = index * 0.71 - 0.38;
+      points.renderOrder = -2;
+      scene.add(points);
+      return points;
     });
 
     const galaxy = new THREE.Group();
@@ -531,6 +570,7 @@ export function GalaxyIndex() {
     galaxy.add(keyLight);
 
     const markerTexture = createMarkerTexture();
+    const signalWaveTexture = createSignalWaveTexture();
     const hitGeometry = new THREE.SphereGeometry(0.72, 8, 6);
     const hitMaterial = new THREE.MeshBasicMaterial({
       colorWrite: false,
@@ -550,24 +590,46 @@ export function GalaxyIndex() {
           0.58,
         ),
         transparent: true,
-        opacity: index === 0 ? 1 : 0.75,
+        opacity: index === 0 ? 0.92 : 0.82,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         depthTest: false,
       });
       const marker = new THREE.Sprite(markerMaterial);
       marker.position.copy(position);
-      marker.scale.setScalar(destination.size * (index === 0 ? 0.68 : 0.48));
+      marker.scale.setScalar(destination.size * (index === 0 ? 0.56 : 0.51));
       marker.userData.destinationIndex = index;
       marker.renderOrder = 8;
       galaxy.add(marker);
+
+      const signalWaves = Array.from({ length: 3 }, (_, waveIndex) => {
+        const material = new THREE.SpriteMaterial({
+          map: signalWaveTexture,
+          color: new THREE.Color(destination.color).lerp(
+            new THREE.Color(0xffe9ac),
+            0.68,
+          ),
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          depthTest: false,
+        });
+        const wave = new THREE.Sprite(material);
+        wave.position.copy(position);
+        wave.scale.setScalar(destination.size * 0.5);
+        wave.renderOrder = 7;
+        wave.userData.phase = waveIndex / 3;
+        galaxy.add(wave);
+        return wave;
+      });
 
       const hitArea = new THREE.Mesh(hitGeometry, hitMaterial);
       hitArea.position.copy(position);
       hitArea.userData.destinationIndex = index;
       galaxy.add(hitArea);
 
-      return { marker, hitArea, position };
+      return { marker, signalWaves, hitArea, position };
     });
 
     const portraitGroup = new THREE.Group();
@@ -849,9 +911,8 @@ export function GalaxyIndex() {
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
       if (ambientMotionRef.current && !reduceMotion) {
         backdrop.rotation.y -= 0.00006 * delta;
-        distantGalaxies.forEach((sprite, index) => {
-          sprite.material.rotation +=
-            (index % 2 === 0 ? 0.000012 : -0.000009) * delta;
+        distantGalaxies.forEach((points, index) => {
+          points.rotation.z += (index % 2 === 0 ? 0.000012 : -0.000009) * delta;
         });
       }
       glowMaterial.opacity +=
@@ -899,27 +960,45 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      nodes.forEach(({ marker }, index) => {
+      nodes.forEach(({ marker, signalWaves }, index) => {
         const destination = destinations[index];
         const isSelected = expandedRef.current && index === selectedIndex;
         const isPreviewed =
           !expandedRef.current && index === previewIndexRef.current;
         const isHovered = index === hoveredIndex;
+        const shimmer = reduceMotion
+          ? 1
+          : 0.96 + Math.sin(time * 0.0042 + index * 1.71) * 0.04;
         const pulse =
           reduceMotion || (!isSelected && !isPreviewed)
-            ? 1
-            : 1 + Math.sin(time * 0.0035) * 0.07;
+            ? shimmer
+            : 1 + Math.sin(time * 0.0035) * 0.045;
         const markerTarget =
           destination.size *
-          (isSelected ? 0.82 : isHovered || isPreviewed ? 0.68 : 0.48) *
+          (isSelected ? 0.82 : isHovered || isPreviewed ? 0.56 : 0.51) *
           pulse;
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
-          ((isSelected ? 1 : isHovered || isPreviewed ? 0.9 : 0.68) -
+          ((isSelected ? 1 : isHovered || isPreviewed ? 0.92 : 0.82) -
             marker.material.opacity) *
           0.11;
         marker.material.rotation += (0.00016 + index * 0.000025) * delta;
+
+        signalWaves.forEach((wave, waveIndex) => {
+          const progress = reduceMotion
+            ? (waveIndex + 1) / 4
+            : (time * 0.00022 + wave.userData.phase + index * 0.117) % 1;
+          const waveScale =
+            destination.size *
+            (0.49 + THREE.MathUtils.smoothstep(progress, 0, 1) * 0.7);
+          const envelope = Math.pow(Math.sin(progress * Math.PI), 1.3);
+          const prominence =
+            isSelected || isHovered || isPreviewed ? 0.22 : 0.62;
+          wave.scale.setScalar(waveScale);
+          wave.material.opacity = envelope * prominence;
+          wave.material.rotation = -time * 0.000025 * (waveIndex + 1);
+        });
       });
 
       const detail = detailRef.current;
@@ -997,6 +1076,7 @@ export function GalaxyIndex() {
       portraitTexture?.dispose();
       glowTexture?.dispose();
       markerTexture?.dispose();
+      signalWaveTexture?.dispose();
       glowMaterial.dispose();
       softGlow.material.dispose();
       galaxyGeometry.dispose();
@@ -1004,11 +1084,15 @@ export function GalaxyIndex() {
       galaxyMistMaterial.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();
-      distantGalaxyTexture?.dispose();
+      nearGalaxyGeometry.dispose();
+      farGalaxyGeometry.dispose();
       distantGalaxies.forEach(({ material }) => material.dispose());
       hitGeometry.dispose();
       hitMaterial.dispose();
-      nodes.forEach(({ marker }) => marker.material.dispose());
+      nodes.forEach(({ marker, signalWaves }) => {
+        marker.material.dispose();
+        signalWaves.forEach(({ material }) => material.dispose());
+      });
       renderer.dispose();
       renderer.domElement.remove();
     };
