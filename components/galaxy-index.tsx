@@ -1352,21 +1352,29 @@ export function GalaxyIndex() {
             <circle cx="12" cy="12" r="1.25" />
           </svg>
         </button>
-        <div className="dock-signal-group">
-          <button
-            type="button"
-            aria-label="Show next footer transmission"
-            aria-controls="dock-transmission"
-            className="dock-grid"
-            onClick={() => setDockTransmission((current) => (current + 1) % 3)}
-          >
-            ⚙
-          </button>
+        <div
+          className="dock-console"
+          data-mode={
+            dockTransmission === 1
+              ? 'quote'
+              : dockTransmission === 2
+                ? 'source'
+                : 'credit'
+          }
+        >
+          <span className="dock-mode-lights" aria-hidden="true">
+            {[0, 1, 2].map((mode) => (
+              <i
+                key={mode}
+                className={dockTransmission === mode ? 'is-active' : undefined}
+              />
+            ))}
+          </span>
           {dockTransmission === 2 ? (
             <a
               id="dock-transmission"
               href={quotationCollection.url}
-              className="dock-pill"
+              className="dock-message"
               data-mode="source"
               aria-label={`Open ${quotationCollection.label}`}
               title={quotationCollection.label}
@@ -1376,7 +1384,7 @@ export function GalaxyIndex() {
           ) : (
             <output
               id="dock-transmission"
-              className="dock-pill"
+              className="dock-message"
               data-mode={dockTransmission === 1 ? 'quote' : 'credit'}
               aria-live="polite"
               title={
@@ -1390,6 +1398,18 @@ export function GalaxyIndex() {
                 : '© Alireza Afshan · 2026'}
             </output>
           )}
+          <button
+            type="button"
+            aria-label="Show next footer transmission"
+            aria-controls="dock-transmission"
+            className="dock-tuner"
+            onClick={() => setDockTransmission((current) => (current + 1) % 3)}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 7.7a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" />
+              <path d="m9.2 4.2.5-1.7h4.6l.5 1.7 1.5.9 1.7-.4 2.3 4-1.2 1.3v1.8l1.2 1.3-2.3 4-1.7-.4-1.5.9-.5 1.7H9.7l-.5-1.7-1.5-.9-1.7.4-2.3-4 1.2-1.3V10L3.7 8.7l2.3-4 1.7.4 1.5-.9Z" />
+            </svg>
+          </button>
         </div>
       </div>
 

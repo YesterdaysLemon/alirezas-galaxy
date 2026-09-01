@@ -290,18 +290,6 @@ button {
     0 0 1px rgba(82, 47, 0, 0.38);
 }
 
-.spore-menu-item.is-active::before {
-  position: absolute;
-  top: calc(50% - 1px);
-  left: -7px;
-  width: 8px;
-  height: 2px;
-  border-radius: 999px;
-  content: '';
-  background: linear-gradient(90deg, #dca719, #fff36e);
-  box-shadow: 0 0 4px rgba(255, 221, 56, 0.72);
-}
-
 .spore-menu-item.is-active::after {
   position: absolute;
   inset: 0;
@@ -774,27 +762,6 @@ button {
   align-items: center;
 }
 
-.spore-dock::before {
-  position: absolute;
-  z-index: 0;
-  top: 10px;
-  right: 0;
-  bottom: 10px;
-  left: 28px;
-  border: 2px solid rgba(157, 207, 238, 0.58);
-  border-radius: 20px;
-  content: '';
-  background: linear-gradient(
-    180deg,
-    rgba(72, 112, 151, 0.92),
-    rgba(9, 25, 47, 0.96)
-  );
-  box-shadow:
-    inset 0 1px rgba(223, 245, 255, 0.24),
-    inset 0 0 10px rgba(130, 205, 255, 0.16),
-    0 0 7px rgba(34, 123, 185, 0.28);
-}
-
 .spore-dock a,
 .spore-dock button {
   padding: 0;
@@ -811,8 +778,7 @@ button {
   place-items: center;
 }
 
-.dock-orb,
-.dock-grid {
+.dock-orb {
   border: 2px solid rgba(192, 232, 255, 0.76);
   border-radius: 50%;
   background: radial-gradient(
@@ -852,37 +818,96 @@ button {
   filter: drop-shadow(0 1px 2px #003458);
 }
 
-.dock-grid {
+.dock-console {
   position: relative;
-  z-index: 3;
-  width: 38px;
-  height: 38px;
-  color: #a9eaff !important;
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.dock-signal-group {
-  position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
-  height: 40px;
-  margin-left: -4px;
+  width: clamp(250px, 22vw, 320px);
+  height: 42px;
+  margin-left: -8px;
+  padding: 3px 4px 3px 29px;
+  border: 1px solid rgba(151, 211, 245, 0.62);
+  border-left-color: rgba(105, 179, 224, 0.38);
+  border-radius: 11px 23px 23px 11px;
   align-items: center;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(167, 222, 255, 0.035) 0 1px,
+      transparent 1px 3px
+    ),
+    radial-gradient(
+      ellipse at 54% -40%,
+      rgba(143, 220, 255, 0.32),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #3d668a 0%, #183d61 43%, #07192f 51%, #102c4b 100%);
+  box-shadow:
+    inset 0 1px rgba(235, 250, 255, 0.34),
+    inset 0 -1px rgba(1, 11, 28, 0.78),
+    inset 0 0 13px rgba(118, 203, 255, 0.12),
+    0 0 8px rgba(34, 126, 190, 0.26);
+  transition: width 180ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
-.spore-dock .dock-pill {
+.dock-console::before {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: -14px;
+  width: 34px;
+  border: 1px solid rgba(171, 226, 255, 0.28);
+  border-radius: 50%;
+  content: '';
+  box-shadow: inset -3px 0 6px rgba(2, 15, 34, 0.72);
+}
+
+.dock-console[data-mode='quote'] {
+  width: clamp(350px, 32vw, 440px);
+}
+
+.dock-console[data-mode='source'] {
+  width: clamp(270px, 23vw, 330px);
+}
+
+.dock-mode-lights {
+  display: flex;
+  width: 9px;
+  margin-right: 7px;
+  flex: 0 0 9px;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dock-mode-lights i {
+  width: 4px;
+  height: 4px;
+  border: 1px solid rgba(138, 203, 238, 0.42);
+  border-radius: 50%;
+  background: #09233c;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+
+.dock-mode-lights i.is-active {
+  border-color: rgba(199, 255, 172, 0.84);
+  background: #8dff68;
+  box-shadow:
+    0 0 4px rgba(123, 255, 91, 0.88),
+    inset 0 1px rgba(255, 255, 255, 0.66);
+}
+
+.spore-dock .dock-message {
   position: relative;
   z-index: 1;
   display: flex;
-  width: clamp(208px, 20vw, 292px);
-  height: 34px;
-  margin-left: -5px;
-  padding: 0 28px 0 31px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
   border: 0;
-  border-radius: 0 18px 18px 0;
+  flex: 1 1 auto;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow: hidden;
   color: #92ff63 !important;
   font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
@@ -896,16 +921,43 @@ button {
   white-space: nowrap;
   background: transparent;
   box-shadow: none;
-  transition: width 180ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
-.spore-dock .dock-pill[data-mode='quote'] {
-  width: clamp(310px, 30vw, 390px);
+.spore-dock .dock-message[data-mode='quote'] {
   font-size: 10px;
 }
 
-.spore-dock .dock-pill[data-mode='source'] {
-  width: clamp(232px, 21vw, 304px);
+.dock-tuner {
+  position: relative;
+  z-index: 2;
+  width: 33px;
+  height: 33px;
+  border: 1px solid rgba(174, 226, 255, 0.56) !important;
+  border-radius: 50%;
+  flex: 0 0 33px;
+  cursor: pointer;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #5bcaf3,
+    #176b9f 58%,
+    #0a2948 72%
+  );
+  box-shadow:
+    inset 0 0 6px rgba(235, 252, 255, 0.44),
+    0 0 0 2px rgba(5, 24, 46, 0.42),
+    0 0 6px rgba(71, 178, 239, 0.34);
+}
+
+.dock-tuner svg {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+  fill: none;
+  stroke: #b9edff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.55;
+  filter: drop-shadow(0 1px 1px #003354);
 }
 
 .spore-dock a:hover,
@@ -1182,14 +1234,21 @@ button {
     font-size: 6px;
   }
 
-  .dock-pill {
-    width: min(260px, calc(100vw - 92px));
-    padding: 0 18px 0 24px;
+  .dock-console {
+    width: min(274px, calc(100vw - 58px));
+    padding-left: 25px;
+  }
+
+  .spore-dock .dock-message {
+    padding: 0 6px;
     font-size: 11px;
   }
 
-  .spore-dock .dock-pill[data-mode='quote'] {
-    width: min(320px, calc(100vw - 92px));
+  .dock-console[data-mode='quote'] {
+    width: min(350px, calc(100vw - 58px));
+  }
+
+  .spore-dock .dock-message[data-mode='quote'] {
     font-size: 9px;
   }
 }

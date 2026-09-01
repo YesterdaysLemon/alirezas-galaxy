@@ -82,6 +82,29 @@ test('the utility dock keeps its controls distinct and functional', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
+  const console = page.locator('.dock-console');
+  const settingsOrb = page.getByRole('button', {
+    name: 'Open galaxy settings',
+  });
+  const tuner = page.getByRole('button', {
+    name: 'Show next footer transmission',
+  });
+  await expect(console).toHaveAttribute('data-mode', 'credit');
+
+  const [consoleBox, orbBox, tunerBox] = await Promise.all([
+    console.boundingBox(),
+    settingsOrb.boundingBox(),
+    tuner.boundingBox(),
+  ]);
+  expect(consoleBox).not.toBeNull();
+  expect(orbBox).not.toBeNull();
+  expect(tunerBox).not.toBeNull();
+  expect(orbBox!.x + orbBox!.width).toBeGreaterThan(consoleBox!.x);
+  expect(tunerBox!.x).toBeGreaterThanOrEqual(consoleBox!.x);
+  expect(tunerBox!.x + tunerBox!.width).toBeLessThanOrEqual(
+    consoleBox!.x + consoleBox!.width,
+  );
+
   await page.getByRole('button', { name: 'Open galaxy settings' }).click();
 
   const slider = page.getByRole('slider', { name: 'Galaxy core exposure' });
@@ -95,18 +118,17 @@ test('the utility dock keeps its controls distinct and functional', async ({
   await page.getByRole('button', { name: 'Close galaxy settings' }).click();
   await expect(page.getByText('© Alireza Afshan · 2026')).toBeVisible();
 
-  const transmissionControl = page.getByRole('button', {
-    name: 'Show next footer transmission',
-  });
-  await transmissionControl.click();
+  await tuner.click();
+  await expect(console).toHaveAttribute('data-mode', 'quote');
   await expect(page.locator('output#dock-transmission')).toContainText('—');
-  await transmissionControl.click();
+  await tuner.click();
+  await expect(console).toHaveAttribute('data-mode', 'source');
   await expect(
     page.getByRole('link', { name: /Open Bartlett's Familiar Quotations/i }),
   ).toHaveAttribute('href', 'https://www.gutenberg.org/ebooks/27889');
 });
 
-test('the active menu item connects to the sidebar with a gold rail', async ({
+test('the active menu keeps yellow contained inside the selected pill', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
@@ -114,20 +136,18 @@ test('the active menu item connects to the sidebar with a gold rail', async ({
   await portfolio.hover();
   await expect(portfolio).toHaveClass(/is-active/);
 
-  const rail = await portfolio.evaluate((element) => {
+  const activeDecoration = await portfolio.evaluate((element) => {
     const style = getComputedStyle(element, '::before');
     return {
-      left: Number.parseFloat(style.left),
-      width: Number.parseFloat(style.width),
-      height: Number.parseFloat(style.height),
+      content: style.content,
       background: style.backgroundImage,
+      boxShadow: style.boxShadow,
     };
   });
 
-  expect(rail.left).toBeLessThan(0);
-  expect(rail.width).toBeGreaterThanOrEqual(7);
-  expect(rail.height).toBeLessThanOrEqual(2);
-  expect(rail.background).toContain('linear-gradient');
+  expect(activeDecoration.content).toBe('none');
+  expect(activeDecoration.background).toBe('none');
+  expect(activeDecoration.boxShadow).toBe('none');
 
   const inactiveEdge = await page
     .getByRole('link', { name: 'Workshop' })
