@@ -22,7 +22,7 @@ npm run dev
 - Click-to-select worlds with a separate, oversized launch confirmation
 - Heavier pointer/touch drag, long inertial spin, and wheel zoom
 - A four-revolution portrait Easter egg
-- Five spiral arms that keep drifting after a world has been selected
+- Five spiral arms whose attached worlds keep drifting after selection
 - Working reset and galactic-drift controls in the joined lower dock
 - Keyboard-accessible HTML navigation alongside the WebGL scene
 - Reduced-motion support and a non-WebGL-safe interface layer

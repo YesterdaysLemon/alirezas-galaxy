@@ -298,6 +298,7 @@ export function GalaxyIndex() {
     scene.background = new THREE.Color(0x020308);
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    const cameraLookTarget = new THREE.Vector3(0.7, 0, 0);
     const defaultCameraDistance = isCompact ? 25.5 : 20.5;
     let cameraDistance = defaultCameraDistance;
     camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
@@ -493,6 +494,7 @@ export function GalaxyIndex() {
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
     const labelPosition = new THREE.Vector3();
+    const cameraFollowPosition = new THREE.Vector3();
     let hoveredIndex = -1;
     let isDragging = false;
     let pointerId = -1;
@@ -600,6 +602,7 @@ export function GalaxyIndex() {
       galaxy.rotation.y = destinations[0].angle - Math.PI / 2;
       galaxyPoints.rotation.y = 0;
       galaxyMist.rotation.y = 0.018;
+      cameraLookTarget.set(0.7, 0, 0);
       activeIndexRef.current = 0;
       focusRotationRef.current = destinations[0].angle - Math.PI / 2;
       setActiveIndex(0);
@@ -654,6 +657,7 @@ export function GalaxyIndex() {
           galaxy.rotation.y += rotationDelta * 0.045 * delta;
           if (Math.abs(rotationDelta) < 0.0018) {
             galaxy.rotation.y = focusRotation;
+            focusRotationRef.current = null;
           }
         } else {
           const appliedRotation = angularVelocity * delta;
@@ -661,6 +665,13 @@ export function GalaxyIndex() {
           fastSpinTravel += Math.abs(appliedRotation);
           angularVelocity *= Math.pow(0.968, delta);
           tiltVelocity *= Math.pow(0.93, delta);
+          if (
+            ambientMotionRef.current &&
+            !reduceMotion &&
+            Math.abs(angularVelocity) < 0.0012
+          ) {
+            galaxy.rotation.y += 0.00018 * delta;
+          }
         }
       }
 
@@ -672,12 +683,21 @@ export function GalaxyIndex() {
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
       camera.position.y += (cameraDistance * 0.37 - camera.position.y) * 0.055;
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
-      camera.lookAt(0.7, 0, 0);
       if (ambientMotionRef.current && !reduceMotion) {
-        galaxyPoints.rotation.y += 0.00034 * delta;
-        galaxyMist.rotation.y += 0.00029 * delta;
         backdrop.rotation.y -= 0.00006 * delta;
       }
+
+      const selectedIndex = activeIndexRef.current;
+      cameraFollowPosition.copy(nodes[selectedIndex].position);
+      galaxy.localToWorld(cameraFollowPosition);
+      const followAmount = isDragging ? 0.025 : 0.075;
+      const desiredLookX = 0.7 + cameraFollowPosition.x * followAmount;
+      const desiredLookY = cameraFollowPosition.y * 0.04;
+      const desiredLookZ = cameraFollowPosition.z * 0.025;
+      cameraLookTarget.x += (desiredLookX - cameraLookTarget.x) * 0.028 * delta;
+      cameraLookTarget.y += (desiredLookY - cameraLookTarget.y) * 0.028 * delta;
+      cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * 0.028 * delta;
+      camera.lookAt(cameraLookTarget);
 
       if (!isDragging && frame % 2 === 0) {
         raycaster.setFromCamera(pointer, camera);
@@ -697,7 +717,6 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      const selectedIndex = activeIndexRef.current;
       nodes.forEach(({ planet, marker }, index) => {
         const destination = destinations[index];
         const isSelected = index === selectedIndex;
