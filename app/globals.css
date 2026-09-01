@@ -506,10 +506,16 @@ button {
   align-items: center;
 }
 
-.spore-dock a {
+.spore-dock a,
+.spore-dock button {
+  padding: 0;
+  border: 0;
+  appearance: none;
   display: grid;
   color: white;
+  font-family: inherit;
   font-weight: 900;
+  line-height: 1;
   text-decoration: none;
   text-shadow: 0 1px 2px #001027;
   outline: none;
@@ -534,23 +540,46 @@ button {
 }
 
 .dock-orb {
-  font-size: 26px;
+  cursor: pointer;
+}
+
+.dock-orb svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+  fill: none;
+  stroke: #d7f6ff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 1px 2px #003458);
 }
 
 .dock-grid {
+  position: relative;
+  z-index: 2;
   width: 30px;
   height: 30px;
-  margin-left: 3px;
   color: #a9eaff !important;
+  cursor: pointer;
   font-size: 15px;
+}
+
+.dock-signal-group {
+  display: flex;
+  height: 32px;
+  margin-left: 4px;
+  align-items: center;
 }
 
 .dock-pill {
   min-width: 142px;
   height: 28px;
-  margin-left: -3px;
+  margin-left: -2px;
   padding: 0 26px;
   border: 2px solid rgba(157, 207, 238, 0.58);
+  border-left: 0;
   border-radius: 0 15px 15px 0;
   color: #92ff63 !important;
   font-size: 12px;
@@ -563,8 +592,72 @@ button {
 }
 
 .spore-dock a:hover,
-.spore-dock a:focus-visible {
+.spore-dock a:focus-visible,
+.spore-dock button:hover,
+.spore-dock button:focus-visible {
   filter: brightness(1.25);
+}
+
+.spore-dock a:focus-visible,
+.spore-dock button:focus-visible {
+  outline: 2px solid rgba(242, 250, 255, 0.92);
+  outline-offset: 2px;
+}
+
+.dock-settings {
+  position: absolute;
+  bottom: 43px;
+  left: 39px;
+  width: 208px;
+  margin: 0;
+  padding: 7px 7px 8px;
+  border: 1px solid rgba(151, 214, 255, 0.58);
+  border-radius: 12px 12px 12px 3px;
+  color: #e7f7ff;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(140, 204, 255, 0.035) 0 1px,
+      transparent 1px 3px
+    ),
+    linear-gradient(180deg, rgba(34, 91, 134, 0.97), rgba(5, 20, 39, 0.98));
+  box-shadow:
+    inset 0 0 12px rgba(145, 222, 255, 0.19),
+    0 6px 22px rgba(0, 0, 0, 0.56);
+}
+
+.dock-settings-title {
+  display: block;
+  padding: 1px 6px 6px;
+  color: #9edfff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px #001328;
+  text-transform: uppercase;
+}
+
+.dock-setting-row {
+  width: 100%;
+  min-height: 29px;
+  padding: 0 8px !important;
+  border-top: 1px solid rgba(184, 226, 255, 0.18) !important;
+  border-radius: 3px;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  background: linear-gradient(90deg, rgba(55, 126, 174, 0.27), transparent);
+}
+
+.dock-setting-row strong {
+  color: #99ff73;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .spore-status {

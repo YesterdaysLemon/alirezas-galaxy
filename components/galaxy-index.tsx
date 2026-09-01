@@ -2,109 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import * as THREE from 'three';
-
-type Destination = {
-  name: string;
-  kind: string;
-  url: string;
-  description: string;
-  iconSrc?: string;
-  glyph: string;
-  color: number;
-  radius: number;
-  angle: number;
-  size: number;
-};
-
-const destinations: Destination[] = [
-  {
-    name: 'Alireza Afshan',
-    kind: 'Portfolio · homeworld',
-    url: 'https://portfolio.alirezaafshan.com',
-    description: 'The person and the work at the center of this little galaxy.',
-    iconSrc: 'https://alirezaafshan.com/apple-touch-icon.png',
-    glyph: 'A♦',
-    color: 0x70dfff,
-    radius: 8.6,
-    angle: 1.73,
-    size: 1.22,
-  },
-  {
-    name: 'C. elegans Lab',
-    kind: 'Live simulation',
-    url: 'https://worm.alirezaafshan.com',
-    description:
-      'A 302-neuron connectome and body running as one browser loop.',
-    iconSrc:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 16C7 7 12 25 16 16s6-9 13 0' fill='none' stroke='%23e2a04a' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E",
-    glyph: '〰',
-    color: 0x9affeb,
-    radius: 5.05,
-    angle: 2.82,
-    size: 0.86,
-  },
-  {
-    name: 'Proof Bonsai',
-    kind: 'Live research map',
-    url: 'https://proof-bonsai.alirezaafshan.com',
-    description:
-      'A living map of scoped proof progress, open branches, and scars.',
-    glyph: '♣',
-    color: 0xffe67d,
-    radius: 8.15,
-    angle: 0.16,
-    size: 0.93,
-  },
-  {
-    name: 'Aquarium',
-    kind: 'Three.js habitat',
-    url: 'https://fish.alirezaafshan.com',
-    description:
-      'A small fish tank that was apparently not allowed to stay simple.',
-    glyph: '🐠',
-    color: 0x72a8ff,
-    radius: 8.9,
-    angle: 4.28,
-    size: 0.78,
-  },
-  {
-    name: 'Bird of the Day',
-    kind: 'Daily field note',
-    url: 'https://birds.alirezaafshan.com',
-    description: 'One recent bird gets the whole front page for a day.',
-    glyph: '🐦',
-    color: 0xffa6e4,
-    radius: 10.65,
-    angle: 5.52,
-    size: 0.76,
-  },
-  {
-    name: 'Application Builder',
-    kind: 'Codex plugin',
-    url: 'https://job-application-batch-builder.alirezaafshan4.chatgpt.site',
-    description:
-      'Evidence-first application batches without the polished nonsense.',
-    iconSrc:
-      'https://job-application-batch-builder.alirezaafshan4.chatgpt.site/_sites/dispatch-assets/favicon.svg',
-    glyph: '▤',
-    color: 0xbda2ff,
-    radius: 7.45,
-    angle: 3.57,
-    size: 0.8,
-  },
-  {
-    name: 'Learn2Design',
-    kind: 'Open research',
-    url: 'https://www.learn2design2026.com/',
-    description: 'Open, reproducible optimizer research for Learn2Design 2026.',
-    iconSrc: 'https://www.learn2design2026.com/asl_icon.png',
-    glyph: '◎',
-    color: 0xffba6b,
-    radius: 10.2,
-    angle: 2.02,
-    size: 0.72,
-  },
-];
+import { destinations } from '@/data/worlds';
 
 const portraitUrl = 'https://avatars.githubusercontent.com/u/129180138?v=4';
 
@@ -169,7 +67,7 @@ function createGalaxyGeometry(count: number) {
   const violet = new THREE.Color(0x824cff);
   const blue = new THREE.Color(0x2247ff);
   const color = new THREE.Color();
-  const arms = 4;
+  const arms = 5;
 
   for (let index = 0; index < count; index += 1) {
     const normalizedRadius = Math.pow(random(), 0.72);
@@ -345,17 +243,28 @@ export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const activeIndexRef = useRef(0);
+  const ambientMotionRef = useRef(true);
+  const resetGalaxyRef = useRef<() => void>(() => undefined);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
+  const [ambientMotion, setAmbientMotion] = useState(true);
   const [ready, setReady] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const active = destinations[activeIndex];
 
   const selectDestination = (index: number) => {
     activeIndexRef.current = index;
     focusRotationRef.current = destinations[index].angle - Math.PI / 2;
     setActiveIndex(index);
+  };
+
+  const toggleAmbientMotion = () => {
+    setAmbientMotion((current) => {
+      ambientMotionRef.current = !current;
+      return !current;
+    });
   };
 
   useEffect(() => {
@@ -389,7 +298,8 @@ export function GalaxyIndex() {
     scene.background = new THREE.Color(0x020308);
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    let cameraDistance = isCompact ? 25.5 : 20.5;
+    const defaultCameraDistance = isCompact ? 25.5 : 20.5;
+    let cameraDistance = defaultCameraDistance;
     camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
     camera.lookAt(0.7, 0, 0);
 
@@ -591,7 +501,7 @@ export function GalaxyIndex() {
     let dragDistance = 0;
     let angularVelocity = 0;
     let tiltVelocity = 0;
-    let fastSpinFrames = 0;
+    let fastSpinTravel = 0;
     let frame = 0;
     let animationFrame = 0;
     let isVisible = true;
@@ -623,9 +533,18 @@ export function GalaxyIndex() {
       lastX = event.clientX;
       lastY = event.clientY;
       dragDistance += Math.abs(deltaX) + Math.abs(deltaY);
-      angularVelocity = THREE.MathUtils.clamp(deltaX * 0.0068, -0.28, 0.28);
-      tiltVelocity = THREE.MathUtils.clamp(deltaY * 0.0018, -0.026, 0.026);
-      galaxy.rotation.y += angularVelocity;
+      const targetVelocity = THREE.MathUtils.clamp(
+        deltaX * 0.0032,
+        -0.16,
+        0.16,
+      );
+      angularVelocity += (targetVelocity - angularVelocity) * 0.34;
+      tiltVelocity +=
+        (THREE.MathUtils.clamp(deltaY * 0.0012, -0.018, 0.018) - tiltVelocity) *
+        0.3;
+      const appliedRotation = angularVelocity * 0.68;
+      galaxy.rotation.y += appliedRotation;
+      fastSpinTravel += Math.abs(appliedRotation);
       galaxy.rotation.x = THREE.MathUtils.clamp(
         galaxy.rotation.x + tiltVelocity,
         -0.33,
@@ -671,6 +590,20 @@ export function GalaxyIndex() {
     renderer.domElement.addEventListener('pointercancel', endPointer);
     renderer.domElement.addEventListener('pointerleave', onPointerLeave);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+
+    resetGalaxyRef.current = () => {
+      angularVelocity = 0;
+      tiltVelocity = 0;
+      fastSpinTravel = 0;
+      cameraDistance = defaultCameraDistance;
+      galaxy.rotation.x = -0.08;
+      galaxy.rotation.y = destinations[0].angle - Math.PI / 2;
+      galaxyPoints.rotation.y = 0;
+      galaxyMist.rotation.y = 0.018;
+      activeIndexRef.current = 0;
+      focusRotationRef.current = destinations[0].angle - Math.PI / 2;
+      setActiveIndex(0);
+    };
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
@@ -718,35 +651,33 @@ export function GalaxyIndex() {
             Math.sin(focusRotation - galaxy.rotation.y),
             Math.cos(focusRotation - galaxy.rotation.y),
           );
-          galaxy.rotation.y += rotationDelta * 0.065 * delta;
+          galaxy.rotation.y += rotationDelta * 0.045 * delta;
           if (Math.abs(rotationDelta) < 0.0018) {
             galaxy.rotation.y = focusRotation;
           }
         } else {
-          galaxy.rotation.y += angularVelocity * delta;
-          angularVelocity *= Math.pow(0.949, delta);
-          tiltVelocity *= Math.pow(0.9, delta);
-          if (!reduceMotion && Math.abs(angularVelocity) < 0.0012) {
-            galaxy.rotation.y += 0.00035 * delta;
-          }
+          const appliedRotation = angularVelocity * delta;
+          galaxy.rotation.y += appliedRotation;
+          fastSpinTravel += Math.abs(appliedRotation);
+          angularVelocity *= Math.pow(0.968, delta);
+          tiltVelocity *= Math.pow(0.93, delta);
         }
       }
 
-      if (Math.abs(angularVelocity) > 0.12) {
-        fastSpinFrames += 1;
-        if (fastSpinFrames > 9) {
-          burstPortraits();
-          fastSpinFrames = 0;
-        }
-      } else {
-        fastSpinFrames = Math.max(0, fastSpinFrames - 1);
+      if (fastSpinTravel >= Math.PI * 8) {
+        burstPortraits();
+        fastSpinTravel = 0;
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
       camera.position.y += (cameraDistance * 0.37 - camera.position.y) * 0.055;
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
       camera.lookAt(0.7, 0, 0);
-      backdrop.rotation.y -= 0.00006 * delta;
+      if (ambientMotionRef.current && !reduceMotion) {
+        galaxyPoints.rotation.y += 0.00034 * delta;
+        galaxyMist.rotation.y += 0.00029 * delta;
+        backdrop.rotation.y -= 0.00006 * delta;
+      }
 
       if (!isDragging && frame % 2 === 0) {
         raycaster.setFromCamera(pointer, camera);
@@ -845,6 +776,7 @@ export function GalaxyIndex() {
       renderer.domElement.removeEventListener('pointercancel', endPointer);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      resetGalaxyRef.current = () => undefined;
       portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
       portraitTexture?.dispose();
       glowTexture?.dispose();
@@ -964,20 +896,62 @@ export function GalaxyIndex() {
         </div>
       </section>
 
-      <div className="spore-dock" aria-label="Quick links">
-        <a href="#galaxy" aria-label="Return to galaxy" className="dock-orb">
-          ◎
-        </a>
-        <a
-          href="https://github.com/YesterdaysLemon"
-          aria-label="Open the workshop"
-          className="dock-grid"
+      <div className="spore-dock" aria-label="Galaxy controls">
+        {settingsOpen ? (
+          <dialog
+            open
+            className="dock-settings"
+            id="galaxy-settings"
+            aria-label="Galaxy settings"
+          >
+            <span className="dock-settings-title">galaxy settings</span>
+            <button
+              type="button"
+              className="dock-setting-row"
+              onClick={toggleAmbientMotion}
+              aria-pressed={ambientMotion}
+            >
+              <span>galactic drift</span>
+              <strong>{ambientMotion ? 'on' : 'off'}</strong>
+            </button>
+            <button
+              type="button"
+              className="dock-setting-row"
+              onClick={() => resetGalaxyRef.current()}
+            >
+              <span>restore homeworld</span>
+              <strong>reset</strong>
+            </button>
+          </dialog>
+        ) : null}
+
+        <button
+          type="button"
+          aria-label="Restore the homeworld view"
+          className="dock-orb"
+          onClick={() => resetGalaxyRef.current()}
         >
-          ⚙
-        </a>
-        <a href="mailto:mail@alirezaafshan.com" className="dock-pill">
-          send a signal
-        </a>
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M19 8a8 8 0 1 0 1 6" />
+            <path d="M16 4h4v4" />
+            <circle cx="12" cy="12" r="2.2" />
+          </svg>
+        </button>
+        <div className="dock-signal-group">
+          <button
+            type="button"
+            aria-label="Open galaxy settings"
+            aria-controls="galaxy-settings"
+            aria-expanded={settingsOpen}
+            className="dock-grid"
+            onClick={() => setSettingsOpen((current) => !current)}
+          >
+            ⚙
+          </button>
+          <a href="mailto:mail@alirezaafshan.com" className="dock-pill">
+            send a signal
+          </a>
+        </div>
       </div>
 
       <div className="spore-status" aria-hidden="true">
