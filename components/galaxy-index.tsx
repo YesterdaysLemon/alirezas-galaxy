@@ -257,6 +257,7 @@ export function GalaxyIndex() {
   const [expanded, setExpanded] = useState(false);
   const [ambientMotion, setAmbientMotion] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
   const preview = destinations[previewIndex];
 
@@ -909,25 +910,48 @@ export function GalaxyIndex() {
           afshan
         </a>
         <nav className="spore-menu" aria-label="Primary">
-          <a className="spore-menu-item is-active" href="#galaxy">
+          <a
+            className={`spore-menu-item ${menuHighlight === 0 ? 'is-active' : ''}`}
+            href="#galaxy"
+            aria-current="page"
+            onMouseEnter={() => setMenuHighlight(0)}
+            onMouseLeave={() => setMenuHighlight(0)}
+            onFocus={() => setMenuHighlight(0)}
+            onBlur={() => setMenuHighlight(0)}
+          >
             <span aria-hidden="true">▶</span>
             Galaxy
           </a>
           <a
-            className="spore-menu-item"
+            className={`spore-menu-item ${menuHighlight === 1 ? 'is-active' : ''}`}
             href="https://portfolio.alirezaafshan.com"
+            onMouseEnter={() => setMenuHighlight(1)}
+            onMouseLeave={() => setMenuHighlight(0)}
+            onFocus={() => setMenuHighlight(1)}
+            onBlur={() => setMenuHighlight(0)}
           >
             <span aria-hidden="true">♙</span>
             Portfolio
           </a>
           <a
-            className="spore-menu-item"
+            className={`spore-menu-item ${menuHighlight === 2 ? 'is-active' : ''}`}
             href="https://github.com/YesterdaysLemon"
+            onMouseEnter={() => setMenuHighlight(2)}
+            onMouseLeave={() => setMenuHighlight(0)}
+            onFocus={() => setMenuHighlight(2)}
+            onBlur={() => setMenuHighlight(0)}
           >
             <span aria-hidden="true">⚙</span>
             Workshop
           </a>
-          <a className="spore-menu-item" href="mailto:mail@alirezaafshan.com">
+          <a
+            className={`spore-menu-item ${menuHighlight === 3 ? 'is-active' : ''}`}
+            href="mailto:mail@alirezaafshan.com"
+            onMouseEnter={() => setMenuHighlight(3)}
+            onMouseLeave={() => setMenuHighlight(0)}
+            onFocus={() => setMenuHighlight(3)}
+            onBlur={() => setMenuHighlight(0)}
+          >
             <span aria-hidden="true">✉</span>
             Signal
           </a>
