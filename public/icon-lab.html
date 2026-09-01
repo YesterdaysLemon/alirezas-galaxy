@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Afshan Icon Laboratory</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+        background: #02030d;
+        color: #effaff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        overflow-x: hidden;
+        background:
+          radial-gradient(
+            circle at 69% 7%,
+            rgba(121, 66, 244, 0.24),
+            transparent 23%
+          ),
+          radial-gradient(
+            circle at 14% 88%,
+            rgba(24, 111, 196, 0.2),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 50% 55%,
+            #0f1742 0,
+            #05091d 45%,
+            #01030a 100%
+          );
+      }
+
+      body::before {
+        position: fixed;
+        inset: 0;
+        content: '';
+        pointer-events: none;
+        background-image:
+          radial-gradient(
+            circle,
+            rgba(208, 239, 255, 0.8) 0 1px,
+            transparent 1.4px
+          ),
+          radial-gradient(
+            circle,
+            rgba(142, 91, 255, 0.72) 0 1px,
+            transparent 1.5px
+          ),
+          radial-gradient(
+            circle,
+            rgba(73, 178, 255, 0.5) 0 1px,
+            transparent 1.4px
+          );
+        background-position:
+          18px 34px,
+          73px 8px,
+          4px 91px;
+        background-size:
+          113px 127px,
+          149px 173px,
+          197px 211px;
+        opacity: 0.55;
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      .page-shell {
+        position: relative;
+        z-index: 1;
+        width: min(1480px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 32px 0 68px;
+      }
+
+      .lab-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 26px;
+      }
+
+      .eyebrow {
+        display: block;
+        margin-bottom: 7px;
+        color: #79ddff;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        text-shadow: 0 0 8px #188bc7;
+      }
+
+      h1 {
+        margin: 0;
+        color: #d9f5ff;
+        font-size: clamp(30px, 5vw, 60px);
+        line-height: 0.95;
+        letter-spacing: -0.055em;
+        text-shadow:
+          0 2px #0c527f,
+          0 0 18px rgba(91, 200, 255, 0.38);
+      }
+
+      .intro {
+        max-width: 680px;
+        margin: 10px 0 0;
+        color: #9ab5ca;
+        font-family: 'Trebuchet MS', sans-serif;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .return-link {
+        min-width: max-content;
+        padding: 10px 15px;
+        border: 1px solid rgba(133, 214, 255, 0.42);
+        border-radius: 999px;
+        color: #9ae6ff;
+        font-size: 11px;
+        text-decoration: none;
+        background: linear-gradient(
+          180deg,
+          rgba(48, 111, 158, 0.64),
+          rgba(5, 26, 50, 0.9)
+        );
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, 0.18),
+          0 0 12px rgba(41, 154, 225, 0.14);
+      }
+
+      .return-link:hover,
+      .return-link:focus-visible {
+        color: white;
+        filter: brightness(1.2);
+      }
+
+      .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .candidate {
+        position: relative;
+        padding: 16px;
+        border: 1px solid rgba(112, 177, 225, 0.25);
+        border-radius: 18px;
+        overflow: hidden;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            rgba(135, 204, 255, 0.025) 0 1px,
+            transparent 1px 4px
+          ),
+          linear-gradient(145deg, rgba(20, 48, 82, 0.94), rgba(4, 10, 28, 0.97));
+        box-shadow:
+          inset 0 1px rgba(218, 245, 255, 0.13),
+          0 14px 42px rgba(0, 0, 0, 0.3);
+        transition:
+          border-color 160ms ease,
+          transform 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .candidate::after {
+        position: absolute;
+        top: -70px;
+        right: -50px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        content: '';
+        pointer-events: none;
+        background: radial-gradient(
+          circle,
+          rgba(104, 195, 255, 0.16),
+          transparent 68%
+        );
+      }
+
+      .candidate.is-chosen {
+        border-color: rgba(255, 226, 82, 0.8);
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, 0.16),
+          0 0 0 2px rgba(255, 213, 48, 0.12),
+          0 16px 44px rgba(0, 0, 0, 0.38);
+        transform: translateY(-2px);
+      }
+
+      .candidate-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 12px;
+      }
+
+      .candidate-kicker {
+        display: block;
+        margin-bottom: 3px;
+        color: #65cfff;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 0;
+        color: #f0faff;
+        font-size: 18px;
+        letter-spacing: -0.025em;
+      }
+
+      .tone {
+        padding: 4px 8px;
+        border: 1px solid rgba(138, 207, 247, 0.24);
+        border-radius: 999px;
+        color: #9bc5dd;
+        font-size: 8px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        background: rgba(5, 20, 38, 0.68);
+      }
+
+      .mock-window {
+        position: relative;
+        min-height: 320px;
+        padding: 23px 22px 67px;
+        border: 1px solid rgba(118, 188, 236, 0.3);
+        border-radius: 14px;
+        overflow: hidden;
+        background:
+          radial-gradient(
+            ellipse at 75% 68%,
+            rgba(95, 47, 223, 0.37),
+            transparent 37%
+          ),
+          radial-gradient(
+            ellipse at 55% 76%,
+            rgba(41, 91, 236, 0.28),
+            transparent 31%
+          ),
+          linear-gradient(110deg, rgba(42, 84, 132, 0.52), transparent 28%),
+          #020613;
+        box-shadow:
+          inset 0 0 30px rgba(81, 152, 216, 0.12),
+          inset 0 1px rgba(231, 249, 255, 0.13);
+      }
+
+      .mock-window::before {
+        position: absolute;
+        inset: 0;
+        content: '';
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 72% 22%, #d9f4ff 0 1px, transparent 1.5px),
+          radial-gradient(circle at 84% 43%, #875cff 0 1px, transparent 1.6px),
+          radial-gradient(circle at 63% 58%, #fff1aa 0 1px, transparent 1.5px),
+          radial-gradient(circle at 92% 77%, #45c6ff 0 1px, transparent 1.5px),
+          repeating-radial-gradient(
+            ellipse at 78% 78%,
+            rgba(92, 68, 255, 0.18) 0 2px,
+            transparent 3px 12px
+          );
+        opacity: 0.78;
+      }
+
+      .mock-brand {
+        position: relative;
+        z-index: 1;
+        margin: 0 0 22px 7px;
+        color: #55bdf1;
+        font-size: 25px;
+        font-weight: 900;
+        letter-spacing: -0.07em;
+        text-shadow:
+          0 2px #074876,
+          0 0 9px rgba(104, 217, 255, 0.72);
+      }
+
+      .mock-menu {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        width: min(230px, 77%);
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .mock-row {
+        position: relative;
+        width: 100%;
+        height: 38px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 19px 0 0 19px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        overflow: hidden;
+        color: #e9f6ff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 900;
+        text-align: left;
+        text-shadow: 0 1px 2px #001127;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(26, 74, 112, 0.78),
+            rgba(4, 15, 35, 0.38) 69%,
+            transparent
+          ),
+          linear-gradient(90deg, rgba(104, 173, 228, 0.35), transparent) top /
+            100% 1px no-repeat,
+          linear-gradient(90deg, rgba(91, 150, 211, 0.36), transparent) bottom /
+            100% 1px no-repeat;
+      }
+
+      .mock-row.is-active {
+        width: 112%;
+        border-radius: 20px;
+        color: #111820;
+        background: linear-gradient(
+          90deg,
+          #fff68a,
+          #ffd83c 52%,
+          rgba(238, 178, 21, 0.54) 77%,
+          transparent 100%
+        );
+        filter: drop-shadow(0 0 6px rgba(255, 203, 34, 0.52));
+        text-shadow: 0 1px rgba(255, 255, 255, 0.7);
+      }
+
+      .icon {
+        display: block;
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+        overflow: visible;
+      }
+
+      .micro-dock {
+        position: absolute;
+        z-index: 2;
+        bottom: 13px;
+        left: 15px;
+        display: flex;
+        height: 45px;
+        align-items: center;
+      }
+
+      .dock-orb,
+      .dock-tuner {
+        padding: 0;
+        border: 2px solid rgba(188, 231, 255, 0.76);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: white;
+        background: radial-gradient(
+          circle at 34% 30%,
+          #61d9ff,
+          #0a70b0 58%,
+          #112f51 72%
+        );
+        box-shadow:
+          inset 0 0 7px rgba(255, 255, 255, 0.5),
+          0 0 8px rgba(87, 193, 255, 0.45);
+      }
+
+      .dock-orb {
+        z-index: 2;
+        width: 45px;
+        height: 45px;
+      }
+
+      .dock-body {
+        display: flex;
+        width: 218px;
+        height: 35px;
+        margin-left: -7px;
+        padding: 3px 4px 3px 26px;
+        border: 1px solid rgba(151, 211, 245, 0.58);
+        border-radius: 9px 20px 20px 9px;
+        align-items: center;
+        gap: 7px;
+        color: #91ff65;
+        font-size: 9px;
+        background: linear-gradient(
+          180deg,
+          #3b6387,
+          #153958 47%,
+          #07172c 52%,
+          #102b48
+        );
+        box-shadow: inset 0 1px rgba(235, 250, 255, 0.28);
+      }
+
+      .dock-copy {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-shadow: 0 0 4px rgba(108, 255, 84, 0.54);
+      }
+
+      .dock-tuner {
+        width: 27px;
+        height: 27px;
+        flex: 0 0 27px;
+      }
+
+      .dock-orb .icon {
+        width: 25px;
+        height: 25px;
+      }
+
+      .dock-tuner .icon {
+        width: 17px;
+        height: 17px;
+      }
+
+      .candidate-notes {
+        min-height: 42px;
+        margin: 12px 2px 13px;
+        color: #99b2c6;
+        font-family: 'Trebuchet MS', sans-serif;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .choose-button {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid rgba(126, 199, 240, 0.34);
+        border-radius: 999px;
+        color: #a5ddf8;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        background: linear-gradient(
+          180deg,
+          rgba(45, 103, 145, 0.76),
+          rgba(5, 24, 44, 0.88)
+        );
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.14);
+      }
+
+      .choose-button:hover,
+      .choose-button:focus-visible,
+      .choose-button[aria-pressed='true'] {
+        border-color: rgba(255, 226, 84, 0.72);
+        color: #fff5a0;
+        filter: brightness(1.13);
+      }
+
+      .selection-readout {
+        position: sticky;
+        z-index: 10;
+        bottom: 12px;
+        width: max-content;
+        max-width: calc(100vw - 32px);
+        margin: 22px auto 0;
+        padding: 9px 16px;
+        border: 1px solid rgba(125, 204, 249, 0.44);
+        border-radius: 999px;
+        color: #9aff72;
+        font-size: 10px;
+        text-align: center;
+        background: rgba(5, 22, 42, 0.94);
+        box-shadow:
+          inset 0 1px rgba(255, 255, 255, 0.12),
+          0 7px 24px rgba(0, 0, 0, 0.46);
+        backdrop-filter: blur(9px);
+      }
+
+      /* A: soft, rounded, custom strokes. */
+      .family-organic .icon {
+        fill: none;
+        stroke: #81ddff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.9;
+        filter: drop-shadow(0 0 3px #188ecf);
+      }
+
+      .family-organic .is-active .icon {
+        stroke: #122034;
+        filter: none;
+      }
+
+      /* B: thick translucent gel and white glints. */
+      .family-gel .icon .gel-body {
+        fill: #48bfe9;
+        stroke: #c9f3ff;
+        stroke-width: 1.1;
+      }
+
+      .family-gel .icon .gel-deep {
+        fill: #176ea6;
+        stroke: #b7edff;
+        stroke-width: 0.8;
+      }
+
+      .family-gel .icon .gel-line {
+        fill: none;
+        stroke: #f2fdff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.35;
+      }
+
+      .family-gel .icon {
+        fill: #48bfe9;
+        stroke: #c9f3ff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.1;
+        filter: drop-shadow(0 1px 1px #00294b)
+          drop-shadow(0 0 4px rgba(76, 204, 255, 0.6));
+      }
+
+      .family-gel .is-active .icon {
+        filter: saturate(0.5) brightness(0.42);
+      }
+
+      /* C: seed-like diagrams suspended between soft and biological. */
+      .family-seeds .icon {
+        --eye: #ecffff;
+        fill: rgba(53, 182, 221, 0.4);
+        stroke: #91e4ff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.55;
+        filter: drop-shadow(0 0 4px rgba(30, 163, 216, 0.82));
+      }
+
+      .family-seeds .is-active .icon {
+        --eye: #122034;
+        fill: rgba(18, 32, 52, 0.2);
+        stroke: #122034;
+        filter: none;
+      }
+
+      /* D: strange living pictograms with eyes, seeds and soft lobes. */
+      .family-bio .icon {
+        --eye: #eaffff;
+        fill: rgba(73, 195, 232, 0.38);
+        stroke: #a5ebff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.65;
+        filter: drop-shadow(0 0 4px #1b9cce);
+      }
+
+      .family-bio .icon .bio-eye {
+        fill: #eaffff;
+        stroke: #39799b;
+        stroke-width: 1;
+      }
+
+      .family-bio .is-active .icon {
+        --eye: #122034;
+        fill: rgba(17, 32, 52, 0.18);
+        stroke: #122034;
+        filter: none;
+      }
+
+      .family-bio .is-active .bio-eye {
+        fill: #122034;
+        stroke: #122034;
+      }
+
+      @media (max-width: 900px) {
+        .comparison-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .lab-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .page-shell {
+          width: min(100% - 16px, 1480px);
+          padding-top: 20px;
+        }
+
+        .candidate {
+          padding: 9px;
+          border-radius: 13px;
+        }
+
+        .mock-window {
+          min-height: 300px;
+          padding-inline: 13px;
+        }
+
+        .micro-dock {
+          left: 8px;
+          transform: scale(0.88);
+          transform-origin: left bottom;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <defs>
+        <!-- A: Soft Organics / Shell Lines. All paths are fresh for round two. -->
+        <symbol id="a-galaxy" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="1.3" />
+          <path
+            d="M10.8 10.8C7.5 9.9 6.7 6.5 8.8 4.7M13.2 10.8c1.1-3.1 4.8-3.7 6.2-1.2M13.3 13c3 1.3 3.3 5 .8 6.2M10.7 13.1c-1.5 2.9-5.2 3-6.3.4M12 9.9V3M14.1 12h6.8M12 14.1V21M9.9 12H3"
+          />
+        </symbol>
+        <symbol id="a-portfolio" viewBox="0 0 24 24">
+          <path
+            d="M4.2 7.2c1.4-3.6 13.8-4.2 15.5-.2 1.2 2.8.8 8.5-1.3 11-2 2.4-10.9 2.4-13-.1-2-2.4-2.3-8-1.2-10.7Z"
+          />
+          <path d="M7.2 16.3c.8-2.5 2.4-3.8 4.8-3.8s4 1.3 4.8 3.8" />
+          <circle cx="12" cy="9" r="2.5" />
+          <path d="m18.1 5.6.7-2.1M19.1 6.1l2-.9" />
+        </symbol>
+        <symbol id="a-workshop" viewBox="0 0 24 24">
+          <path
+            d="M6.1 4.1c2.1-.8 4.3.4 4.8 2.5l.6 2.6 2.7-.1c2.2-.1 4 1.7 3.7 3.9-.3 2.1-2.4 3.5-4.5 2.8l-2.5-.8-1.4 2.3c-1.1 1.9-3.6 2.4-5.2.9-1.7-1.5-1.5-4 .3-5.3l2.2-1.5-1.6-2.1c-1.4-1.8-.9-4.2.9-5.2Z"
+          />
+          <circle cx="10.8" cy="12" r="1.5" />
+        </symbol>
+        <symbol id="a-signal" viewBox="0 0 24 24">
+          <path
+            d="M5.5 18.7c0-4.5 2.5-7.8 6.5-7.8s6.5 3.3 6.5 7.8M12 10.8V7.7"
+          />
+          <circle cx="12" cy="6" r="1.7" />
+          <path d="M8.1 8.3a5.5 5.5 0 0 1 7.8 0M5.5 5.7a9.2 9.2 0 0 1 13 0" />
+        </symbol>
+        <symbol id="a-settings" viewBox="0 0 24 24">
+          <path
+            d="M12 3.2c5 0 8.8 3.8 8.8 8.7s-3.8 8.9-8.8 8.9-8.8-4-8.8-8.9c0-3.9 2.9-7.1 6.8-7.1 3.5 0 5.9 2.5 5.9 5.5 0 2.5-1.7 4.5-4.1 4.5-2 0-3.3-1.4-3.3-3 0-1.3 1-2.3 2.2-2.3"
+          />
+        </symbol>
+        <symbol id="a-quote" viewBox="0 0 24 24">
+          <path
+            d="M4.2 7.8c0-2.2 1.6-3.7 3.8-3.7s3.8 1.5 3.8 3.7c0 3.8-2.1 7.2-6.4 10.1M12.2 7.8c0-2.2 1.6-3.7 3.8-3.7s3.8 1.5 3.8 3.7c0 3.8-2.1 7.2-6.4 10.1"
+          />
+          <circle cx="7.8" cy="7.8" r="1.1" />
+          <circle cx="15.8" cy="7.8" r="1.1" />
+        </symbol>
+
+        <!-- B: Soft Organics / Bubble Tools. Fresh molded forms. -->
+        <symbol id="b-galaxy" viewBox="0 0 24 24">
+          <path
+            class="gel-body"
+            d="M12 2.8c2.2 0 3.1 3.1 3.8 5.2 2.1-.8 5.2-1.2 5.9.9.7 2.1-2 3.8-3.8 5.2 1.5 1.7 3.2 4.4 1.4 5.8-1.8 1.3-4.2-.8-6.1-2-1.2 1.9-3.1 4.5-5 3.3-1.9-1.2-.4-4.2.3-6.3-2.2-.5-5.4-1.4-5.2-3.6.2-2.2 3.5-2.5 5.7-2.5.2-2.3.7-6 3-6Z"
+          />
+          <circle class="gel-deep" cx="12" cy="12" r="3" />
+          <path
+            class="gel-line"
+            fill="none"
+            d="M10.7 12.1c.8-1.8 3.1-1.2 2.6.6-.5 1.7-2.7 2.4-4.2 1.3"
+          />
+        </symbol>
+        <symbol id="b-portfolio" viewBox="0 0 24 24">
+          <path
+            class="gel-body"
+            d="M3.5 8c0-3.2 2.6-5.3 5.8-4.8l8.1 1.2c2.3.3 3.8 2.4 3.4 4.7l-1.3 8.1c-.4 2.3-2.4 3.8-4.7 3.5l-7.3-1.1c-2.3-.4-4-2.3-4-4.7Z"
+          />
+          <circle class="gel-deep" cx="10" cy="10" r="2.4" />
+          <path
+            class="gel-line"
+            fill="none"
+            d="M6.5 16c.9-2.1 2.2-3.1 3.8-3.1 1.7 0 3 1 3.9 3.1M15.8 8.6h2M15.4 11.4h1.8"
+          />
+        </symbol>
+        <symbol id="b-workshop" viewBox="0 0 24 24">
+          <rect
+            class="gel-body"
+            x="3"
+            y="9.2"
+            width="18"
+            height="5.6"
+            rx="2.8"
+            transform="rotate(-38 12 12)"
+          />
+          <rect
+            class="gel-deep"
+            x="3"
+            y="9.2"
+            width="18"
+            height="5.6"
+            rx="2.8"
+            transform="rotate(38 12 12)"
+          />
+          <circle class="gel-line" fill="none" cx="12" cy="12" r="2.3" />
+        </symbol>
+        <symbol id="b-signal" viewBox="0 0 24 24">
+          <path
+            class="gel-body"
+            d="M12 3c4.2 5 6.3 8.6 6.3 11 0 3.5-2.8 6.3-6.3 6.3S5.7 17.5 5.7 14C5.7 11.6 7.8 8 12 3Z"
+          />
+          <circle class="gel-deep" cx="12" cy="14" r="2.2" />
+          <path
+            class="gel-line"
+            fill="none"
+            d="M8.5 10.7a5 5 0 0 1 7 0M6.2 8.4a8.3 8.3 0 0 1 11.6 0"
+          />
+        </symbol>
+        <symbol id="b-settings" viewBox="0 0 24 24">
+          <path
+            class="gel-body"
+            d="M4 7c0-2 1.6-3.6 3.6-3.6S11.2 5 11.2 7s-1.6 3.6-3.6 3.6S4 9 4 7ZM12.8 17c0-2 1.6-3.6 3.6-3.6S20 15 20 17s-1.6 3.6-3.6 3.6S12.8 19 12.8 17Z"
+          />
+          <path class="gel-line" fill="none" d="M11.2 7H20M4 17h8.8" />
+        </symbol>
+        <symbol id="b-quote" viewBox="0 0 24 24">
+          <path
+            class="gel-body"
+            d="M3.2 6.7c0-2.2 1.8-4 4-4h9.6c2.2 0 4 1.8 4 4v7.1c0 2.2-1.8 4-4 4h-5.2L6.2 22l1.1-4.2h-.1c-2.2 0-4-1.8-4-4Z"
+          />
+          <path
+            class="gel-line"
+            fill="none"
+            d="M7.5 9.2h3v3h-3M13.8 9.2h3v3h-3"
+          />
+        </symbol>
+
+        <!-- C: Bio Signals / Seed Network. Fresh diagrammatic organisms. -->
+        <symbol id="c-galaxy" viewBox="0 0 24 24">
+          <path d="M12 12 6 6m6 6 6-5m-6 5 5 6m-5-6-6 6" />
+          <ellipse
+            cx="5.5"
+            cy="5.5"
+            rx="2.8"
+            ry="2"
+            transform="rotate(35 5.5 5.5)"
+          />
+          <ellipse
+            cx="18.5"
+            cy="6.5"
+            rx="2.8"
+            ry="2"
+            transform="rotate(-32 18.5 6.5)"
+          />
+          <ellipse
+            cx="18"
+            cy="18.5"
+            rx="2.8"
+            ry="2"
+            transform="rotate(35 18 18.5)"
+          />
+          <ellipse
+            cx="5.5"
+            cy="18"
+            rx="2.8"
+            ry="2"
+            transform="rotate(-35 5.5 18)"
+          />
+          <circle fill="var(--eye)" cx="12" cy="12" r="1.5" />
+        </symbol>
+        <symbol id="c-portfolio" viewBox="0 0 24 24">
+          <path
+            d="M6.2 5.3c2.6-2.7 8.8-2.4 10.5.5 1.8 3.1.1 8.1-2.1 10.8-2 2.4-5.4 3.8-7.5 1.7-2.8-2.8-3.6-10.2-.9-13Z"
+          />
+          <circle fill="var(--eye)" cx="10.4" cy="10" r="1.8" />
+          <path
+            d="M13.3 10.5c1.8.6 3.3 1.8 4.6 3.5M17.9 14l2.4-.8M7.5 17c1.4-1.6 3.3-2.3 5.5-1.9"
+          />
+        </symbol>
+        <symbol id="c-workshop" viewBox="0 0 24 24">
+          <path d="M5 5.3 11.8 12 18.7 5M11.8 12 6.2 19M11.8 12l6.6 6.7" />
+          <path
+            d="M2.8 5.2c0-1.5 1.1-2.7 2.7-2.7s2.7 1.2 2.7 2.7-1.1 2.7-2.7 2.7-2.7-1.2-2.7-2.7ZM15.7 5.2c0-1.5 1.2-2.7 2.7-2.7s2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7-2.7-1.2-2.7-2.7ZM3.8 18.8c0-1.5 1.2-2.7 2.7-2.7s2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7-2.7-1.2-2.7-2.7Z"
+          />
+          <circle fill="var(--eye)" cx="18.4" cy="18.7" r="2.2" />
+        </symbol>
+        <symbol id="c-signal" viewBox="0 0 24 24">
+          <path
+            d="M6.2 19.7c0-4.8 1.9-8.1 5.8-8.1s5.8 3.3 5.8 8.1M12 11.6V7.5"
+          />
+          <ellipse cx="12" cy="5.2" rx="3.2" ry="2.2" />
+          <circle fill="var(--eye)" cx="12" cy="5.2" r="1" />
+          <path d="M16.6 8.4c2 .7 3.3 2.1 3.8 4M7.4 8.4c-2 .7-3.3 2.1-3.8 4" />
+        </symbol>
+        <symbol id="c-settings" viewBox="0 0 24 24">
+          <path
+            d="M4 12c0-5.4 3-9.1 8-9.1s8 3.7 8 9.1-3 9.1-8 9.1S4 17.4 4 12Z"
+          />
+          <circle fill="var(--eye)" cx="8" cy="10" r="1.3" />
+          <circle fill="var(--eye)" cx="15.8" cy="8" r="1.3" />
+          <circle fill="var(--eye)" cx="13" cy="16" r="1.3" />
+          <path d="m9.1 10.7 2.8 4.1m2-6-4.7.7" />
+        </symbol>
+        <symbol id="c-quote" viewBox="0 0 24 24">
+          <ellipse
+            cx="8"
+            cy="10"
+            rx="4.5"
+            ry="6.5"
+            transform="rotate(18 8 10)"
+          />
+          <ellipse
+            cx="16.5"
+            cy="12.5"
+            rx="4.5"
+            ry="6.5"
+            transform="rotate(-18 16.5 12.5)"
+          />
+          <circle fill="var(--eye)" cx="8" cy="9" r="1.2" />
+          <circle fill="var(--eye)" cx="16" cy="12" r="1.2" />
+        </symbol>
+
+        <!-- D: Bio Signals / Little Crew. Portfolio creature intentionally retained. -->
+        <symbol id="d-galaxy" viewBox="0 0 24 24">
+          <path
+            d="M12 3.1c3 0 3.7 3.6 3 5.9 2.4-.6 5.8.6 5.8 3.5 0 3-3.6 4-6 3.1.5 2.5-.8 5.7-3.7 5.4-2.9-.3-3.5-3.9-2.5-6.1-2.5.4-5.6-1.2-5.1-4.1.5-2.8 4.1-3.1 6.2-1.9C9 6.2 9.5 3.1 12 3.1Z"
+          />
+          <circle fill="var(--eye)" cx="12" cy="12" r="1.5" />
+        </symbol>
+        <symbol id="d-portfolio" viewBox="0 0 24 24">
+          <path
+            d="M4 13.5c0-5 3.2-9 8-9s8 4 8 9c0 4.4-3.3 6.5-8 6.5s-8-2.1-8-6.5Z"
+          />
+          <circle fill="var(--eye)" cx="9" cy="11" r="1.6" />
+          <circle fill="var(--eye)" cx="15" cy="11" r="1.6" />
+          <path d="M9 16c2 1.2 4 1.2 6 0M6.2 7 4.6 4.4M17.8 7l1.6-2.6" />
+        </symbol>
+        <symbol id="d-workshop" viewBox="0 0 24 24">
+          <path
+            d="M5 15.4c0-5 2.7-8.6 7-8.6s7 3.6 7 8.6c0 3.4-2.6 5.2-7 5.2s-7-1.8-7-5.2Z"
+          />
+          <circle fill="var(--eye)" cx="9.3" cy="13.5" r="1.3" />
+          <circle fill="var(--eye)" cx="14.7" cy="13.5" r="1.3" />
+          <path
+            d="M8 7.8 6.3 4.2M16 7.8l1.7-3.6M8 18.8l-2 2M16 18.8l2 2M12 6.8V3.3m-2-1h4"
+          />
+        </symbol>
+        <symbol id="d-signal" viewBox="0 0 24 24">
+          <path
+            d="M4.5 16c0-4 2.5-6.8 6.2-6.8s6.2 2.8 6.2 6.8c0 3.2-2.3 4.8-6.2 4.8S4.5 19.2 4.5 16Z"
+          />
+          <circle fill="var(--eye)" cx="10.7" cy="15" r="1.8" />
+          <path
+            d="M10.7 9.2V6.4M8.7 5.2c1.1-1.1 2.9-1.1 4 0M16.7 10.7c2 .4 3.4 1.7 4.1 3.6M17.6 7.4c3 .7 5.1 2.6 6 5.5"
+          />
+        </symbol>
+        <symbol id="d-settings" viewBox="0 0 24 24">
+          <path
+            d="M12 3.2c5 0 8.8 3.8 8.8 8.8 0 4.9-3.8 8.8-8.8 8.8S3.2 16.9 3.2 12c0-4 3-7.1 6.9-7.1 3.4 0 5.8 2.4 5.8 5.4 0 2.5-1.7 4.4-4 4.4-2 0-3.3-1.3-3.3-3 0-1.3 1-2.2 2.2-2.2"
+          />
+          <circle fill="var(--eye)" cx="12" cy="12" r="1.1" />
+        </symbol>
+        <symbol id="d-quote" viewBox="0 0 24 24">
+          <path
+            d="M3.2 10.6c0-4.3 3.7-7.5 8.8-7.5s8.8 3.2 8.8 7.5-3.7 7.5-8.8 7.5c-1.3 0-2.5-.2-3.5-.6L4.2 21l1.1-5C4 14.6 3.2 12.8 3.2 10.6Z"
+          />
+          <circle fill="var(--eye)" cx="8.8" cy="10.5" r="1.5" />
+          <circle fill="var(--eye)" cx="15.2" cy="10.5" r="1.5" />
+          <path d="M9.2 14.2c1.9 1 3.7 1 5.6 0" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <main class="page-shell">
+      <header class="lab-header">
+        <div>
+          <span class="eyebrow">Afshan Software // interface specimen 02</span>
+          <h1>Soft Organics × Bio Signals</h1>
+          <p class="intro">
+            Round two uses entirely fresh drawings, with one deliberate
+            survivor: the little Portfolio creature. Hover every row and mark
+            whichever branch has the right bones.
+          </p>
+        </div>
+        <a class="return-link" href="/#galaxy">← return to the galaxy</a>
+      </header>
+
+      <section class="comparison-grid" aria-label="Icon family comparisons">
+        <article class="candidate" data-family="Soft Organics — Shell Lines">
+          <header class="candidate-header">
+            <div>
+              <span class="candidate-kicker">Soft Organics // A</span>
+              <h2>Shell Lines</h2>
+            </div>
+            <span class="tone">gentle / etched</span>
+          </header>
+          <div class="mock-window family-organic">
+            <p class="mock-brand">afshan</p>
+            <nav class="mock-menu" aria-label="Shell Lines menu preview">
+              <button class="mock-row is-active" type="button">
+                <svg class="icon"><use href="#a-galaxy" /></svg>Galaxy
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#a-portfolio" /></svg>Portfolio
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#a-workshop" /></svg>Workshop
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#a-signal" /></svg>Signal
+              </button>
+            </nav>
+            <div class="micro-dock" aria-label="Shell Lines footer preview">
+              <span class="dock-orb"
+                ><svg class="icon"><use href="#a-settings" /></svg
+              ></span>
+              <span class="dock-body"
+                ><span class="dock-copy">soft shells and star-seeds</span
+                ><span class="dock-tuner"
+                  ><svg class="icon"><use href="#a-quote" /></svg></span
+              ></span>
+            </div>
+          </div>
+          <p class="candidate-notes">
+            Loose monoline shells, petals and seed shapes. This is the quietest
+            branch: readable first, biological on the second glance.
+          </p>
+          <button class="choose-button" type="button" aria-pressed="false">
+            Choose Soft Organics — Shell Lines
+          </button>
+        </article>
+
+        <article class="candidate" data-family="Soft Organics — Bubble Tools">
+          <header class="candidate-header">
+            <div>
+              <span class="candidate-kicker">Soft Organics // B</span>
+              <h2>Bubble Tools</h2>
+            </div>
+            <span class="tone">soft / toy-like</span>
+          </header>
+          <div class="mock-window family-gel">
+            <p class="mock-brand">afshan</p>
+            <nav class="mock-menu" aria-label="Bubble Tools menu preview">
+              <button class="mock-row is-active" type="button">
+                <svg class="icon"><use href="#b-galaxy" /></svg>Galaxy
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#b-portfolio" /></svg>Portfolio
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#b-workshop" /></svg>Workshop
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#b-signal" /></svg>Signal
+              </button>
+            </nav>
+            <div class="micro-dock" aria-label="Bubble Tools footer preview">
+              <span class="dock-orb"
+                ><svg class="icon"><use href="#b-settings" /></svg
+              ></span>
+              <span class="dock-body"
+                ><span class="dock-copy"
+                  >friendly molded interface creatures</span
+                ><span class="dock-tuner"
+                  ><svg class="icon"><use href="#b-quote" /></svg></span
+              ></span>
+            </div>
+          </div>
+          <p class="candidate-notes">
+            Puffy molded shapes with 2008 gloss. Still organic, but chunkier and
+            more toy-like than Shell Lines.
+          </p>
+          <button class="choose-button" type="button" aria-pressed="false">
+            Choose Soft Organics — Bubble Tools
+          </button>
+        </article>
+
+        <article class="candidate" data-family="Bio Signals — Seed Network">
+          <header class="candidate-header">
+            <div>
+              <span class="candidate-kicker">Bio Signals // C</span>
+              <h2>Seed Network</h2>
+            </div>
+            <span class="tone">alien / diagrammatic</span>
+          </header>
+          <div class="mock-window family-seeds">
+            <p class="mock-brand">afshan</p>
+            <nav class="mock-menu" aria-label="Seed Network menu preview">
+              <button class="mock-row is-active" type="button">
+                <svg class="icon"><use href="#c-galaxy" /></svg>Galaxy
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#c-portfolio" /></svg>Portfolio
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#c-workshop" /></svg>Workshop
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#c-signal" /></svg>Signal
+              </button>
+            </nav>
+            <div class="micro-dock" aria-label="Seed Network footer preview">
+              <span class="dock-orb"
+                ><svg class="icon"><use href="#c-settings" /></svg
+              ></span>
+              <span class="dock-body"
+                ><span class="dock-copy">a diagram that may be germinating</span
+                ><span class="dock-tuner"
+                  ><svg class="icon"><use href="#c-quote" /></svg></span
+              ></span>
+            </div>
+          </div>
+          <p class="candidate-notes">
+            Connected seeds, eye-nodes and antenna stalks. More like alien
+            notation than ordinary interface icons.
+          </p>
+          <button class="choose-button" type="button" aria-pressed="false">
+            Choose Bio Signals — Seed Network
+          </button>
+        </article>
+
+        <article class="candidate" data-family="Bio Signals — Little Crew">
+          <header class="candidate-header">
+            <div>
+              <span class="candidate-kicker">Bio Signals // D</span>
+              <h2>Little Crew</h2>
+            </div>
+            <span class="tone">friendly / alive</span>
+          </header>
+          <div class="mock-window family-bio">
+            <p class="mock-brand">afshan</p>
+            <nav class="mock-menu" aria-label="Little Crew menu preview">
+              <button class="mock-row is-active" type="button">
+                <svg class="icon"><use href="#d-galaxy" /></svg>Galaxy
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#d-portfolio" /></svg>Portfolio
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#d-workshop" /></svg>Workshop
+              </button>
+              <button class="mock-row" type="button">
+                <svg class="icon"><use href="#d-signal" /></svg>Signal
+              </button>
+            </nav>
+            <div class="micro-dock" aria-label="Little Crew footer preview">
+              <span class="dock-orb"
+                ><svg class="icon"><use href="#d-settings" /></svg
+              ></span>
+              <span class="dock-body"
+                ><span class="dock-copy">the tiny crew is standing by</span
+                ><span class="dock-tuner"
+                  ><svg class="icon"><use href="#d-quote" /></svg></span
+              ></span>
+            </div>
+          </div>
+          <p class="candidate-notes">
+            Every function becomes a tiny character. The Portfolio creature is
+            the one retained drawing; its new crew was built around it.
+          </p>
+          <button class="choose-button" type="button" aria-pressed="false">
+            Choose Bio Signals — Little Crew
+          </button>
+        </article>
+      </section>
+
+      <output class="selection-readout" role="status" aria-live="polite"
+        >Nothing marked yet — explore freely :3</output
+      >
+    </main>
+
+    <script>
+      const candidates = [...document.querySelectorAll('.candidate')];
+      const readout = document.querySelector('.selection-readout');
+
+      function activateRow(menu, row) {
+        menu
+          .querySelectorAll('.mock-row')
+          .forEach((item) => item.classList.remove('is-active'));
+        row.classList.add('is-active');
+      }
+
+      document.querySelectorAll('.mock-menu').forEach((menu) => {
+        const rows = [...menu.querySelectorAll('.mock-row')];
+        rows.forEach((row) => {
+          row.addEventListener('pointerenter', () => activateRow(menu, row));
+          row.addEventListener('focus', () => activateRow(menu, row));
+          row.addEventListener('click', () => activateRow(menu, row));
+        });
+        menu.addEventListener('pointerleave', () => activateRow(menu, rows[0]));
+      });
+
+      function choose(candidate) {
+        const family = candidate.dataset.family;
+        candidates.forEach((item) => {
+          const selected = item === candidate;
+          item.classList.toggle('is-chosen', selected);
+          item
+            .querySelector('.choose-button')
+            .setAttribute('aria-pressed', String(selected));
+        });
+        readout.textContent = `Marked for feedback: ${family} — tell me what to keep, steal or mutate :3`;
+        localStorage.setItem('afshan-icon-lab-choice', family);
+      }
+
+      candidates.forEach((candidate) => {
+        candidate
+          .querySelector('.choose-button')
+          .addEventListener('click', () => choose(candidate));
+      });
+
+      const saved = localStorage.getItem('afshan-icon-lab-choice');
+      const savedCandidate = candidates.find(
+        (candidate) => candidate.dataset.family === saved,
+      );
+      if (savedCandidate) choose(savedCandidate);
+    </script>
+  </body>
+</html>
