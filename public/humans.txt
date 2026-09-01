@@ -1,0 +1,9 @@
+/* TEAM */
+Creator: Alireza Afshan
+Contact: mail@alirezaafshan.com
+Code: https://github.com/YesterdaysLemon/alirezas-galaxy
+
+/* SITE */
+Name: Alireza's Galaxy
+Character: five spiral arms, signal-stars, and a little 2008 optimism
+Built with: React, Three.js, and an unreasonable amount of affection for Spore

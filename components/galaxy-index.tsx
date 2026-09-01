@@ -1227,6 +1227,7 @@ export function GalaxyIndex() {
         <section
           ref={detailRef}
           className="world-detail"
+          data-world-id={active.id}
           aria-label={`Selected world: ${active.name}`}
           style={
             {
@@ -1366,6 +1367,7 @@ export function GalaxyIndex() {
           <button
             type="button"
             key={destination.url}
+            data-world-id={destination.id}
             onFocus={() => previewDestination(index)}
             onClick={() => expandDestination(index)}
           >
@@ -1379,6 +1381,21 @@ export function GalaxyIndex() {
           ? `Selected world: ${active.name}. ${active.description}`
           : `Previewing world: ${preview.name}.`}
       </p>
+
+      <noscript>
+        <section className="noscript-catalog" aria-label="Website worlds">
+          <h1>Alireza&apos;s Galaxy</h1>
+          <p>A small constellation of websites and experiments.</p>
+          <ul>
+            {destinations.map((destination) => (
+              <li key={destination.id}>
+                <a href={destination.url}>{destination.name}</a>
+                <span>{destination.description}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </noscript>
     </main>
   );
 }

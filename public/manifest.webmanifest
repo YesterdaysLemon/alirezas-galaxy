@@ -1,0 +1,17 @@
+{
+  "name": "Alireza's Galaxy",
+  "short_name": "Afshan",
+  "description": "A tactile orbital index of Alireza Afshan's websites and experiments.",
+  "start_url": "/#galaxy",
+  "display": "standalone",
+  "background_color": "#02030a",
+  "theme_color": "#0b1b45",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

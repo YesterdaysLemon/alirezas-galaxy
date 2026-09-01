@@ -1014,6 +1014,48 @@ button {
   font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
 }
 
+.noscript-catalog {
+  position: absolute;
+  z-index: 30;
+  inset: 18px;
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid rgba(151, 214, 255, 0.55);
+  border-radius: 22px;
+  color: #eaf8ff;
+  background: rgba(3, 10, 27, 0.94);
+}
+
+.noscript-catalog h1 {
+  margin: 0 0 8px;
+  color: #8fe9ff;
+  font-size: 32px;
+}
+
+.noscript-catalog ul {
+  display: grid;
+  margin: 24px 0 0;
+  padding: 0;
+  gap: 12px;
+  list-style: none;
+}
+
+.noscript-catalog li,
+.noscript-catalog span {
+  display: block;
+}
+
+.noscript-catalog a {
+  color: #fff071;
+  font-weight: 800;
+}
+
+.noscript-catalog span {
+  margin-top: 3px;
+  color: rgba(234, 248, 255, 0.76);
+  font-size: 13px;
+}
+
 @media (max-width: 720px) {
   .spore-corner {
     width: 190px;
@@ -1146,4 +1188,40 @@ button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+.lost-signal {
+  display: grid;
+  min-height: 100svh;
+  padding: 24px;
+  color: #effaff;
+  text-align: center;
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(95, 51, 205, 0.34),
+      transparent 28%
+    ),
+    #02030a;
+  place-content: center;
+}
+
+.lost-signal p {
+  margin: 0;
+  color: #8edfff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lost-signal h1 {
+  margin: 8px 0 20px;
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: clamp(30px, 6vw, 64px);
+}
+
+.lost-signal a {
+  color: #fff071;
+  font-weight: 900;
 }

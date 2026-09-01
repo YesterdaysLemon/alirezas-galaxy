@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { buildStructuredData, siteIdentity } from '@/data/site';
 import './globals.css';
 
 const geistSans = Geist({
@@ -13,31 +14,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alireza's Galaxy",
-  description:
-    'A tactile orbital index of Alireza Afshan’s websites and experiments.',
+  metadataBase: new URL(siteIdentity.origin),
+  title: siteIdentity.name,
+  description: siteIdentity.description,
+  alternates: { canonical: '/' },
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/favicon.svg',
+  },
   openGraph: {
-    title: "Alireza's Galaxy",
-    description:
-      'A tactile orbital index of Alireza Afshan’s websites and experiments.',
+    title: siteIdentity.name,
+    description: siteIdentity.description,
+    url: '/',
+    siteName: siteIdentity.name,
     type: 'website',
     images: [
       {
-        url: 'https://raw.githubusercontent.com/YesterdaysLemon/alirezas-galaxy/main/public/og.png',
+        url: '/og.png',
         width: 1731,
         height: 909,
-        alt: "Alireza's Galaxy — seven small worlds in one luminous corner of the web.",
+        alt: "Alireza's Galaxy — linked worlds in one luminous corner of the web.",
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Alireza's Galaxy",
-    description:
-      'A tactile orbital index of Alireza Afshan’s websites and experiments.',
-    images: [
-      'https://raw.githubusercontent.com/YesterdaysLemon/alirezas-galaxy/main/public/og.png',
-    ],
+    title: siteIdentity.name,
+    description: siteIdentity.description,
+    images: ['/og.png'],
   },
 };
 
@@ -48,6 +52,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="describedby" href="/llms.txt" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildStructuredData()).replace(
+              /</g,
+              '\\u003c',
+            ),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
