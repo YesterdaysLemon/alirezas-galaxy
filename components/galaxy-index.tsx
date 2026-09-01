@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import * as THREE from 'three';
+import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
 import { destinations } from '@/data/worlds';
-
-const portraitUrl = 'https://avatars.githubusercontent.com/u/129180138?v=4';
 
 const pointsVertexShader = /* glsl */ `
   uniform float uPixelRatio;
@@ -694,34 +693,59 @@ export function GalaxyIndex() {
       spin: number;
       life: number;
     }> = [];
-    let portraitTexture: THREE.Texture | null = null;
+    const portraitTextures: THREE.Texture[] = [];
+    let portraitsLoading = false;
+    let portraitsReady = false;
     let pendingBurst = false;
     let burstCooldown = 0;
 
     const textureLoader = new THREE.TextureLoader();
-    textureLoader.setCrossOrigin('anonymous');
-    textureLoader.load(
-      portraitUrl,
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        portraitTexture = texture;
-        if (pendingBurst) {
+
+    function loadPortraitTextures() {
+      if (portraitsLoading || portraitsReady) return;
+      portraitsLoading = true;
+      let unsettledTextures = portraitUrls.length;
+
+      const settleTexture = () => {
+        unsettledTextures -= 1;
+        if (unsettledTextures > 0) return;
+
+        portraitsReady = true;
+        portraitsLoading = false;
+        if (pendingBurst && portraitTextures.length > 0) {
           pendingBurst = false;
           burstPortraits();
+        } else {
+          pendingBurst = false;
         }
-      },
-      undefined,
-      () => {
-        pendingBurst = false;
-      },
-    );
+      };
+
+      portraitUrls.forEach((url) => {
+        textureLoader.load(
+          url,
+          (texture) => {
+            if (disposed) {
+              texture.dispose();
+            } else {
+              texture.colorSpace = THREE.SRGBColorSpace;
+              portraitTextures.push(texture);
+            }
+            settleTexture();
+          },
+          undefined,
+          settleTexture,
+        );
+      });
+    }
 
     function burstPortraits() {
       if (burstCooldown > 0) return;
-      if (!portraitTexture) {
+      if (!portraitsReady) {
         pendingBurst = true;
+        loadPortraitTextures();
         return;
       }
+      if (portraitTextures.length === 0) return;
 
       portraitSprites.forEach(({ sprite }) => {
         portraitGroup.remove(sprite);
@@ -732,7 +756,7 @@ export function GalaxyIndex() {
 
       for (let index = 0; index < 10; index += 1) {
         const material = new THREE.SpriteMaterial({
-          map: portraitTexture,
+          map: portraitTextures[Math.floor(random() * portraitTextures.length)],
           transparent: true,
           depthTest: false,
           depthWrite: false,
@@ -757,6 +781,11 @@ export function GalaxyIndex() {
       }
       burstCooldown = 5;
     }
+
+    const portraitPreloadTimer = window.setTimeout(
+      loadPortraitTextures,
+      isCompact ? 2600 : 1700,
+    );
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
@@ -1127,9 +1156,10 @@ export function GalaxyIndex() {
       renderer.domElement.removeEventListener('pointercancel', endPointer);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      window.clearTimeout(portraitPreloadTimer);
       resetGalaxyRef.current = () => undefined;
       portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
-      portraitTexture?.dispose();
+      portraitTextures.forEach((texture) => texture.dispose());
       glowTexture?.dispose();
       markerTexture?.dispose();
       signalWaveTexture?.dispose();

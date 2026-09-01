@@ -1,5 +1,8 @@
 # Selfie burst assets
 
-The first slice uses Alireza's public GitHub avatar for the spin-fast Easter egg.
-Replace it with optimized local WebP or AVIF portraits before the final release.
-Square crops at 256 by 256 pixels are plenty for the in-scene sprites.
+The spin-fast Easter egg uses the nine local files in `portraits/`.
+
+Each asset is a 256 by 256 WebP made from user-provided profile imagery. The
+published derivatives use anonymous sequential filenames and contain no source
+metadata, location data, camera data, thumbnails, or other ancillary chunks.
+The original files are not copied into this repository.
