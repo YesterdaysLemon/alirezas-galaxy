@@ -830,7 +830,7 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
+        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-31px, -50%)`;
         previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 

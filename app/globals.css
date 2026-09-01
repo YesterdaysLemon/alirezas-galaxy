@@ -625,11 +625,14 @@ button {
 }
 
 .world-play:hover,
-.world-play:focus-visible,
+.world-play:focus-visible {
+  filter: brightness(1.16) saturate(1.08);
+  transform: translateX(3px);
+}
+
 .world-close:hover,
 .world-close:focus-visible {
   filter: brightness(1.16) saturate(1.08);
-  transform: translateX(3px);
 }
 
 .world-play:focus-visible,
