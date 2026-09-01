@@ -20,7 +20,11 @@ type WorldSeed = Omit<Destination, 'color' | 'radius' | 'angle' | 'size'> &
 
 const TAU = Math.PI * 2;
 const GALAXY_ARMS = 5;
-export const MIN_WORLD_SPACING = 3.2;
+export const MIN_WORLD_SPACING = 4.8;
+const PLACEMENT_ANGLES_PER_BAND = 21;
+const PLACEMENT_RADIAL_BANDS = 9;
+const PLACEMENT_ANGLE_STEP = 0.18;
+const PLACEMENT_RADIUS_STEP = 0.58;
 const generatedColors = [
   0x70dfff, 0x9affeb, 0xffe67d, 0x72a8ff, 0xffa6e4, 0xbda2ff, 0xffba6b,
 ];
@@ -53,42 +57,67 @@ function materializeWorld(
   placedWorlds: Destination[],
 ): Destination {
   const identity = `${world.name}:${world.url}`;
-  let radius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
+  const seedRadius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
   const arm = index % GALAXY_ARMS;
   const armAngle = (arm / GALAXY_ARMS) * TAU;
   const armJitter = (hashUnit(identity, 29) - 0.5) * 0.34;
-  const generatedAngle = armAngle + radius * 0.49 + armJitter;
-  let angle = world.angle ?? generatedAngle;
-  const isArtDirected = world.radius !== undefined && world.angle !== undefined;
+  const seedAngle = world.angle ?? armAngle + seedRadius * 0.49 + armJitter;
+  const preferredAngularDirection = hashUnit(identity, 97) < 0.5 ? -1 : 1;
+  const preferredRadialDirection = hashUnit(identity, 113) < 0.5 ? -1 : 1;
+  let radius = seedRadius;
+  let angle = seedAngle;
+  let positionFound = false;
 
-  if (!isArtDirected) {
-    const preferredDirection = hashUnit(identity, 97) < 0.5 ? -1 : 1;
+  placement: for (
+    let radialBand = 0;
+    radialBand < PLACEMENT_RADIAL_BANDS;
+    radialBand += 1
+  ) {
+    const radialDistance = Math.ceil(radialBand / 2);
+    const radialDirection =
+      radialBand === 0
+        ? 0
+        : (radialBand % 2 === 1 ? 1 : -1) * preferredRadialDirection;
+    const candidateRadius = clamp(
+      seedRadius + radialDirection * radialDistance * PLACEMENT_RADIUS_STEP,
+      4.8,
+      12.4,
+    );
 
-    // Search symmetrically around the seeded arm position. Generated worlds
-    // may cluster naturally, but never closely enough to create competing hit
-    // targets. Explicitly art-directed positions remain untouched.
-    for (let attempt = 0; attempt < 17; attempt += 1) {
-      const distanceFromSeed = Math.ceil(attempt / 2);
-      const searchDirection =
-        attempt === 0 ? 0 : (attempt % 2 === 1 ? 1 : -1) * preferredDirection;
-      angle = generatedAngle + searchDirection * distanceFromSeed * 0.22;
-      radius =
-        world.radius ??
-        clamp(
-          5.2 + hashUnit(identity, 11) * 5.8 + Math.floor(attempt / 10) * 0.42,
-          4.8,
-          12,
-        );
-      const candidate = { radius, angle };
+    for (
+      let angularStep = 0;
+      angularStep < PLACEMENT_ANGLES_PER_BAND;
+      angularStep += 1
+    ) {
+      const angularDistance = Math.ceil(angularStep / 2);
+      const angularDirection =
+        angularStep === 0
+          ? 0
+          : (angularStep % 2 === 1 ? 1 : -1) * preferredAngularDirection;
+      const candidate = {
+        radius: candidateRadius,
+        angle:
+          seedAngle + angularDirection * angularDistance * PLACEMENT_ANGLE_STEP,
+      };
+
       if (
         placedWorlds.every(
           (placedWorld) =>
             worldDistance(candidate, placedWorld) >= MIN_WORLD_SPACING,
         )
       ) {
-        break;
+        radius = candidate.radius;
+        angle = candidate.angle;
+        positionFound = true;
+        break placement;
       }
     }
+  }
+
+  if (!positionFound) {
+    throw new Error(
+      `No interaction-safe galaxy position remains for world "${world.id}".`,
+    );
   }
 
   return {
@@ -109,8 +138,9 @@ function clamp(value: number, minimum: number, maximum: number) {
 }
 
 // Add one object here to map a new website. Orbit, arm, color, and marker size
-// are generated deterministically when omitted; supply any of them to art-direct
-// a particularly important world. The first entry is the default homeworld.
+// are generated deterministically when omitted. Supplied coordinates are seed
+// preferences and still pass through the same interaction-spacing rule as every
+// other world. The first entry is the default homeworld.
 export const worldCatalog: WorldSeed[] = [
   {
     id: 'portfolio',

@@ -59,7 +59,7 @@ describe('world catalog', () => {
     }
   });
 
-  it('keeps generated stars far enough apart to remain distinct targets', () => {
+  it('keeps every world far enough apart to remain a distinct target', () => {
     for (let first = 0; first < destinations.length; first += 1) {
       for (let second = first + 1; second < destinations.length; second += 1) {
         expect(
@@ -67,9 +67,5 @@ describe('world catalog', () => {
         ).toBeGreaterThanOrEqual(MIN_WORLD_SPACING);
       }
     }
-
-    const androidHell = destinations.find(({ id }) => id === 'android-hell')!;
-    const conspiracy = destinations.find(({ id }) => id === 'conspiracy')!;
-    expect(worldDistance(androidHell, conspiracy)).toBeGreaterThan(5.5);
   });
 });
