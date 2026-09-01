@@ -1,12 +1,12 @@
 # Alireza's Galaxy
 
 A fast, tactile orbital index for the websites in Alireza Afshan's corner of
-the internet. Drag the galaxy, hover a planet, and enter a site. Spin it hard
+the internet. Drag the galaxy, hover a world, and enter a site. Spin it hard
 enough and the center answers back.
 
-This is a deliberately small first slice inspired by the way Spore made its
-galaxy screen both a save selector and a toy. It does not use Spore assets or
-branding.
+This first slice recreates the interaction grammar of Spore's main menu from
+scratch: an oversized luminous disk, tiny radial world markers, a fixed blue
+glass menu, and almost no page chrome. It does not use Spore assets or branding.
 
 ## Run locally
 
@@ -17,7 +17,7 @@ npm run dev
 
 ## What is in the base
 
-- Four real destinations, with the portfolio selected by default
+- Seven real destinations, with the portfolio selected by default
 - Direct planet hover and click navigation
 - Pointer and touch drag, inertial spin, and wheel zoom
 - A fast-spin portrait Easter egg
@@ -26,10 +26,10 @@ npm run dev
 
 ## Performance shape
 
-The scene uses one buffered `THREE.Points` draw for the galaxy, one smaller
-buffer for the distant field, shared low-poly planet geometry, capped device
-pixel ratio, adaptive particle count, throttled raycasting against only four
-planets, and pauses rendering when the page is hidden or offscreen.
+The scene uses one compact galaxy buffer rendered in a crisp pass and a mist
+pass, one buffer for the distant field, shared low-poly planet geometry, capped
+device pixel ratio, adaptive particle counts, and throttled raycasting against
+only seven markers. Rendering pauses when the page is hidden or offscreen.
 
 ## Personalize it
 

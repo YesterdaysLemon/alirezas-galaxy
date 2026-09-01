@@ -5,61 +5,126 @@ import * as THREE from 'three';
 
 type Destination = {
   name: string;
-  label: string;
+  kind: string;
   url: string;
   description: string;
   color: number;
   radius: number;
   angle: number;
-  scale: number;
+  size: number;
 };
 
 const destinations: Destination[] = [
   {
     name: 'Alireza Afshan',
-    label: 'Portfolio',
+    kind: 'Portfolio · homeworld',
     url: 'https://alirezaafshan.com',
+    description: 'The person and the work at the center of this little galaxy.',
+    color: 0x70dfff,
+    radius: 8.6,
+    angle: 1.73,
+    size: 1.22,
+  },
+  {
+    name: 'C. elegans Lab',
+    kind: 'Live simulation',
+    url: 'https://worm.alirezaafshan.com',
     description:
-      'Selected work, experiments, and the person at the center of it all.',
-    color: 0xc8ff4a,
-    radius: 3.5,
-    angle: 0.38,
-    scale: 1.18,
+      'A 302-neuron connectome and body running as one browser loop.',
+    color: 0x9affeb,
+    radius: 5.05,
+    angle: 2.82,
+    size: 0.86,
+  },
+  {
+    name: 'Proof Bonsai',
+    kind: 'Live research map',
+    url: 'https://proof-bonsai.alirezaafshan.com',
+    description:
+      'A living map of scoped proof progress, open branches, and scars.',
+    color: 0xffe67d,
+    radius: 8.15,
+    angle: 0.16,
+    size: 0.93,
+  },
+  {
+    name: 'Aquarium',
+    kind: 'Three.js habitat',
+    url: 'https://fish.alirezaafshan.com',
+    description:
+      'A small fish tank that was apparently not allowed to stay simple.',
+    color: 0x72a8ff,
+    radius: 8.9,
+    angle: 4.28,
+    size: 0.78,
+  },
+  {
+    name: 'Bird of the Day',
+    kind: 'Daily field note',
+    url: 'https://birds.alirezaafshan.com',
+    description: 'One recent bird gets the whole front page for a day.',
+    color: 0xffa6e4,
+    radius: 10.65,
+    angle: 5.52,
+    size: 0.76,
+  },
+  {
+    name: 'Application Builder',
+    kind: 'Codex plugin',
+    url: 'https://job-application-batch-builder.alirezaafshan4.chatgpt.site',
+    description:
+      'Evidence-first application batches without the polished nonsense.',
+    color: 0xbda2ff,
+    radius: 7.45,
+    angle: 3.57,
+    size: 0.8,
   },
   {
     name: 'Learn2Design',
-    label: 'Research',
+    kind: 'Open research',
     url: 'https://www.learn2design2026.com/',
     description: 'Open, reproducible optimizer research for Learn2Design 2026.',
-    color: 0xffa64d,
-    radius: 6.05,
-    angle: 2.72,
-    scale: 0.86,
-  },
-  {
-    name: 'Conspiracy',
-    label: 'Experiment',
-    url: 'https://yesterdayslemon.github.io/conspiracy/',
-    description: 'A tactile noir evidence board for humans and WebMCP agents.',
-    color: 0xe4dcff,
-    radius: 7.8,
-    angle: 4.62,
-    scale: 0.78,
-  },
-  {
-    name: 'Codex Continuity',
-    label: 'Developer tool',
-    url: 'https://codex-continuity.alirezaafshan4.chatgpt.site',
-    description:
-      'Keep long-running Codex work alive through desktop app updates.',
-    color: 0x72c7ff,
-    radius: 9.55,
-    angle: 5.68,
-    scale: 0.72,
+    color: 0xffba6b,
+    radius: 10.2,
+    angle: 2.02,
+    size: 0.72,
   },
 ];
 
 const portraitUrl = 'https://avatars.githubusercontent.com/u/129180138?v=4';
+
+const pointsVertexShader = /* glsl */ `
+  uniform float uPixelRatio;
+  uniform float uPointScale;
+  uniform float uOpacity;
+  attribute float aSize;
+  attribute float aAlpha;
+  varying vec3 vColor;
+  varying float vAlpha;
+
+  void main() {
+    vColor = color;
+    vAlpha = aAlpha * uOpacity;
+    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+    float perspective = clamp(24.0 / max(1.0, -viewPosition.z), 0.32, 2.5);
+    gl_PointSize = max(1.0, aSize * uPointScale * uPixelRatio * perspective);
+    gl_Position = projectionMatrix * viewPosition;
+  }
+`;
+
+const pointsFragmentShader = /* glsl */ `
+  varying vec3 vColor;
+  varying float vAlpha;
+
+  void main() {
+    float distanceToCenter = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    if (distanceToCenter > 1.0) discard;
+    float haze = 1.0 - smoothstep(0.06, 1.0, distanceToCenter);
+    float spark = 1.0 - smoothstep(0.0, 0.22, distanceToCenter);
+    float alpha = (haze * haze * 0.8 + spark * 0.48) * vAlpha;
+    gl_FragColor = vec4(vColor * (0.82 + spark * 1.35), alpha);
+  }
+`;
 
 function seededRandom(seed = 9173) {
   let value = seed >>> 0;
@@ -72,40 +137,72 @@ function seededRandom(seed = 9173) {
   };
 }
 
+function gaussian(random: () => number) {
+  const first = Math.max(0.000001, random());
+  const second = Math.max(0.000001, random());
+  return Math.sqrt(-2 * Math.log(first)) * Math.cos(Math.PI * 2 * second);
+}
+
 function createGalaxyGeometry(count: number) {
   const random = seededRandom();
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
-  const core = new THREE.Color(0xfff0c2);
-  const edge = new THREE.Color(0x83a6ff);
+  const sizes = new Float32Array(count);
+  const alphas = new Float32Array(count);
+  const inner = new THREE.Color(0xfff5d5);
+  const rose = new THREE.Color(0xffc7f5);
+  const violet = new THREE.Color(0x824cff);
+  const blue = new THREE.Color(0x2247ff);
   const color = new THREE.Color();
-  const arms = 5;
+  const arms = 4;
 
   for (let index = 0; index < count; index += 1) {
-    const radius = Math.pow(random(), 0.62) * 12;
+    const normalizedRadius = Math.pow(random(), 0.72);
+    const baseRadius = normalizedRadius * 14.2;
     const arm = index % arms;
-    const branchAngle = (arm / arms) * Math.PI * 2;
-    const spinAngle = radius * 0.61;
-    const spread = Math.pow(radius / 12, 1.15) * 1.35 + 0.08;
-    const jitter = (random() - 0.5) * spread;
-    const angle = branchAngle + spinAngle + jitter;
+    const angleNoise = gaussian(random) * (0.065 + normalizedRadius * 0.15);
+    const radiusNoise = gaussian(random) * (0.15 + normalizedRadius * 0.74);
+    const radius = Math.max(0.04, baseRadius + radiusNoise);
+    const angle = (arm / arms) * Math.PI * 2 + radius * 0.49 + angleNoise;
     const offset = index * 3;
 
-    positions[offset] = Math.cos(angle) * radius + (random() - 0.5) * spread;
-    positions[offset + 1] = (random() - 0.5) * (0.18 + radius * 0.045);
-    positions[offset + 2] =
-      Math.sin(angle) * radius + (random() - 0.5) * spread;
+    positions[offset] = Math.cos(angle) * radius;
+    positions[offset + 1] =
+      gaussian(random) * (0.055 + normalizedRadius * 0.22);
+    positions[offset + 2] = Math.sin(angle) * radius;
 
-    color.copy(core).lerp(edge, Math.min(1, radius / 12));
-    const brightness = 0.66 + random() * 0.42;
-    colors[offset] = color.r * brightness;
-    colors[offset + 1] = color.g * brightness;
-    colors[offset + 2] = color.b * brightness;
+    if (normalizedRadius < 0.2) {
+      color
+        .copy(inner)
+        .lerp(rose, THREE.MathUtils.smoothstep(normalizedRadius, 0.02, 0.2));
+    } else if (normalizedRadius < 0.63) {
+      color
+        .copy(rose)
+        .lerp(violet, THREE.MathUtils.smoothstep(normalizedRadius, 0.2, 0.63));
+    } else {
+      color
+        .copy(violet)
+        .lerp(blue, THREE.MathUtils.smoothstep(normalizedRadius, 0.63, 1));
+    }
+
+    const warmth = random();
+    if (warmth > 0.965) color.lerp(inner, 0.62);
+    colors[offset] = color.r;
+    colors[offset + 1] = color.g;
+    colors[offset + 2] = color.b;
+
+    const isCloud = random() < 0.69;
+    sizes[index] = isCloud
+      ? 8 + random() * (13 + normalizedRadius * 7)
+      : 1.3 + random() * 3.1;
+    alphas[index] = isCloud ? 0.045 + random() * 0.075 : 0.45 + random() * 0.5;
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
   geometry.computeBoundingSphere();
   return geometry;
 }
@@ -113,45 +210,125 @@ function createGalaxyGeometry(count: number) {
 function createBackdropGeometry(count: number) {
   const random = seededRandom(5118);
   const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const alphas = new Float32Array(count);
+  const palette = [
+    new THREE.Color(0xffffff),
+    new THREE.Color(0x88dfff),
+    new THREE.Color(0xff9cdc),
+    new THREE.Color(0xffdd7a),
+    new THREE.Color(0xa68cff),
+  ];
 
   for (let index = 0; index < count; index += 1) {
     const offset = index * 3;
-    const radius = 22 + random() * 25;
+    const radius = 23 + random() * 34;
     const theta = random() * Math.PI * 2;
     const phi = Math.acos(2 * random() - 1);
     positions[offset] = radius * Math.sin(phi) * Math.cos(theta);
     positions[offset + 1] = radius * Math.cos(phi);
     positions[offset + 2] = radius * Math.sin(phi) * Math.sin(theta);
+    const color = palette[Math.floor(random() * palette.length)];
+    colors[offset] = color.r;
+    colors[offset + 1] = color.g;
+    colors[offset + 2] = color.b;
+    sizes[index] = 2 + Math.pow(random(), 4) * 9.5;
+    alphas[index] = 0.55 + random() * 0.45;
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
   geometry.computeBoundingSphere();
   return geometry;
 }
 
 function createGlowTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
+  canvas.width = 256;
+  canvas.height = 256;
   const context = canvas.getContext('2d');
   if (!context) return null;
 
-  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, 'rgba(255, 246, 206, 1)');
-  gradient.addColorStop(0.16, 'rgba(255, 208, 124, .72)');
-  gradient.addColorStop(0.42, 'rgba(143, 126, 255, .2)');
-  gradient.addColorStop(1, 'rgba(44, 37, 90, 0)');
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 128, 128);
+  const glow = context.createRadialGradient(128, 128, 0, 128, 128, 128);
+  glow.addColorStop(0, 'rgba(255, 255, 244, 1)');
+  glow.addColorStop(0.09, 'rgba(255, 247, 197, .98)');
+  glow.addColorStop(0.22, 'rgba(255, 207, 160, .76)');
+  glow.addColorStop(0.46, 'rgba(245, 145, 245, .25)');
+  glow.addColorStop(0.72, 'rgba(103, 81, 255, .08)');
+  glow.addColorStop(1, 'rgba(27, 21, 92, 0)');
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 256, 256);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
+function createMarkerTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  context.translate(128, 128);
+  const aura = context.createRadialGradient(0, 0, 2, 0, 0, 104);
+  aura.addColorStop(0, 'rgba(255,255,255,1)');
+  aura.addColorStop(0.035, 'rgba(255,243,177,.98)');
+  aura.addColorStop(0.08, 'rgba(255,235,196,.35)');
+  aura.addColorStop(0.18, 'rgba(255,210,131,.06)');
+  aura.addColorStop(0.31, 'rgba(255,255,255,0)');
+  aura.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = aura;
+  context.fillRect(-128, -128, 256, 256);
+
+  context.strokeStyle = 'rgba(255, 244, 194, .94)';
+  context.lineWidth = 4;
+  [44, 67, 91].forEach((radius, index) => {
+    context.globalAlpha = 1 - index * 0.24;
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.stroke();
+  });
+  context.globalAlpha = 0.9;
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(-43, 0);
+  context.lineTo(43, 0);
+  context.moveTo(0, -43);
+  context.lineTo(0, 43);
+  context.stroke();
+  context.globalAlpha = 1;
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uPixelRatio: { value: pixelRatio },
+      uPointScale: { value: pointScale },
+      uOpacity: { value: opacity },
+    },
+    vertexShader: pointsVertexShader,
+    fragmentShader: pointsFragmentShader,
+    vertexColors: true,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: true,
+  });
+}
+
 export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLAnchorElement>(null);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [ready, setReady] = useState(false);
@@ -185,21 +362,22 @@ export function GalaxyIndex() {
       '(prefers-reduced-motion: reduce)',
     ).matches;
     const cores = navigator.hardwareConcurrency ?? 4;
-    const starCount = isCompact || cores <= 4 ? 6200 : 11800;
-    const maxPixelRatio = isCompact || cores <= 4 ? 1.15 : 1.5;
+    const starCount = isCompact || cores <= 4 ? 8800 : 17600;
+    const backdropCount = isCompact ? 3000 : 7200;
+    const maxPixelRatio = isCompact || cores <= 4 ? 1.1 : 1.45;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05060a);
-    scene.fog = new THREE.FogExp2(0x05060a, 0.018);
+    scene.background = new THREE.Color(0x020308);
 
-    const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
-    let cameraDistance = isCompact ? 25 : 22;
-    camera.position.set(0, cameraDistance * 0.46, cameraDistance * 0.88);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    let cameraDistance = isCompact ? 25.5 : 20.5;
+    camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
+    camera.lookAt(0.7, 0, 0);
 
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, maxPixelRatio),
-    );
+    renderer.setPixelRatio(pixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     renderer.domElement.style.display = 'block';
@@ -208,87 +386,108 @@ export function GalaxyIndex() {
     renderer.domElement.setAttribute('data-galaxy-canvas', '');
     stage.appendChild(renderer.domElement);
 
-    const backdropGeometry = createBackdropGeometry(isCompact ? 420 : 760);
-    const backdropMaterial = new THREE.PointsMaterial({
-      color: 0x8992b5,
-      size: 0.045,
-      transparent: true,
-      opacity: 0.62,
-      depthWrite: false,
-      sizeAttenuation: true,
-    });
+    const backdropGeometry = createBackdropGeometry(backdropCount);
+    const backdropMaterial = createPointsMaterial(pixelRatio);
+    backdropMaterial.depthTest = false;
     const backdrop = new THREE.Points(backdropGeometry, backdropMaterial);
     scene.add(backdrop);
 
     const galaxy = new THREE.Group();
-    galaxy.rotation.x = -0.34;
+    galaxy.rotation.x = -0.08;
+    galaxy.rotation.y = 0.16;
+    galaxy.position.y = 1.35;
+    galaxy.scale.setScalar(1.08);
     scene.add(galaxy);
 
     const galaxyGeometry = createGalaxyGeometry(starCount);
-    const galaxyMaterial = new THREE.PointsMaterial({
-      size: isCompact ? 0.045 : 0.038,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      sizeAttenuation: true,
-    });
+    const galaxyMaterial = createPointsMaterial(pixelRatio);
     const galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
     galaxy.add(galaxyPoints);
+
+    // A second pass over the same compact buffer turns the points into the
+    // broad, smoky ribbons that made the original menu read from across a room.
+    const galaxyMistMaterial = createPointsMaterial(pixelRatio, 0.32, 2.45);
+    galaxyMistMaterial.depthTest = false;
+    const galaxyMist = new THREE.Points(galaxyGeometry, galaxyMistMaterial);
+    galaxyMist.scale.set(1.012, 1, 1.012);
+    galaxyMist.rotation.y = 0.018;
+    galaxy.add(galaxyMist);
 
     const glowTexture = createGlowTexture();
     const glowMaterial = new THREE.SpriteMaterial({
       map: glowTexture,
       color: 0xffffff,
       transparent: true,
-      opacity: 0.9,
+      opacity: 1,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      depthTest: false,
     });
     const glow = new THREE.Sprite(glowMaterial);
-    glow.scale.set(7.5, 7.5, 1);
-    glow.position.y = 0.08;
+    glow.scale.set(17.5, 8.2, 1);
+    glow.position.y = 0.22;
+    glow.renderOrder = 3;
     galaxy.add(glow);
 
-    scene.add(new THREE.HemisphereLight(0xdce8ff, 0x20160e, 1.7));
-    const keyLight = new THREE.PointLight(0xffe0a6, 18, 22, 1.7);
-    keyLight.position.set(0, 4, 0);
+    const softGlow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTexture,
+        color: 0x7d5dff,
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+      }),
+    );
+    softGlow.scale.set(25, 12.4, 1);
+    softGlow.position.y = -0.05;
+    galaxy.add(softGlow);
+
+    scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x190f36, 1.35));
+    const keyLight = new THREE.PointLight(0xffe7ba, 18, 24, 1.4);
+    keyLight.position.set(0, 5, 0);
     galaxy.add(keyLight);
 
-    const planetGeometry = new THREE.SphereGeometry(0.52, 20, 14);
-    const planets: THREE.Mesh[] = destinations.map((destination, index) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: destination.color,
-        roughness: 0.76,
-        metalness: 0.06,
-        emissive: destination.color,
-        emissiveIntensity: index === 0 ? 0.15 : 0.07,
-      });
-      const planet = new THREE.Mesh(planetGeometry, material);
-      planet.position.set(
+    const markerTexture = createMarkerTexture();
+    const planetGeometry = new THREE.SphereGeometry(0.25, 18, 12);
+    const nodes = destinations.map((destination, index) => {
+      const position = new THREE.Vector3(
         Math.cos(destination.angle) * destination.radius,
-        0.34 + index * 0.08,
+        0.38 + index * 0.018,
         Math.sin(destination.angle) * destination.radius,
       );
-      planet.scale.setScalar(destination.scale);
+      const planetMaterial = new THREE.MeshStandardMaterial({
+        color: destination.color,
+        emissive: destination.color,
+        emissiveIntensity: index === 0 ? 0.38 : 0.2,
+        roughness: 0.82,
+        metalness: 0.05,
+      });
+      const planet = new THREE.Mesh(planetGeometry, planetMaterial);
+      planet.position.copy(position);
+      planet.scale.setScalar(index === 0 ? 0.7 : 0.38);
       planet.userData.destinationIndex = index;
       galaxy.add(planet);
-      return planet;
-    });
 
-    const selectionRingGeometry = new THREE.TorusGeometry(0.78, 0.018, 8, 72);
-    const selectionRingMaterial = new THREE.MeshBasicMaterial({
-      color: 0xf6f4ed,
-      transparent: true,
-      opacity: 0.7,
+      const markerMaterial = new THREE.SpriteMaterial({
+        map: markerTexture,
+        color: destination.color,
+        transparent: true,
+        opacity: index === 0 ? 1 : 0.75,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+      });
+      const marker = new THREE.Sprite(markerMaterial);
+      marker.position.copy(position);
+      marker.scale.setScalar(destination.size * (index === 0 ? 0.48 : 0.35));
+      marker.userData.destinationIndex = index;
+      marker.renderOrder = 8;
+      galaxy.add(marker);
+
+      return { planet, marker, position };
     });
-    const selectionRing = new THREE.Mesh(
-      selectionRingGeometry,
-      selectionRingMaterial,
-    );
-    selectionRing.rotation.x = Math.PI / 2;
-    galaxy.add(selectionRing);
 
     const portraitGroup = new THREE.Group();
     galaxy.add(portraitGroup);
@@ -329,12 +528,12 @@ export function GalaxyIndex() {
 
       portraitSprites.forEach(({ sprite }) => {
         portraitGroup.remove(sprite);
-        (sprite.material as THREE.SpriteMaterial).dispose();
+        sprite.material.dispose();
       });
       portraitSprites.length = 0;
-
       const random = seededRandom(Date.now());
-      for (let index = 0; index < 9; index += 1) {
+
+      for (let index = 0; index < 10; index += 1) {
         const material = new THREE.SpriteMaterial({
           map: portraitTexture,
           transparent: true,
@@ -342,16 +541,17 @@ export function GalaxyIndex() {
           depthWrite: false,
         });
         const sprite = new THREE.Sprite(material);
-        const angle = (index / 9) * Math.PI * 2 + random() * 0.45;
-        const speed = 0.055 + random() * 0.065;
-        sprite.position.set(0, 0.7, 0);
+        const angle = (index / 10) * Math.PI * 2 + random() * 0.38;
+        const speed = 0.065 + random() * 0.08;
+        sprite.position.set(0, 0.82, 0);
         sprite.scale.setScalar(0.01);
+        sprite.renderOrder = 20;
         portraitGroup.add(sprite);
         portraitSprites.push({
           sprite,
           velocity: new THREE.Vector3(
             Math.cos(angle) * speed,
-            0.01 + random() * 0.035,
+            0.015 + random() * 0.04,
             Math.sin(angle) * speed,
           ),
           spin: (random() - 0.5) * 0.1,
@@ -363,7 +563,8 @@ export function GalaxyIndex() {
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
-    let hoveredIndex = 0;
+    const labelPosition = new THREE.Vector3();
+    let hoveredIndex = -1;
     let isDragging = false;
     let pointerId = -1;
     let lastX = 0;
@@ -397,19 +598,18 @@ export function GalaxyIndex() {
     const onPointerMove = (event: PointerEvent) => {
       updatePointer(event);
       if (!isDragging || event.pointerId !== pointerId) return;
-
       const deltaX = event.clientX - lastX;
       const deltaY = event.clientY - lastY;
       lastX = event.clientX;
       lastY = event.clientY;
       dragDistance += Math.abs(deltaX) + Math.abs(deltaY);
-      angularVelocity = THREE.MathUtils.clamp(deltaX * 0.007, -0.26, 0.26);
-      tiltVelocity = THREE.MathUtils.clamp(deltaY * 0.0025, -0.035, 0.035);
+      angularVelocity = THREE.MathUtils.clamp(deltaX * 0.0068, -0.28, 0.28);
+      tiltVelocity = THREE.MathUtils.clamp(deltaY * 0.0018, -0.026, 0.026);
       galaxy.rotation.y += angularVelocity;
       galaxy.rotation.x = THREE.MathUtils.clamp(
         galaxy.rotation.x + tiltVelocity,
-        -0.72,
-        0.14,
+        -0.33,
+        0.24,
       );
     };
 
@@ -435,9 +635,9 @@ export function GalaxyIndex() {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       cameraDistance = THREE.MathUtils.clamp(
-        cameraDistance + event.deltaY * 0.012,
-        14,
-        30,
+        cameraDistance + event.deltaY * 0.01,
+        18,
+        31,
       );
     };
 
@@ -489,14 +689,14 @@ export function GalaxyIndex() {
 
       if (!isDragging) {
         galaxy.rotation.y += angularVelocity * delta;
-        angularVelocity *= Math.pow(0.948, delta);
+        angularVelocity *= Math.pow(0.949, delta);
         tiltVelocity *= Math.pow(0.9, delta);
         if (!reduceMotion && Math.abs(angularVelocity) < 0.0012) {
-          galaxy.rotation.y += 0.00045 * delta;
+          galaxy.rotation.y += 0.00035 * delta;
         }
       }
 
-      if (Math.abs(angularVelocity) > 0.115) {
+      if (Math.abs(angularVelocity) > 0.12) {
         fastSpinFrames += 1;
         if (fastSpinFrames > 9) {
           burstPortraits();
@@ -507,16 +707,17 @@ export function GalaxyIndex() {
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
-      camera.position.x += (0 - camera.position.x) * 0.06;
-      camera.position.y += (cameraDistance * 0.46 - camera.position.y) * 0.06;
-      camera.position.z += (cameraDistance * 0.88 - camera.position.z) * 0.06;
-      camera.lookAt(0, 0, 0);
-      backdrop.rotation.y -= 0.00008 * delta;
-      selectionRing.rotation.z += 0.003 * delta;
+      camera.position.y += (cameraDistance * 0.37 - camera.position.y) * 0.055;
+      camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
+      camera.lookAt(0.7, 0, 0);
+      backdrop.rotation.y -= 0.00006 * delta;
 
       if (!isDragging && frame % 2 === 0) {
         raycaster.setFromCamera(pointer, camera);
-        const hit = raycaster.intersectObjects(planets, false)[0];
+        const hit = raycaster.intersectObjects(
+          nodes.map(({ marker }) => marker),
+          false,
+        )[0];
         if (hit) {
           const nextIndex = hit.object.userData.destinationIndex as number;
           hoveredIndex = nextIndex;
@@ -534,23 +735,36 @@ export function GalaxyIndex() {
       }
 
       const selectedIndex = activeIndexRef.current;
-      const selectedPlanet = planets[selectedIndex];
-      selectionRing.position.copy(selectedPlanet.position);
-      selectionRing.scale.setScalar(destinations[selectedIndex].scale);
-      selectionRingMaterial.color.setHex(destinations[selectedIndex].color);
-
-      planets.forEach((planet, index) => {
+      nodes.forEach(({ planet, marker }, index) => {
         const destination = destinations[index];
-        const pulse = reduceMotion
-          ? 1
-          : 1 + Math.sin(time * 0.0017 + index) * 0.018;
-        const target =
-          destination.scale * (index === selectedIndex ? 1.16 : 1) * pulse;
-        planet.scale.x += (target - planet.scale.x) * 0.1;
-        planet.scale.y += (target - planet.scale.y) * 0.1;
-        planet.scale.z += (target - planet.scale.z) * 0.1;
-        planet.rotation.y += (0.002 + index * 0.0004) * delta;
+        const isSelected = index === selectedIndex;
+        const pulse =
+          reduceMotion || !isSelected ? 1 : 1 + Math.sin(time * 0.0035) * 0.07;
+        const markerTarget =
+          destination.size * (isSelected ? 0.48 : 0.35) * pulse;
+        const planetTarget = isSelected ? 0.7 : 0.38;
+        marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
+        marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
+        marker.material.opacity +=
+          ((isSelected ? 1 : 0.68) - marker.material.opacity) * 0.11;
+        planet.scale.x += (planetTarget - planet.scale.x) * 0.11;
+        planet.scale.y += (planetTarget - planet.scale.y) * 0.11;
+        planet.scale.z += (planetTarget - planet.scale.z) * 0.11;
+        planet.rotation.y += (0.0022 + index * 0.00025) * delta;
       });
+
+      const label = labelRef.current;
+      if (label) {
+        labelPosition.copy(nodes[selectedIndex].position);
+        galaxy.localToWorld(labelPosition);
+        labelPosition.project(camera);
+        const bounds = renderer.domElement.getBoundingClientRect();
+        const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
+        const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
+        const labelOffset = screenX > bounds.width - 205 ? -176 : 58;
+        label.style.transform = `translate3d(${screenX + labelOffset}px, ${screenY - 13}px, 0)`;
+        label.style.opacity = labelPosition.z > 1 ? '0' : '1';
+      }
 
       for (let index = portraitSprites.length - 1; index >= 0; index -= 1) {
         const portrait = portraitSprites[index];
@@ -558,15 +772,12 @@ export function GalaxyIndex() {
         portrait.sprite.position.addScaledVector(portrait.velocity, delta);
         portrait.sprite.material.rotation += portrait.spin * delta;
         const envelope = Math.sin(Math.max(0, portrait.life) * Math.PI);
-        const scale = Math.max(0.01, envelope * 0.92);
+        const scale = Math.max(0.01, envelope * 0.96);
         portrait.sprite.scale.set(scale, scale, 1);
-        (portrait.sprite.material as THREE.SpriteMaterial).opacity = Math.min(
-          1,
-          portrait.life * 2,
-        );
+        portrait.sprite.material.opacity = Math.min(1, portrait.life * 2);
         if (portrait.life <= 0) {
           portraitGroup.remove(portrait.sprite);
-          (portrait.sprite.material as THREE.SpriteMaterial).dispose();
+          portrait.sprite.material.dispose();
           portraitSprites.splice(index, 1);
         }
       }
@@ -592,125 +803,115 @@ export function GalaxyIndex() {
       renderer.domElement.removeEventListener('pointercancel', endPointer);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('wheel', onWheel);
-      portraitSprites.forEach(({ sprite }) => {
-        (sprite.material as THREE.SpriteMaterial).dispose();
-      });
+      portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
       portraitTexture?.dispose();
       glowTexture?.dispose();
+      markerTexture?.dispose();
       glowMaterial.dispose();
+      softGlow.material.dispose();
       galaxyGeometry.dispose();
       galaxyMaterial.dispose();
+      galaxyMistMaterial.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();
-      selectionRingGeometry.dispose();
-      selectionRingMaterial.dispose();
       planetGeometry.dispose();
-      planets.forEach((planet) =>
-        (planet.material as THREE.Material).dispose(),
-      );
+      nodes.forEach(({ planet, marker }) => {
+        planet.material.dispose();
+        marker.material.dispose();
+      });
       renderer.dispose();
       renderer.domElement.remove();
     };
   }, []);
 
   return (
-    <main className="relative h-[100svh] min-h-[560px] overflow-hidden bg-background text-foreground">
+    <main
+      id="galaxy"
+      className="spore-shell relative h-[100svh] min-h-[520px] overflow-hidden"
+    >
       <div ref={stageRef} className="absolute inset-0" />
-      <div
-        aria-hidden="true"
-        className="galaxy-vignette pointer-events-none absolute inset-0"
-      />
+      <div aria-hidden="true" className="spore-vignette absolute inset-0" />
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-5 sm:p-8">
-        <div>
-          <a
-            href="https://alirezaafshan.com"
-            className="pointer-events-auto inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/88 outline-none transition-colors hover:text-accent focus-visible:text-accent"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_14px_#c8ff4a]" />
-            Alireza / orbital index
+      <header className="spore-corner" aria-label="Main menu">
+        <a
+          className="sprawl-mark"
+          href="https://alirezaafshan.com"
+          aria-label="Sprawl — Alireza Afshan"
+        >
+          sprawl
+          <sup>β</sup>
+        </a>
+        <nav className="spore-menu" aria-label="Primary">
+          <a className="spore-menu-item is-active" href="#galaxy">
+            <span aria-hidden="true">▶</span>
+            Explore
           </a>
-          <p className="mt-2 max-w-[18rem] text-xs leading-relaxed text-white/40">
-            Four small worlds in one quiet corner of the web.
-          </p>
-        </div>
-        <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/38 sm:flex">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${ready ? 'bg-accent' : 'bg-white/30'}`}
-          />
-          {ready ? `${destinations.length} signals online` : 'mapping orbit'}
-        </div>
+          <a className="spore-menu-item" href="https://alirezaafshan.com/about">
+            <span aria-hidden="true">✦</span>
+            About
+          </a>
+          <a
+            className="spore-menu-item"
+            href="https://alirezaafshan.com/projects"
+          >
+            <span aria-hidden="true">▦</span>
+            Projects
+          </a>
+          <a
+            className="spore-menu-item"
+            href="https://github.com/YesterdaysLemon/alirezas-galaxy"
+          >
+            <span aria-hidden="true">⌁</span>
+            Source
+          </a>
+        </nav>
       </header>
 
-      <section className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-5 p-5 sm:p-8">
-        <div className="hidden max-w-[18rem] pb-1 md:block">
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/38">
-            Drag to orbit · wheel to zoom
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-white/32">
-            The center has a sense of humor. Try giving the galaxy a proper
-            spin.
-          </p>
-        </div>
+      <p className="spore-invitation">
+        Click a world to visit it!
+        <span>Drag the galaxy to look around.</span>
+      </p>
 
-        <div className="glass-panel pointer-events-auto ml-auto w-full max-w-[25rem] rounded-2xl border border-white/10 p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/44">
-                {active.label} · 0{activeIndex + 1}
-              </p>
-              <h1 className="mt-2 text-[clamp(1.35rem,3vw,2rem)] font-medium tracking-[-0.035em] text-white">
-                {active.name}
-              </h1>
-            </div>
-            <span
-              aria-hidden="true"
-              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_18px_currentColor]"
-              style={{
-                color: `#${active.color.toString(16).padStart(6, '0')}`,
-                background: 'currentColor',
-              }}
-            />
-          </div>
+      <a ref={labelRef} href={active.url} className="world-label">
+        <strong>{active.name}</strong>
+        <span>{active.kind}</span>
+      </a>
 
-          <p className="mt-2 min-h-[2.6rem] max-w-[21rem] text-sm leading-relaxed text-white/54">
-            {active.description}
-          </p>
+      <div className="spore-dock" aria-label="Quick links">
+        <a href="#galaxy" aria-label="Return to galaxy" className="dock-orb">
+          ◎
+        </a>
+        <a
+          href="https://alirezaafshan.com/projects"
+          aria-label="Project index"
+          className="dock-grid"
+        >
+          ▦
+        </a>
+        <a href="https://alirezaafshan.com" className="dock-pill">
+          portfolio
+        </a>
+      </div>
 
-          <div className="mt-5 flex items-end justify-between gap-5 border-t border-white/10 pt-4">
-            <nav aria-label="Destinations" className="flex flex-col gap-1">
-              {destinations.map((destination, index) => (
-                <a
-                  key={destination.url}
-                  href={destination.url}
-                  onMouseEnter={() => selectDestination(index)}
-                  onFocus={() => selectDestination(index)}
-                  data-active={index === activeIndex}
-                  className="orbit-link relative py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/36 outline-none transition-colors hover:text-white/80 focus-visible:text-white data-[active=true]:text-white"
-                >
-                  {destination.label}
-                </a>
-              ))}
-            </nav>
+      <div className="spore-status" aria-hidden="true">
+        <span className={ready ? 'is-online' : ''} />
+        {ready ? `${destinations.length} worlds mapped` : 'mapping galaxy'}
+      </div>
 
-            <a
-              href={active.url}
-              className="group inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-xs font-semibold text-accent-foreground outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.98]"
-            >
-              Enter orbit
-              <span
-                aria-hidden="true"
-                className="text-sm leading-none transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-              >
-                ↗
-              </span>
-            </a>
-          </div>
-        </div>
-      </section>
+      <nav className="sr-only" aria-label="Website worlds">
+        {destinations.map((destination, index) => (
+          <a
+            key={destination.url}
+            href={destination.url}
+            onFocus={() => selectDestination(index)}
+          >
+            {destination.name}: {destination.description}
+          </a>
+        ))}
+      </nav>
 
       <p className="sr-only" aria-live="polite">
-        Selected destination: {active.name}. {active.description}
+        Selected world: {active.name}. {active.description}
       </p>
     </main>
   );

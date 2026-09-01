@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: 'https://raw.githubusercontent.com/YesterdaysLemon/alirezas-galaxy/main/public/og.png',
         width: 1731,
         height: 909,
-        alt: "Alireza's Galaxy — four small worlds in one quiet corner of the web.",
+        alt: "Alireza's Galaxy — seven small worlds in one luminous corner of the web.",
       },
     ],
   },
