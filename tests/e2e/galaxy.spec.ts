@@ -92,7 +92,51 @@ test('the utility dock keeps its controls distinct and functional', async ({
   await drift.click();
   await expect(drift).toHaveAttribute('aria-pressed', 'false');
 
+  await page.getByRole('button', { name: 'Close galaxy settings' }).click();
+  await expect(page.getByText('© Alireza Afshan · 2026')).toBeVisible();
+
+  const transmissionControl = page.getByRole('button', {
+    name: 'Show next footer transmission',
+  });
+  await transmissionControl.click();
+  await expect(page.locator('output#dock-transmission')).toContainText('—');
+  await transmissionControl.click();
   await expect(
-    page.getByRole('link', { name: 'send a signal' }),
-  ).toHaveAttribute('href', 'mailto:mail@alirezaafshan.com');
+    page.getByRole('link', { name: /Open Bartlett's Familiar Quotations/i }),
+  ).toHaveAttribute('href', 'https://www.gutenberg.org/ebooks/27889');
+});
+
+test('the active menu item connects to the sidebar with a gold rail', async ({
+  page,
+}) => {
+  await openHydratedGalaxy(page);
+  const portfolio = page.getByRole('link', { name: 'Portfolio' });
+  await portfolio.hover();
+  await expect(portfolio).toHaveClass(/is-active/);
+
+  const rail = await portfolio.evaluate((element) => {
+    const style = getComputedStyle(element, '::before');
+    return {
+      left: Number.parseFloat(style.left),
+      width: Number.parseFloat(style.width),
+      height: Number.parseFloat(style.height),
+      background: style.backgroundImage,
+    };
+  });
+
+  expect(rail.left).toBeLessThan(0);
+  expect(rail.width).toBeGreaterThanOrEqual(7);
+  expect(rail.height).toBeLessThanOrEqual(2);
+  expect(rail.background).toContain('linear-gradient');
+
+  const inactiveEdge = await page
+    .getByRole('link', { name: 'Workshop' })
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        topRight: style.borderTopRightRadius,
+        bottomRight: style.borderBottomRightRadius,
+      };
+    });
+  expect(inactiveEdge).toEqual({ topRight: '0px', bottomRight: '0px' });
 });

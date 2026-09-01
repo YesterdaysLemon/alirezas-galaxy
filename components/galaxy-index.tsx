@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import * as THREE from 'three';
+import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
 import { destinations } from '@/data/worlds';
 
 const portraitUrl = 'https://avatars.githubusercontent.com/u/129180138?v=4';
@@ -359,9 +360,11 @@ export function GalaxyIndex() {
   const [ambientMotion, setAmbientMotion] = useState(true);
   const [coreExposure, setCoreExposure] = useState(0.92);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dockTransmission, setDockTransmission] = useState(0);
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
   const preview = destinations[previewIndex];
+  const dailyQuote = getQuoteOfTheDay();
 
   const previewDestination = (index: number) => {
     if (expandedRef.current) return;
@@ -1335,9 +1338,13 @@ export function GalaxyIndex() {
 
         <button
           type="button"
-          aria-label="Restore the homeworld view"
+          aria-label={
+            settingsOpen ? 'Close galaxy settings' : 'Open galaxy settings'
+          }
+          aria-controls="galaxy-settings"
+          aria-expanded={settingsOpen}
           className="dock-orb"
-          onClick={() => resetGalaxyRef.current()}
+          onClick={() => setSettingsOpen((current) => !current)}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <path d="M12.1 11.9c.6-2.3 3.9-2.8 5.3-.8 1.7 2.4.2 5.8-2.7 7-4.2 1.8-9-.9-9.8-5.3-.9-5 3-9.6 7.9-10 5.5-.4 10.2 4.2 9.4 9.7" />
@@ -1348,17 +1355,41 @@ export function GalaxyIndex() {
         <div className="dock-signal-group">
           <button
             type="button"
-            aria-label="Open galaxy settings"
-            aria-controls="galaxy-settings"
-            aria-expanded={settingsOpen}
+            aria-label="Show next footer transmission"
+            aria-controls="dock-transmission"
             className="dock-grid"
-            onClick={() => setSettingsOpen((current) => !current)}
+            onClick={() => setDockTransmission((current) => (current + 1) % 3)}
           >
             ⚙
           </button>
-          <a href="mailto:mail@alirezaafshan.com" className="dock-pill">
-            send a signal
-          </a>
+          {dockTransmission === 2 ? (
+            <a
+              id="dock-transmission"
+              href={quotationCollection.url}
+              className="dock-pill"
+              data-mode="source"
+              aria-label={`Open ${quotationCollection.label}`}
+              title={quotationCollection.label}
+            >
+              open Bartlett&apos;s quotations ↗
+            </a>
+          ) : (
+            <output
+              id="dock-transmission"
+              className="dock-pill"
+              data-mode={dockTransmission === 1 ? 'quote' : 'credit'}
+              aria-live="polite"
+              title={
+                dockTransmission === 1
+                  ? `“${dailyQuote.text}” — ${dailyQuote.author}`
+                  : '© Alireza Afshan · 2026'
+              }
+            >
+              {dockTransmission === 1
+                ? `“${dailyQuote.text}” — ${dailyQuote.author}`
+                : '© Alireza Afshan · 2026'}
+            </output>
+          )}
         </div>
       </div>
 
