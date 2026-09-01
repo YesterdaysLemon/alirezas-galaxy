@@ -930,7 +930,9 @@ export function GalaxyIndex() {
       if (ambientMotionRef.current && !reduceMotion) {
         backdrop.rotation.y -= 0.00006 * delta;
         distantGalaxies.forEach((points, index) => {
-          points.rotation.z += (index % 2 === 0 ? 0.000012 : -0.000009) * delta;
+          const rotationSpeed =
+            index === 0 ? 0.00022 : index % 2 === 0 ? 0.000035 : -0.000028;
+          points.rotation.z += rotationSpeed * delta;
         });
       }
       glowMaterial.opacity +=
@@ -1046,7 +1048,12 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
+        const previewWidth = previewElement.offsetWidth || 166;
+        const opensLeft =
+          screenX + previewWidth - 31 > bounds.width - (isCompact ? 8 : 14);
+        const anchorOffset = opensLeft ? previewWidth - 31 : 31;
+        previewElement.dataset.edge = opensLeft ? 'right' : 'left';
+        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-${anchorOffset}px, -50%)`;
         previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 
