@@ -286,6 +286,7 @@ test('footer copy is centered inside both asymmetric consoles', async ({
 
   const contactConsole = page.locator('.contact-console');
   const contactCopy = contactConsole.getByText('contact me');
+  await expect(contactConsole.getByText('open a channel')).toHaveCount(0);
   const [consoleBox, contactBox] = await Promise.all([
     contactConsole.boundingBox(),
     contactCopy.boundingBox(),

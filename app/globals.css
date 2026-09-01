@@ -590,11 +590,14 @@ button {
   display: block;
   margin-top: 7px;
   overflow: hidden;
-  color: rgba(163, 221, 255, 0.72);
+  color: rgba(152, 255, 112, 0.84);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
+  text-shadow:
+    0 1px 1px rgba(0, 26, 17, 0.95),
+    0 0 4px rgba(113, 255, 93, 0.42);
   white-space: nowrap;
 }
 
@@ -1088,18 +1091,8 @@ button {
   box-shadow: inset 3px 0 6px rgba(2, 15, 34, 0.72);
 }
 
-.contact-console small {
-  color: #a6dff7;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  text-shadow: 0 1px #001328;
-  text-transform: lowercase;
-}
-
 .contact-console strong {
-  margin-top: 3px;
+  margin-top: 0;
   color: #98ff70;
   font-size: 14px;
   line-height: 1;

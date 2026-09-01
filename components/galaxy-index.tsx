@@ -1502,7 +1502,6 @@ export function GalaxyIndex() {
           aria-label="Contact me by email"
         >
           <span className="contact-console">
-            <small>open a channel</small>
             <strong>contact me</strong>
           </span>
           <span className="contact-orb" aria-hidden="true">
