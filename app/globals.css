@@ -244,25 +244,18 @@ button {
   background: linear-gradient(90deg, rgba(111, 174, 255, 0.4), transparent);
 }
 
-.spore-menu-item > span {
-  display: inline-grid;
+.spore-menu-item > .menu-icon {
+  display: block;
   width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  fill: none;
+  stroke: #7fd9ff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.45;
   color: #7fd9ff;
-  font-size: 12px;
-  place-items: center;
-  text-shadow: 0 0 7px #239ee8;
-}
-
-.spore-menu-item:nth-child(2) > span {
-  transform: translate(1px, -1px) rotate(-7deg);
-}
-
-.spore-menu-item:nth-child(3) > span {
-  transform: translate(-1px, 1px) rotate(5deg);
-}
-
-.spore-menu-item:nth-child(4) > span {
-  transform: translate(2px, 0) rotate(-4deg);
+  filter: drop-shadow(0 0 3px #239ee8);
 }
 
 .spore-menu-item:hover,
@@ -284,6 +277,7 @@ button {
     transparent 100%
   );
   box-shadow: none;
+  overflow: hidden;
   filter: drop-shadow(0 0 7px rgba(255, 207, 45, 0.58));
   text-shadow:
     0 1px rgba(255, 255, 255, 0.7),
@@ -292,23 +286,21 @@ button {
 
 .spore-menu-item.is-active::after {
   position: absolute;
-  inset: 0;
+  inset: 1px 8% 1px 9px;
   display: block;
-  border-radius: 18px;
+  border-radius: 14px;
   content: '';
   background:
-    linear-gradient(90deg, rgba(255, 255, 226, 0.92), transparent 90%) top /
+    linear-gradient(90deg, rgba(255, 255, 226, 0.86), transparent 86%) top /
       100% 1px no-repeat,
-    linear-gradient(90deg, rgba(211, 145, 0, 0.82), transparent 90%) bottom /
-      100% 1px no-repeat,
-    linear-gradient(rgba(255, 252, 202, 0.95), rgba(219, 155, 6, 0.88)) left /
-      2px 100% no-repeat;
+    linear-gradient(90deg, rgba(211, 145, 0, 0.7), transparent 86%) bottom /
+      100% 1px no-repeat;
   pointer-events: none;
 }
 
-.spore-menu-item.is-active > span {
-  color: #122034;
-  text-shadow: none;
+.spore-menu-item.is-active > .menu-icon {
+  stroke: #122034;
+  filter: none;
 }
 
 .world-preview {

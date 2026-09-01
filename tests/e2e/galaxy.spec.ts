@@ -136,18 +136,32 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   await portfolio.hover();
   await expect(portfolio).toHaveClass(/is-active/);
 
+  for (const label of ['Galaxy', 'Portfolio', 'Workshop', 'Signal']) {
+    await expect(
+      page.getByRole('link', { name: label }).locator('svg.menu-icon'),
+    ).toBeVisible();
+  }
+
   const activeDecoration = await portfolio.evaluate((element) => {
-    const style = getComputedStyle(element, '::before');
+    const rail = getComputedStyle(element, '::before');
+    const gloss = getComputedStyle(element, '::after');
+    const pill = getComputedStyle(element);
     return {
-      content: style.content,
-      background: style.backgroundImage,
-      boxShadow: style.boxShadow,
+      railContent: rail.content,
+      railBackground: rail.backgroundImage,
+      railBoxShadow: rail.boxShadow,
+      glossTop: Number.parseFloat(gloss.top),
+      glossLeft: Number.parseFloat(gloss.left),
+      pillOverflow: pill.overflow,
     };
   });
 
-  expect(activeDecoration.content).toBe('none');
-  expect(activeDecoration.background).toBe('none');
-  expect(activeDecoration.boxShadow).toBe('none');
+  expect(activeDecoration.railContent).toBe('none');
+  expect(activeDecoration.railBackground).toBe('none');
+  expect(activeDecoration.railBoxShadow).toBe('none');
+  expect(activeDecoration.glossTop).toBeGreaterThanOrEqual(1);
+  expect(activeDecoration.glossLeft).toBeGreaterThanOrEqual(9);
+  expect(activeDecoration.pillOverflow).toBe('hidden');
 
   const inactiveEdge = await page
     .getByRole('link', { name: 'Workshop' })

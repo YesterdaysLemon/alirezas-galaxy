@@ -340,6 +340,49 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
   });
 }
 
+type MenuIconName = 'galaxy' | 'portfolio' | 'workshop' | 'signal';
+
+function MenuIcon({ name }: { name: MenuIconName }) {
+  if (name === 'galaxy') {
+    return (
+      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="1.8" />
+        <path d="M3.7 10.6c.5-3.3 3.7-5.7 7.2-5.3 2.8.3 5.1 2.2 5.8 4.7" />
+        <path d="M16.3 9.4c-.5 3.3-3.7 5.7-7.2 5.3-2.8-.3-5.1-2.2-5.8-4.7" />
+        <circle cx="15.9" cy="8.7" r="0.9" />
+      </svg>
+    );
+  }
+
+  if (name === 'portfolio') {
+    return (
+      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
+        <rect x="2.7" y="3.5" width="14.6" height="13" rx="3" />
+        <circle cx="7.4" cy="8" r="2.1" />
+        <path d="M4.8 13.5c.5-1.7 1.4-2.6 2.6-2.6s2.1.9 2.6 2.6M12.2 7.2h2.5M12.2 10h2.5M12.2 12.8h1.7" />
+      </svg>
+    );
+  }
+
+  if (name === 'workshop') {
+    return (
+      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
+        <circle cx="5" cy="4.5" r="1.6" />
+        <circle cx="5" cy="15.5" r="1.6" />
+        <circle cx="15" cy="9" r="1.6" />
+        <path d="M5 6.1v7.8M6.6 6.6C7.1 8.1 8.4 9 10.2 9H13.4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
+      <circle cx="10" cy="13.2" r="1.7" />
+      <path d="M6.7 9.9a4.7 4.7 0 0 1 6.6 0M4.2 7.4a8.2 8.2 0 0 1 11.6 0M10 14.9v2.2" />
+    </svg>
+  );
+}
+
 export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
@@ -1153,7 +1196,7 @@ export function GalaxyIndex() {
             onFocus={() => setMenuHighlight(0)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <span aria-hidden="true">▶</span>
+            <MenuIcon name="galaxy" />
             Galaxy
           </a>
           <a
@@ -1164,7 +1207,7 @@ export function GalaxyIndex() {
             onFocus={() => setMenuHighlight(1)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <span aria-hidden="true">♙</span>
+            <MenuIcon name="portfolio" />
             Portfolio
           </a>
           <a
@@ -1175,7 +1218,7 @@ export function GalaxyIndex() {
             onFocus={() => setMenuHighlight(2)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <span aria-hidden="true">⚙</span>
+            <MenuIcon name="workshop" />
             Workshop
           </a>
           <a
@@ -1186,7 +1229,7 @@ export function GalaxyIndex() {
             onFocus={() => setMenuHighlight(3)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <span aria-hidden="true">✉</span>
+            <MenuIcon name="signal" />
             Signal
           </a>
         </nav>
