@@ -1,0 +1,145 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #05060a;
+  --foreground: #f6f4ed;
+  --card: rgba(12, 14, 22, 0.68);
+  --card-foreground: #f6f4ed;
+  --border: rgba(242, 238, 219, 0.14);
+  --muted: rgba(242, 238, 219, 0.07);
+  --muted-foreground: rgba(242, 238, 219, 0.58);
+  --accent: #c8ff4a;
+  --accent-foreground: #0b0d08;
+}
+
+.dark {
+  --background: #05060a;
+  --foreground: #f6f4ed;
+  --card: rgba(12, 14, 22, 0.68);
+  --card-foreground: #f6f4ed;
+  --border: rgba(242, 238, 219, 0.14);
+  --muted: rgba(242, 238, 219, 0.07);
+  --muted-foreground: rgba(242, 238, 219, 0.58);
+  --accent: #c8ff4a;
+  --accent-foreground: #0b0d08;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #0b0d08;
+  background: #c8ff4a;
+}
+
+.galaxy-vignette {
+  background:
+    radial-gradient(
+      circle at 46% 50%,
+      transparent 0 27%,
+      rgba(5, 6, 10, 0.18) 56%,
+      #05060a 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(5, 6, 10, 0.84) 0%,
+      transparent 28% 70%,
+      rgba(5, 6, 10, 0.6) 100%
+    );
+}
+
+.glass-panel {
+  background: linear-gradient(
+    145deg,
+    rgba(13, 15, 24, 0.76),
+    rgba(7, 8, 13, 0.48)
+  );
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.orbit-link::before {
+  position: absolute;
+  inset: 50% auto auto -1.05rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  content: '';
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.35);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.orbit-link[data-active='true']::before,
+.orbit-link:hover::before,
+.orbit-link:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+@media (max-width: 720px) {
+  .galaxy-vignette {
+    background:
+      linear-gradient(0deg, rgba(5, 6, 10, 0.92) 0%, transparent 48%),
+      radial-gradient(
+        circle at 50% 32%,
+        transparent 0 30%,
+        rgba(5, 6, 10, 0.42) 72%,
+        #05060a 100%
+      );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
