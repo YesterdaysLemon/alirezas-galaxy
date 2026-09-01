@@ -18,8 +18,10 @@ npm run dev
 ## What is in the base
 
 - Seven real destinations, with the portfolio selected by default
-- Favicon or project-glyph planet faces in the selected-world view
-- Click-to-select worlds with a separate, oversized launch confirmation
+- Favicon or project-glyph callouts that follow the currently previewed world
+- Hover-to-preview browsing with enlarged, forgiving planet hit targets
+- Click-to-zoom world details with Launch shown only after confirmation
+- A Spore-style glass action body with its own close control
 - Heavier pointer/touch drag, long inertial spin, and wheel zoom
 - A four-revolution portrait Easter egg
 - Five spiral arms whose attached worlds keep drifting after selection

@@ -242,22 +242,45 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
 export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
+  const previewRef = useRef<HTMLButtonElement>(null);
   const activeIndexRef = useRef(0);
+  const previewIndexRef = useRef(0);
+  const expandedRef = useRef(false);
+  const cameraModeRef = useRef<'default' | 'expanded' | 'manual'>('default');
   const ambientMotionRef = useRef(true);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [ambientMotion, setAmbientMotion] = useState(true);
-  const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const active = destinations[activeIndex];
+  const preview = destinations[previewIndex];
 
-  const selectDestination = (index: number) => {
+  const previewDestination = (index: number) => {
+    if (expandedRef.current) return;
+    previewIndexRef.current = index;
+    setPreviewIndex(index);
+  };
+
+  const expandDestination = (index: number) => {
     activeIndexRef.current = index;
+    previewIndexRef.current = index;
+    expandedRef.current = true;
+    cameraModeRef.current = 'expanded';
     focusRotationRef.current = destinations[index].angle - Math.PI / 2;
     setActiveIndex(index);
+    setPreviewIndex(index);
+    setExpanded(true);
+  };
+
+  const collapseDestination = () => {
+    expandedRef.current = false;
+    cameraModeRef.current = 'default';
+    setExpanded(false);
   };
 
   const toggleAmbientMotion = () => {
@@ -281,7 +304,6 @@ export function GalaxyIndex() {
         powerPreference: 'high-performance',
       });
     } catch {
-      queueMicrotask(() => setReady(true));
       return;
     }
 
@@ -300,6 +322,7 @@ export function GalaxyIndex() {
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
     const cameraLookTarget = new THREE.Vector3(0.7, 0, 0);
     const defaultCameraDistance = isCompact ? 25.5 : 20.5;
+    const expandedCameraDistance = isCompact ? 21.8 : 17.25;
     let cameraDistance = defaultCameraDistance;
     camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
     camera.lookAt(0.7, 0, 0);
@@ -381,6 +404,12 @@ export function GalaxyIndex() {
 
     const markerTexture = createMarkerTexture();
     const planetGeometry = new THREE.SphereGeometry(0.25, 18, 12);
+    const hitGeometry = new THREE.SphereGeometry(0.68, 8, 6);
+    const hitMaterial = new THREE.MeshBasicMaterial({
+      colorWrite: false,
+      depthTest: false,
+      depthWrite: false,
+    });
     const nodes = destinations.map((destination, index) => {
       const position = new THREE.Vector3(
         Math.cos(destination.angle) * destination.radius,
@@ -416,7 +445,12 @@ export function GalaxyIndex() {
       marker.renderOrder = 8;
       galaxy.add(marker);
 
-      return { planet, marker, position };
+      const hitArea = new THREE.Mesh(hitGeometry, hitMaterial);
+      hitArea.position.copy(position);
+      hitArea.userData.destinationIndex = index;
+      galaxy.add(hitArea);
+
+      return { planet, marker, hitArea, position };
     });
 
     const portraitGroup = new THREE.Group();
@@ -494,6 +528,7 @@ export function GalaxyIndex() {
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
     const labelPosition = new THREE.Vector3();
+    const previewPosition = new THREE.Vector3();
     const cameraFollowPosition = new THREE.Vector3();
     let hoveredIndex = -1;
     let isDragging = false;
@@ -562,10 +597,9 @@ export function GalaxyIndex() {
       }
       if (dragDistance < 8 && hoveredIndex >= 0) {
         angularVelocity = 0;
-        activeIndexRef.current = hoveredIndex;
-        focusRotationRef.current =
-          destinations[hoveredIndex].angle - Math.PI / 2;
-        setActiveIndex(hoveredIndex);
+        expandDestination(hoveredIndex);
+      } else if (dragDistance < 8 && hoveredIndex < 0 && expandedRef.current) {
+        collapseDestination();
       }
       pointerId = -1;
     };
@@ -579,10 +613,11 @@ export function GalaxyIndex() {
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      cameraModeRef.current = 'manual';
       cameraDistance = THREE.MathUtils.clamp(
         cameraDistance + event.deltaY * 0.01,
-        18,
-        31,
+        expandedRef.current ? 15.5 : 18,
+        expandedRef.current ? 24 : 31,
       );
     };
 
@@ -604,8 +639,13 @@ export function GalaxyIndex() {
       galaxyMist.rotation.y = 0.018;
       cameraLookTarget.set(0.7, 0, 0);
       activeIndexRef.current = 0;
+      previewIndexRef.current = 0;
+      expandedRef.current = false;
+      cameraModeRef.current = 'default';
       focusRotationRef.current = destinations[0].angle - Math.PI / 2;
       setActiveIndex(0);
+      setPreviewIndex(0);
+      setExpanded(false);
     };
 
     const resizeObserver = new ResizeObserver(([entry]) => {
@@ -681,6 +721,13 @@ export function GalaxyIndex() {
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
+      if (cameraModeRef.current !== 'manual') {
+        const desiredCameraDistance = expandedRef.current
+          ? expandedCameraDistance
+          : defaultCameraDistance;
+        cameraDistance +=
+          (desiredCameraDistance - cameraDistance) * 0.065 * delta;
+      }
       camera.position.y += (cameraDistance * 0.37 - camera.position.y) * 0.055;
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
       if (ambientMotionRef.current && !reduceMotion) {
@@ -702,11 +749,19 @@ export function GalaxyIndex() {
       if (!isDragging && frame % 2 === 0) {
         raycaster.setFromCamera(pointer, camera);
         const hit = raycaster.intersectObjects(
-          nodes.map(({ marker }) => marker),
+          nodes.map(({ hitArea }) => hitArea),
           false,
         )[0];
         if (hit) {
           const nextIndex = hit.object.userData.destinationIndex as number;
+          if (
+            nextIndex !== hoveredIndex &&
+            !expandedRef.current &&
+            nextIndex !== previewIndexRef.current
+          ) {
+            previewIndexRef.current = nextIndex;
+            setPreviewIndex(nextIndex);
+          }
           hoveredIndex = nextIndex;
           renderer.domElement.style.cursor = 'pointer';
         } else {
@@ -719,19 +774,27 @@ export function GalaxyIndex() {
 
       nodes.forEach(({ planet, marker }, index) => {
         const destination = destinations[index];
-        const isSelected = index === selectedIndex;
+        const isSelected = expandedRef.current && index === selectedIndex;
+        const isPreviewed =
+          !expandedRef.current && index === previewIndexRef.current;
         const isHovered = index === hoveredIndex;
         const pulse =
-          reduceMotion || !isSelected ? 1 : 1 + Math.sin(time * 0.0035) * 0.07;
+          reduceMotion || (!isSelected && !isPreviewed)
+            ? 1
+            : 1 + Math.sin(time * 0.0035) * 0.07;
         const markerTarget =
           destination.size *
-          (isSelected ? 0.48 : isHovered ? 0.43 : 0.35) *
+          (isSelected ? 0.52 : isHovered || isPreviewed ? 0.44 : 0.35) *
           pulse;
-        const planetTarget = isSelected ? 0.7 : isHovered ? 0.5 : 0.38;
+        const planetTarget = isSelected
+          ? 0.76
+          : isHovered || isPreviewed
+            ? 0.52
+            : 0.38;
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
-          ((isSelected ? 1 : isHovered ? 0.88 : 0.68) -
+          ((isSelected ? 1 : isHovered || isPreviewed ? 0.9 : 0.68) -
             marker.material.opacity) *
           0.11;
         planet.scale.x += (planetTarget - planet.scale.x) * 0.11;
@@ -749,13 +812,26 @@ export function GalaxyIndex() {
         const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
         const panelX = isCompact
-          ? bounds.width / 2
-          : THREE.MathUtils.clamp(screenX, 310, bounds.width - 310);
+          ? 10
+          : THREE.MathUtils.clamp(screenX - 90, 220, bounds.width - 650);
         const panelY = isCompact
-          ? bounds.height - 160
-          : THREE.MathUtils.clamp(screenY, 300, bounds.height - 165);
-        detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0) translate(-50%, -50%)`;
+          ? bounds.height - 238
+          : THREE.MathUtils.clamp(screenY - 94, 240, bounds.height - 205);
+        detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0)`;
         detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
+      }
+
+      const previewElement = previewRef.current;
+      if (previewElement && !expandedRef.current) {
+        const previewedIndex = previewIndexRef.current;
+        previewPosition.copy(nodes[previewedIndex].position);
+        galaxy.localToWorld(previewPosition);
+        previewPosition.project(camera);
+        const bounds = renderer.domElement.getBoundingClientRect();
+        const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
+        const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
+        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
+        previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 
       for (let index = portraitSprites.length - 1; index >= 0; index -= 1) {
@@ -778,9 +854,6 @@ export function GalaxyIndex() {
       animationFrame = requestAnimationFrame(animate);
     }
 
-    queueMicrotask(() => {
-      if (!disposed) setReady(true);
-    });
     animationFrame = requestAnimationFrame(animate);
 
     return () => {
@@ -808,6 +881,8 @@ export function GalaxyIndex() {
       backdropGeometry.dispose();
       backdropMaterial.dispose();
       planetGeometry.dispose();
+      hitGeometry.dispose();
+      hitMaterial.dispose();
       nodes.forEach(({ planet, marker }) => {
         planet.material.dispose();
         marker.material.dispose();
@@ -859,28 +934,74 @@ export function GalaxyIndex() {
         </nav>
       </header>
 
-      <p className="spore-invitation">
-        Choose a world, then launch it!
-        <span>Drag the galaxy to look around. Spin it if you must.</span>
-      </p>
+      {!expanded ? (
+        <button
+          type="button"
+          ref={previewRef}
+          className="world-preview"
+          aria-label={`Inspect ${preview.name}`}
+          onClick={() => expandDestination(previewIndex)}
+          style={
+            {
+              '--world-color': `#${preview.color.toString(16).padStart(6, '0')}`,
+            } as CSSProperties
+          }
+        >
+          <div className="world-preview-orbit">
+            <div className="world-preview-face">
+              <span>{preview.glyph}</span>
+              {preview.iconSrc ? (
+                // Remote favicons are optional interface texture.
+                // oxlint-disable-next-line next/no-img-element
+                <img
+                  key={preview.iconSrc}
+                  src={preview.iconSrc}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+          <span className="world-preview-label">{preview.name}</span>
+        </button>
+      ) : null}
 
-      <section
-        ref={detailRef}
-        className="world-detail"
-        aria-label={`Selected world: ${active.name}`}
-        style={
-          {
-            '--world-color': `#${active.color.toString(16).padStart(6, '0')}`,
-          } as CSSProperties
-        }
-      >
-        <div className="world-copy">
-          <span className="world-kind">{active.kind}</span>
-          <h2>{active.name}</h2>
-          <p>{active.description}</p>
-        </div>
+      {expanded ? (
+        <section
+          ref={detailRef}
+          className="world-detail"
+          aria-label={`Selected world: ${active.name}`}
+          style={
+            {
+              '--world-color': `#${active.color.toString(16).padStart(6, '0')}`,
+            } as CSSProperties
+          }
+        >
+          <div className="world-detail-wing">
+            <span className="world-kind">{active.kind}</span>
+            <h2>{active.name}</h2>
+            <p>{active.description}</p>
+            <span className="world-address">
+              {new URL(active.url).hostname.replace(/^www\./, '')}
+            </span>
 
-        <div className="world-stage">
+            <a
+              href={active.url}
+              className="world-play"
+              aria-label={`Launch ${active.name}`}
+            >
+              <span className="play-triangle" aria-hidden="true">
+                ▶
+              </span>
+              <span>
+                <small>open world</small>
+                <strong>Launch</strong>
+              </span>
+            </a>
+          </div>
+
           <div className="world-orbit" aria-hidden="true">
             <div className="world-face">
               <span>{active.glyph}</span>
@@ -899,21 +1020,16 @@ export function GalaxyIndex() {
             </div>
           </div>
 
-          <a
-            href={active.url}
-            className="world-play"
-            aria-label={`Launch ${active.name}`}
+          <button
+            type="button"
+            className="world-close"
+            aria-label="Close world details"
+            onClick={collapseDestination}
           >
-            <span className="play-triangle" aria-hidden="true">
-              ▶
-            </span>
-            <span>
-              <small>open world</small>
-              <strong>Launch</strong>
-            </span>
-          </a>
-        </div>
-      </section>
+            ×
+          </button>
+        </section>
+      ) : null}
 
       <div className="spore-dock" aria-label="Galaxy controls">
         {settingsOpen ? (
@@ -973,18 +1089,13 @@ export function GalaxyIndex() {
         </div>
       </div>
 
-      <div className="spore-status" aria-hidden="true">
-        <span className={ready ? 'is-online' : ''} />
-        {ready ? `${destinations.length} worlds mapped` : 'mapping galaxy'}
-      </div>
-
       <nav className="sr-only" aria-label="Website worlds">
         {destinations.map((destination, index) => (
           <button
             type="button"
             key={destination.url}
-            onFocus={() => selectDestination(index)}
-            onClick={() => selectDestination(index)}
+            onFocus={() => previewDestination(index)}
+            onClick={() => expandDestination(index)}
           >
             {destination.name}: {destination.description}
           </button>
@@ -992,7 +1103,9 @@ export function GalaxyIndex() {
       </nav>
 
       <p className="sr-only" aria-live="polite">
-        Selected world: {active.name}. {active.description}
+        {expanded
+          ? `Selected world: ${active.name}. ${active.description}`
+          : `Previewing world: ${preview.name}.`}
       </p>
     </main>
   );
