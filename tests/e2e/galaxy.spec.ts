@@ -116,7 +116,7 @@ test('the utility dock keeps its controls distinct and functional', async ({
   await expect(drift).toHaveAttribute('aria-pressed', 'false');
 
   await page.getByRole('button', { name: 'Close galaxy settings' }).click();
-  await expect(page.getByText('© Alireza Afshan · 2026')).toBeVisible();
+  await expect(page.getByText('© alireza afshan · 2026')).toBeVisible();
 
   await tuner.click();
   await expect(console).toHaveAttribute('data-mode', 'quote');
@@ -132,14 +132,16 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
-  const github = page.getByRole('link', { name: 'GitHub' });
+  const github = page.getByRole('link', { name: 'github' });
   await github.hover();
   await expect(github).toHaveClass(/is-active/);
 
-  for (const label of ['Home', 'GitHub']) {
-    await expect(
-      page.getByRole('link', { name: label }).locator('svg.menu-icon'),
-    ).toBeVisible();
+  for (const label of ['random world', 'about', 'github']) {
+    const control =
+      label === 'github'
+        ? page.getByRole('link', { name: label })
+        : page.getByRole('button', { name: label });
+    await expect(control.locator('svg.menu-icon')).toBeVisible();
   }
 
   const activeDecoration = await github.evaluate((element) => {
@@ -164,7 +166,7 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   expect(activeDecoration.pillOverflow).toBe('hidden');
 
   const inactiveEdge = await page
-    .getByRole('link', { name: 'Home', exact: true })
+    .getByRole('button', { name: 'random world', exact: true })
     .evaluate((element) => {
       const style = getComputedStyle(element);
       return {
@@ -175,18 +177,15 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   expect(inactiveEdge).toEqual({ topRight: '0px', bottomRight: '0px' });
 });
 
-test('primary controls say exactly where they go and home resets the galaxy', async ({
+test('primary controls discover a world, introduce Alireza, and link to GitHub', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
 
   const primary = page.getByRole('navigation', { name: 'Primary' });
-  await expect(primary.getByRole('link')).toHaveCount(2);
-  await expect(primary.getByRole('link', { name: 'Home' })).toHaveAttribute(
-    'href',
-    '#galaxy',
-  );
-  await expect(primary.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+  await expect(primary.getByRole('button')).toHaveCount(2);
+  await expect(primary.getByRole('link')).toHaveCount(1);
+  await expect(primary.getByRole('link', { name: 'github' })).toHaveAttribute(
     'href',
     'https://github.com/YesterdaysLemon',
   );
@@ -194,22 +193,24 @@ test('primary controls say exactly where they go and home resets the galaxy', as
     page.getByRole('link', { name: 'Contact me by email' }),
   ).toHaveAttribute('href', 'mailto:mail@alirezaafshan.com');
 
-  const androidHell = page
-    .getByRole('navigation', { name: 'Website worlds' })
-    .getByRole('button')
-    .filter({ hasText: 'Android Hell:' });
-  await androidHell.focus();
-  await androidHell.press('Enter');
+  await primary.getByRole('button', { name: 'random world' }).click();
+  const randomDetail = page.locator('.world-detail');
+  await expect(randomDetail).toBeAttached();
+  await expect(randomDetail).not.toHaveAttribute('data-world-id', 'portfolio');
+
+  await primary.getByRole('button', { name: 'about' }).click();
   await expect(
-    page.getByRole('region', { name: 'Selected world: Android Hell' }),
+    page.getByRole('region', { name: 'Selected world: Alireza Afshan' }),
   ).toBeAttached();
   await expect(
     page.getByRole('link', { name: 'Contact me by email' }),
   ).not.toBeAttached();
 
-  await primary.getByRole('link', { name: 'Home' }).click();
+  await page
+    .getByRole('link', { name: 'Alireza Afshan — return home' })
+    .click();
   await expect(
-    page.getByRole('region', { name: 'Selected world: Android Hell' }),
+    page.getByRole('region', { name: 'Selected world: Alireza Afshan' }),
   ).not.toBeAttached();
   await expect(
     page.getByRole('button', { name: 'Inspect Alireza Afshan' }),
@@ -230,22 +231,27 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   await expect(brandLines.nth(0)).toHaveText('alireza');
   await expect(brandLines.nth(1)).toHaveText('afshan');
 
-  const homeBox = await page
-    .getByRole('link', { name: 'Home', exact: true })
+  const randomBox = await page
+    .getByRole('button', { name: 'random world', exact: true })
+    .boundingBox();
+  const aboutBox = await page
+    .getByRole('button', { name: 'about', exact: true })
     .boundingBox();
   const githubBox = await page
-    .getByRole('link', { name: 'GitHub' })
+    .getByRole('link', { name: 'github' })
     .boundingBox();
   const contactBox = await page
     .getByRole('link', { name: 'Contact me by email' })
     .boundingBox();
   const footerBox = await page.locator('.spore-dock').boundingBox();
 
-  expect(homeBox).not.toBeNull();
+  expect(randomBox).not.toBeNull();
+  expect(aboutBox).not.toBeNull();
   expect(githubBox).not.toBeNull();
   expect(contactBox).not.toBeNull();
   expect(footerBox).not.toBeNull();
-  expect(homeBox!.height).toBeGreaterThanOrEqual(42);
+  expect(randomBox!.height).toBeGreaterThanOrEqual(42);
+  expect(aboutBox!.height).toBeGreaterThanOrEqual(42);
   expect(githubBox!.height).toBeGreaterThanOrEqual(42);
   expect(contactBox!.height).toBeGreaterThanOrEqual(48);
   expect(contactBox!.x + contactBox!.width).toBeLessThanOrEqual(390);
@@ -253,4 +259,40 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
+});
+
+test('footer copy is centered inside both asymmetric consoles', async ({
+  page,
+}) => {
+  await openHydratedGalaxy(page);
+
+  const centers = async (containerSelector: string, copySelector: string) => {
+    const container = page.locator(containerSelector);
+    const copy = page.locator(copySelector);
+    const [containerBox, copyBox] = await Promise.all([
+      container.boundingBox(),
+      copy.boundingBox(),
+    ]);
+    expect(containerBox).not.toBeNull();
+    expect(copyBox).not.toBeNull();
+    return {
+      container: containerBox!.x + containerBox!.width / 2,
+      copy: copyBox!.x + copyBox!.width / 2,
+    };
+  };
+
+  const footer = await centers('.dock-console', '.dock-message');
+  expect(Math.abs(footer.copy - footer.container)).toBeLessThan(1);
+
+  const contactConsole = page.locator('.contact-console');
+  const contactCopy = contactConsole.getByText('contact me');
+  const [consoleBox, contactBox] = await Promise.all([
+    contactConsole.boundingBox(),
+    contactCopy.boundingBox(),
+  ]);
+  expect(consoleBox).not.toBeNull();
+  expect(contactBox).not.toBeNull();
+  const visibleConsoleCenter = consoleBox!.x + (consoleBox!.width - 9) / 2;
+  const contactCenter = contactBox!.x + contactBox!.width / 2;
+  expect(Math.abs(contactCenter - visibleConsoleCenter)).toBeLessThan(1);
 });

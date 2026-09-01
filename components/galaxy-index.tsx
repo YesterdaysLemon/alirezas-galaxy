@@ -339,19 +339,35 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
   });
 }
 
-type MenuIconName = 'home' | 'github';
+type MenuIconName = 'random' | 'about' | 'github';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
-  if (name === 'home') {
+  if (name === 'random') {
     return (
       <svg
-        className="menu-icon menu-icon-home"
+        className="menu-icon menu-icon-random"
         data-icon="rounded-star"
         aria-hidden="true"
         viewBox="0 0 20 20"
       >
         <circle cx="10" cy="10" r="7.4" />
         <path d="m10 5.1 1.35 2.74 3.03.44-2.19 2.13.52 3.01L10 12l-2.71 1.42.52-3.01-2.19-2.13 3.03-.44L10 5.1Z" />
+      </svg>
+    );
+  }
+
+  if (name === 'about') {
+    return (
+      <svg
+        className="menu-icon menu-icon-about"
+        data-icon="little-creature"
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+      >
+        <path d="M4 13.5c0-5 3.2-9 8-9s8 4 8 9c0 4.4-3.3 6.5-8 6.5s-8-2.1-8-6.5Z" />
+        <circle cx="9" cy="11" r="1.6" />
+        <circle cx="15" cy="11" r="1.6" />
+        <path d="M9 16c2 1.2 4 1.2 6 0M6.2 7 4.6 4.4M17.8 7l1.6-2.6" />
       </svg>
     );
   }
@@ -366,6 +382,10 @@ function MenuIcon({ name }: { name: MenuIconName }) {
       <path d="M12 .9a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.16c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.54 0-1.22.44-2.22 1.16-3-.12-.29-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15A10.7 10.7 0 0 1 12 6.31c.95 0 1.9.13 2.8.38 2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.97.72.78 1.16 1.78 1.16 3 0 4.31-2.64 5.25-5.15 5.53.4.35.76 1.03.76 2.08v3.07c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .9Z" />
     </svg>
   );
+}
+
+function randomNonzeroOffset(itemCount: number) {
+  return 1 + Math.floor(Math.random() * (itemCount - 1));
 }
 
 export function GalaxyIndex() {
@@ -409,6 +429,14 @@ export function GalaxyIndex() {
     setActiveIndex(index);
     setPreviewIndex(index);
     setExpanded(true);
+  };
+
+  const expandRandomDestination = () => {
+    const currentIndex = expandedRef.current
+      ? activeIndexRef.current
+      : previewIndexRef.current;
+    const offset = randomNonzeroOffset(destinations.length);
+    expandDestination((currentIndex + offset) % destinations.length);
   };
 
   const collapseDestination = () => {
@@ -1208,32 +1236,40 @@ export function GalaxyIndex() {
           <span>afshan</span>
         </a>
         <nav className="spore-menu" aria-label="Primary">
-          <a
+          <button
+            type="button"
             className={`spore-menu-item ${menuHighlight === 0 ? 'is-active' : ''}`}
-            href="#galaxy"
-            aria-current="page"
-            onClick={(event) => {
-              event.preventDefault();
-              resetGalaxyRef.current();
-            }}
+            onClick={expandRandomDestination}
             onMouseEnter={() => setMenuHighlight(0)}
             onMouseLeave={() => setMenuHighlight(0)}
             onFocus={() => setMenuHighlight(0)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <MenuIcon name="home" />
-            Home
-          </a>
-          <a
+            <MenuIcon name="random" />
+            random world
+          </button>
+          <button
+            type="button"
             className={`spore-menu-item ${menuHighlight === 1 ? 'is-active' : ''}`}
-            href="https://github.com/YesterdaysLemon"
+            onClick={() => expandDestination(0)}
             onMouseEnter={() => setMenuHighlight(1)}
             onMouseLeave={() => setMenuHighlight(0)}
             onFocus={() => setMenuHighlight(1)}
             onBlur={() => setMenuHighlight(0)}
           >
+            <MenuIcon name="about" />
+            about
+          </button>
+          <a
+            className={`spore-menu-item ${menuHighlight === 2 ? 'is-active' : ''}`}
+            href="https://github.com/YesterdaysLemon"
+            onMouseEnter={() => setMenuHighlight(2)}
+            onMouseLeave={() => setMenuHighlight(0)}
+            onFocus={() => setMenuHighlight(2)}
+            onBlur={() => setMenuHighlight(0)}
+          >
             <MenuIcon name="github" />
-            GitHub
+            github
           </a>
         </nav>
       </header>
@@ -1425,7 +1461,7 @@ export function GalaxyIndex() {
               aria-label={`Open ${quotationCollection.label}`}
               title={quotationCollection.label}
             >
-              open Bartlett&apos;s quotations ↗
+              open bartlett&apos;s quotations ↗
             </a>
           ) : (
             <output
@@ -1436,12 +1472,12 @@ export function GalaxyIndex() {
               title={
                 dockTransmission === 1
                   ? `“${dailyQuote.text}” — ${dailyQuote.author}`
-                  : '© Alireza Afshan · 2026'
+                  : '© alireza afshan · 2026'
               }
             >
               {dockTransmission === 1
                 ? `“${dailyQuote.text}” — ${dailyQuote.author}`
-                : '© Alireza Afshan · 2026'}
+                : '© alireza afshan · 2026'}
             </output>
           )}
           <button
@@ -1467,7 +1503,7 @@ export function GalaxyIndex() {
         >
           <span className="contact-console">
             <small>open a channel</small>
-            <strong>Contact me</strong>
+            <strong>contact me</strong>
           </span>
           <span className="contact-orb" aria-hidden="true">
             <svg viewBox="0 0 24 24">
