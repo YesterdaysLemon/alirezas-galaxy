@@ -1,6 +1,5 @@
 'use client';
 
-import { ArrowUpRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -699,7 +698,12 @@ export function GalaxyIndex() {
               className="group inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-xs font-semibold text-accent-foreground outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.98]"
             >
               Enter orbit
-              <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <span
+                aria-hidden="true"
+                className="text-sm leading-none transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              >
+                ↗
+              </span>
             </a>
           </div>
         </div>
