@@ -20,6 +20,7 @@ type WorldSeed = Omit<Destination, 'color' | 'radius' | 'angle' | 'size'> &
 
 const TAU = Math.PI * 2;
 const GALAXY_ARMS = 5;
+export const MIN_WORLD_SPACING = 3.2;
 const generatedColors = [
   0x70dfff, 0x9affeb, 0xffe67d, 0x72a8ff, 0xffa6e4, 0xbda2ff, 0xffba6b,
 ];
@@ -35,12 +36,60 @@ function hashUnit(value: string, salt = 0) {
   return (hash >>> 0) / 4294967295;
 }
 
-function materializeWorld(world: WorldSeed, index: number): Destination {
+export function worldDistance(
+  first: Pick<Destination, 'radius' | 'angle'>,
+  second: Pick<Destination, 'radius' | 'angle'>,
+) {
+  const firstX = Math.cos(first.angle) * first.radius;
+  const firstZ = Math.sin(first.angle) * first.radius;
+  const secondX = Math.cos(second.angle) * second.radius;
+  const secondZ = Math.sin(second.angle) * second.radius;
+  return Math.hypot(firstX - secondX, firstZ - secondZ);
+}
+
+function materializeWorld(
+  world: WorldSeed,
+  index: number,
+  placedWorlds: Destination[],
+): Destination {
   const identity = `${world.name}:${world.url}`;
-  const radius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
+  let radius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
   const arm = index % GALAXY_ARMS;
   const armAngle = (arm / GALAXY_ARMS) * TAU;
   const armJitter = (hashUnit(identity, 29) - 0.5) * 0.34;
+  const generatedAngle = armAngle + radius * 0.49 + armJitter;
+  let angle = world.angle ?? generatedAngle;
+  const isArtDirected = world.radius !== undefined && world.angle !== undefined;
+
+  if (!isArtDirected) {
+    const preferredDirection = hashUnit(identity, 97) < 0.5 ? -1 : 1;
+
+    // Search symmetrically around the seeded arm position. Generated worlds
+    // may cluster naturally, but never closely enough to create competing hit
+    // targets. Explicitly art-directed positions remain untouched.
+    for (let attempt = 0; attempt < 17; attempt += 1) {
+      const distanceFromSeed = Math.ceil(attempt / 2);
+      const searchDirection =
+        attempt === 0 ? 0 : (attempt % 2 === 1 ? 1 : -1) * preferredDirection;
+      angle = generatedAngle + searchDirection * distanceFromSeed * 0.22;
+      radius =
+        world.radius ??
+        clamp(
+          5.2 + hashUnit(identity, 11) * 5.8 + Math.floor(attempt / 10) * 0.42,
+          4.8,
+          12,
+        );
+      const candidate = { radius, angle };
+      if (
+        placedWorlds.every(
+          (placedWorld) =>
+            worldDistance(candidate, placedWorld) >= MIN_WORLD_SPACING,
+        )
+      ) {
+        break;
+      }
+    }
+  }
 
   return {
     ...world,
@@ -50,9 +99,13 @@ function materializeWorld(world: WorldSeed, index: number): Destination {
         Math.floor(hashUnit(identity, 47) * generatedColors.length)
       ],
     radius,
-    angle: world.angle ?? armAngle + radius * 0.49 + armJitter,
+    angle,
     size: world.size ?? 0.7 + hashUnit(identity, 71) * 0.24,
   };
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
 }
 
 // Add one object here to map a new website. Orbit, arm, color, and marker size
@@ -211,4 +264,10 @@ export const worldCatalog: WorldSeed[] = [
   },
 ];
 
-export const destinations = worldCatalog.map(materializeWorld);
+export const destinations = worldCatalog.reduce<Destination[]>(
+  (placedWorlds, world, index) => {
+    placedWorlds.push(materializeWorld(world, index, placedWorlds));
+    return placedWorlds;
+  },
+  [],
+);

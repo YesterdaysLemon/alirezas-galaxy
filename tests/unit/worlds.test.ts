@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { destinations, worldCatalog } from '@/data/worlds';
+import {
+  destinations,
+  MIN_WORLD_SPACING,
+  worldCatalog,
+  worldDistance,
+} from '@/data/worlds';
 
 const requiredWorlds = [
   'portfolio',
@@ -52,5 +57,19 @@ describe('world catalog', () => {
       expect(destination.radius).toBeGreaterThan(0);
       expect(destination.size).toBeGreaterThan(0);
     }
+  });
+
+  it('keeps generated stars far enough apart to remain distinct targets', () => {
+    for (let first = 0; first < destinations.length; first += 1) {
+      for (let second = first + 1; second < destinations.length; second += 1) {
+        expect(
+          worldDistance(destinations[first], destinations[second]),
+        ).toBeGreaterThanOrEqual(MIN_WORLD_SPACING);
+      }
+    }
+
+    const androidHell = destinations.find(({ id }) => id === 'android-hell')!;
+    const conspiracy = destinations.find(({ id }) => id === 'conspiracy')!;
+    expect(worldDistance(androidHell, conspiracy)).toBeGreaterThan(5.5);
   });
 });

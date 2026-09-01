@@ -27,6 +27,13 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
   await expect(
     page.getByRole('link', { name: 'Launch Android Hell' }),
   ).toHaveAttribute('href', 'https://androidhell.alirezaafshan.com');
+
+  const conspiracy = worlds.filter({ hasText: 'Conspiracy:' });
+  await conspiracy.focus();
+  await conspiracy.press('Enter');
+  await expect(
+    page.getByRole('region', { name: 'Selected world: Conspiracy' }),
+  ).toBeAttached();
 });
 
 test('the close control does not jump on hover', async ({ page }) => {
