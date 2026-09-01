@@ -475,6 +475,7 @@ export function GalaxyIndex() {
     const backdropMaterial = createPointsMaterial(pixelRatio);
     backdropMaterial.depthTest = false;
     const backdrop = new THREE.Points(backdropGeometry, backdropMaterial);
+    backdrop.renderOrder = -4;
     scene.add(backdrop);
 
     const distantGalaxySpecs = [
@@ -540,6 +541,7 @@ export function GalaxyIndex() {
     const galaxyGeometry = createGalaxyGeometry(starCount);
     const galaxyMaterial = createPointsMaterial(pixelRatio);
     const galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
+    galaxyPoints.renderOrder = 1;
     galaxy.add(galaxyPoints);
 
     // A second pass over the same compact buffer turns the points into the
@@ -549,6 +551,7 @@ export function GalaxyIndex() {
     const galaxyMist = new THREE.Points(galaxyGeometry, galaxyMistMaterial);
     galaxyMist.scale.set(1.012, 1, 1.012);
     galaxyMist.rotation.y = 0.018;
+    galaxyMist.renderOrder = 0;
     galaxy.add(galaxyMist);
 
     const glowTexture = createGlowTexture();
@@ -580,6 +583,7 @@ export function GalaxyIndex() {
     );
     softGlow.scale.set(25, 12.4, 1);
     softGlow.position.y = -0.05;
+    softGlow.renderOrder = 2;
     galaxy.add(softGlow);
 
     scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x190f36, 1.35));
