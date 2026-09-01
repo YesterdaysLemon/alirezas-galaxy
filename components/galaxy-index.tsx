@@ -340,45 +340,31 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
   });
 }
 
-type MenuIconName = 'galaxy' | 'portfolio' | 'workshop' | 'signal';
+type MenuIconName = 'home' | 'github';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
-  if (name === 'galaxy') {
+  if (name === 'home') {
     return (
-      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
-        <circle cx="10" cy="10" r="1.8" />
-        <path d="M3.7 10.6c.5-3.3 3.7-5.7 7.2-5.3 2.8.3 5.1 2.2 5.8 4.7" />
-        <path d="M16.3 9.4c-.5 3.3-3.7 5.7-7.2 5.3-2.8-.3-5.1-2.2-5.8-4.7" />
-        <circle cx="15.9" cy="8.7" r="0.9" />
-      </svg>
-    );
-  }
-
-  if (name === 'portfolio') {
-    return (
-      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
-        <rect x="2.7" y="3.5" width="14.6" height="13" rx="3" />
-        <circle cx="7.4" cy="8" r="2.1" />
-        <path d="M4.8 13.5c.5-1.7 1.4-2.6 2.6-2.6s2.1.9 2.6 2.6M12.2 7.2h2.5M12.2 10h2.5M12.2 12.8h1.7" />
-      </svg>
-    );
-  }
-
-  if (name === 'workshop') {
-    return (
-      <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
-        <circle cx="5" cy="4.5" r="1.6" />
-        <circle cx="5" cy="15.5" r="1.6" />
-        <circle cx="15" cy="9" r="1.6" />
-        <path d="M5 6.1v7.8M6.6 6.6C7.1 8.1 8.4 9 10.2 9H13.4" />
+      <svg
+        className="menu-icon menu-icon-home"
+        data-icon="rounded-star"
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+      >
+        <circle cx="10" cy="10" r="7.4" />
+        <path d="m10 5.1 1.35 2.74 3.03.44-2.19 2.13.52 3.01L10 12l-2.71 1.42.52-3.01-2.19-2.13 3.03-.44L10 5.1Z" />
       </svg>
     );
   }
 
   return (
-    <svg className="menu-icon" aria-hidden="true" viewBox="0 0 20 20">
-      <circle cx="10" cy="13.2" r="1.7" />
-      <path d="M6.7 9.9a4.7 4.7 0 0 1 6.6 0M4.2 7.4a8.2 8.2 0 0 1 11.6 0M10 14.9v2.2" />
+    <svg
+      className="menu-icon menu-icon-github"
+      data-icon="github"
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 .9a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.16c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.54 0-1.22.44-2.22 1.16-3-.12-.29-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15A10.7 10.7 0 0 1 12 6.31c.95 0 1.9.13 2.8.38 2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.97.72.78 1.16 1.78 1.16 3 0 4.31-2.64 5.25-5.15 5.53.4.35.76 1.03.76 2.08v3.07c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .9Z" />
     </svg>
   );
 }
@@ -1182,55 +1168,42 @@ export function GalaxyIndex() {
         <a
           className="sprawl-mark"
           href="#galaxy"
-          aria-label="Afshan Software — return to the galaxy"
+          aria-label="Alireza Afshan — return home"
+          onClick={(event) => {
+            event.preventDefault();
+            resetGalaxyRef.current();
+          }}
         >
-          afshan
+          <span>alireza</span>
+          <span>afshan</span>
         </a>
         <nav className="spore-menu" aria-label="Primary">
           <a
             className={`spore-menu-item ${menuHighlight === 0 ? 'is-active' : ''}`}
             href="#galaxy"
             aria-current="page"
+            onClick={(event) => {
+              event.preventDefault();
+              resetGalaxyRef.current();
+            }}
             onMouseEnter={() => setMenuHighlight(0)}
             onMouseLeave={() => setMenuHighlight(0)}
             onFocus={() => setMenuHighlight(0)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <MenuIcon name="galaxy" />
-            Galaxy
+            <MenuIcon name="home" />
+            Home
           </a>
           <a
             className={`spore-menu-item ${menuHighlight === 1 ? 'is-active' : ''}`}
-            href="https://portfolio.alirezaafshan.com"
+            href="https://github.com/YesterdaysLemon"
             onMouseEnter={() => setMenuHighlight(1)}
             onMouseLeave={() => setMenuHighlight(0)}
             onFocus={() => setMenuHighlight(1)}
             onBlur={() => setMenuHighlight(0)}
           >
-            <MenuIcon name="portfolio" />
-            Portfolio
-          </a>
-          <a
-            className={`spore-menu-item ${menuHighlight === 2 ? 'is-active' : ''}`}
-            href="https://github.com/YesterdaysLemon"
-            onMouseEnter={() => setMenuHighlight(2)}
-            onMouseLeave={() => setMenuHighlight(0)}
-            onFocus={() => setMenuHighlight(2)}
-            onBlur={() => setMenuHighlight(0)}
-          >
-            <MenuIcon name="workshop" />
-            Workshop
-          </a>
-          <a
-            className={`spore-menu-item ${menuHighlight === 3 ? 'is-active' : ''}`}
-            href="mailto:mail@alirezaafshan.com"
-            onMouseEnter={() => setMenuHighlight(3)}
-            onMouseLeave={() => setMenuHighlight(0)}
-            onFocus={() => setMenuHighlight(3)}
-            onBlur={() => setMenuHighlight(0)}
-          >
-            <MenuIcon name="signal" />
-            Signal
+            <MenuIcon name="github" />
+            GitHub
           </a>
         </nav>
       </header>
@@ -1455,6 +1428,25 @@ export function GalaxyIndex() {
           </button>
         </div>
       </div>
+
+      {!expanded ? (
+        <a
+          className="contact-dock"
+          href="mailto:mail@alirezaafshan.com"
+          aria-label="Contact me by email"
+        >
+          <span className="contact-console">
+            <small>open a channel</small>
+            <strong>Contact me</strong>
+          </span>
+          <span className="contact-orb" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="m3.2 11.1 17-7.2-5.7 16.2-3.3-6-8-3Z" />
+              <path d="m11.2 14.1 9-10.2M11.2 14.1l-.6 4.1" />
+            </svg>
+          </span>
+        </a>
+      ) : null}
 
       <nav className="sr-only" aria-label="Website worlds">
         {destinations.map((destination, index) => (

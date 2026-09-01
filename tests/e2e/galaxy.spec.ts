@@ -132,17 +132,17 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
-  const portfolio = page.getByRole('link', { name: 'Portfolio' });
-  await portfolio.hover();
-  await expect(portfolio).toHaveClass(/is-active/);
+  const github = page.getByRole('link', { name: 'GitHub' });
+  await github.hover();
+  await expect(github).toHaveClass(/is-active/);
 
-  for (const label of ['Galaxy', 'Portfolio', 'Workshop', 'Signal']) {
+  for (const label of ['Home', 'GitHub']) {
     await expect(
       page.getByRole('link', { name: label }).locator('svg.menu-icon'),
     ).toBeVisible();
   }
 
-  const activeDecoration = await portfolio.evaluate((element) => {
+  const activeDecoration = await github.evaluate((element) => {
     const rail = getComputedStyle(element, '::before');
     const gloss = getComputedStyle(element, '::after');
     const pill = getComputedStyle(element);
@@ -164,7 +164,7 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   expect(activeDecoration.pillOverflow).toBe('hidden');
 
   const inactiveEdge = await page
-    .getByRole('link', { name: 'Workshop' })
+    .getByRole('link', { name: 'Home', exact: true })
     .evaluate((element) => {
       const style = getComputedStyle(element);
       return {
@@ -173,4 +173,84 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
       };
     });
   expect(inactiveEdge).toEqual({ topRight: '0px', bottomRight: '0px' });
+});
+
+test('primary controls say exactly where they go and home resets the galaxy', async ({
+  page,
+}) => {
+  await openHydratedGalaxy(page);
+
+  const primary = page.getByRole('navigation', { name: 'Primary' });
+  await expect(primary.getByRole('link')).toHaveCount(2);
+  await expect(primary.getByRole('link', { name: 'Home' })).toHaveAttribute(
+    'href',
+    '#galaxy',
+  );
+  await expect(primary.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+    'href',
+    'https://github.com/YesterdaysLemon',
+  );
+  await expect(
+    page.getByRole('link', { name: 'Contact me by email' }),
+  ).toHaveAttribute('href', 'mailto:mail@alirezaafshan.com');
+
+  const androidHell = page
+    .getByRole('navigation', { name: 'Website worlds' })
+    .getByRole('button')
+    .filter({ hasText: 'Android Hell:' });
+  await androidHell.focus();
+  await androidHell.press('Enter');
+  await expect(
+    page.getByRole('region', { name: 'Selected world: Android Hell' }),
+  ).toBeAttached();
+  await expect(
+    page.getByRole('link', { name: 'Contact me by email' }),
+  ).not.toBeAttached();
+
+  await primary.getByRole('link', { name: 'Home' }).click();
+  await expect(
+    page.getByRole('region', { name: 'Selected world: Android Hell' }),
+  ).not.toBeAttached();
+  await expect(
+    page.getByRole('button', { name: 'Inspect Alireza Afshan' }),
+  ).toBeAttached();
+  await expect(
+    page.getByRole('link', { name: 'Contact me by email' }),
+  ).toBeAttached();
+});
+
+test('mobile chrome keeps its controls legible, tappable, and separated', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHydratedGalaxy(page);
+
+  const brandLines = page.locator('.sprawl-mark span');
+  await expect(brandLines).toHaveCount(2);
+  await expect(brandLines.nth(0)).toHaveText('alireza');
+  await expect(brandLines.nth(1)).toHaveText('afshan');
+
+  const homeBox = await page
+    .getByRole('link', { name: 'Home', exact: true })
+    .boundingBox();
+  const githubBox = await page
+    .getByRole('link', { name: 'GitHub' })
+    .boundingBox();
+  const contactBox = await page
+    .getByRole('link', { name: 'Contact me by email' })
+    .boundingBox();
+  const footerBox = await page.locator('.spore-dock').boundingBox();
+
+  expect(homeBox).not.toBeNull();
+  expect(githubBox).not.toBeNull();
+  expect(contactBox).not.toBeNull();
+  expect(footerBox).not.toBeNull();
+  expect(homeBox!.height).toBeGreaterThanOrEqual(42);
+  expect(githubBox!.height).toBeGreaterThanOrEqual(42);
+  expect(contactBox!.height).toBeGreaterThanOrEqual(48);
+  expect(contactBox!.x + contactBox!.width).toBeLessThanOrEqual(390);
+  expect(contactBox!.y + contactBox!.height).toBeLessThanOrEqual(footerBox!.y);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
 });
