@@ -346,12 +346,11 @@ function MenuIcon({ name }: { name: MenuIconName }) {
     return (
       <svg
         className="menu-icon menu-icon-random"
-        data-icon="rounded-star"
+        data-icon="soft-organic-star"
         aria-hidden="true"
-        viewBox="0 0 20 20"
+        viewBox="0 0 24 24"
       >
-        <circle cx="10" cy="10" r="7.4" />
-        <path d="m10 5.1 1.35 2.74 3.03.44-2.19 2.13.52 3.01L10 12l-2.71 1.42.52-3.01-2.19-2.13 3.03-.44L10 5.1Z" />
+        <path d="M12 2.8c2.2 0 3.1 3.1 3.8 5.2 2.1-.8 5.2-1.2 5.9.9.7 2.1-2 3.8-3.8 5.2 1.5 1.7 3.2 4.4 1.4 5.8-1.8 1.3-4.2-.8-6.1-2-1.2 1.9-3.1 4.5-5 3.3-1.9-1.2-.4-4.2.3-6.3-2.2-.5-5.4-1.4-5.2-3.6.2-2.2 3.5-2.5 5.7-2.5.2-2.3.7-6 3-6Z" />
       </svg>
     );
   }

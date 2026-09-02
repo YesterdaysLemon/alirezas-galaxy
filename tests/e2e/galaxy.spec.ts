@@ -144,6 +144,13 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
     await expect(control.locator('svg.menu-icon')).toBeVisible();
   }
 
+  const randomIcon = page
+    .getByRole('button', { name: 'random world' })
+    .locator('svg.menu-icon');
+  await expect(randomIcon).toHaveAttribute('data-icon', 'soft-organic-star');
+  await expect(randomIcon.locator('path')).toHaveCount(1);
+  await expect(randomIcon.locator('circle')).toHaveCount(0);
+
   const activeDecoration = await github.evaluate((element) => {
     const rail = getComputedStyle(element, '::before');
     const gloss = getComputedStyle(element, '::after');

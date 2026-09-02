@@ -268,7 +268,7 @@ button {
 
 .spore-menu-item > .menu-icon-random path {
   fill: currentColor;
-  fill-opacity: 0.22;
+  stroke: none;
 }
 
 .spore-menu-item > .menu-icon-about > path:first-child {
