@@ -1050,6 +1050,49 @@ button {
   outline-offset: 2px;
 }
 
+/*
+ * Safari/WebKit can rasterize filtered, gradient-clipped text into oversized
+ * shadow layers. Keep the same luminous hierarchy with small text shadows
+ * that stay inside each label's compositing surface.
+ */
+@supports (font: -apple-system-body) {
+  .sprawl-mark {
+    color: #61d8ff;
+    background: none;
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+    -webkit-text-fill-color: currentColor;
+    filter: none;
+    text-shadow:
+      0 1px 0 #033966,
+      0 0 4px rgba(106, 213, 255, 0.48);
+  }
+
+  .sprawl-mark:focus-visible {
+    filter: none;
+    text-shadow: 0 0 5px rgba(197, 251, 255, 0.76);
+  }
+
+  .spore-menu-item {
+    text-shadow: 0 1px 1px rgba(0, 8, 24, 0.88);
+  }
+
+  .spore-menu-item.is-active {
+    filter: none;
+    text-shadow: 0 1px rgba(255, 255, 255, 0.62);
+  }
+
+  .world-detail-wing {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.88);
+  }
+
+  .world-preview-label,
+  .world-address,
+  .spore-dock .dock-message {
+    text-shadow: 0 1px 1px rgba(0, 20, 34, 0.88);
+  }
+}
+
 .world-preview-label,
 .world-kind,
 .world-detail h2,

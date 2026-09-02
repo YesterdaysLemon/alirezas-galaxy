@@ -1,19 +1,19 @@
 # VPS migration runbook
 
-The current Sites deployment remains the rollback copy throughout this
-migration. On the VPS, the existing portfolio stays running on loopback port
-`3000`; the galaxy uses `3070`, with `3071` reserved for deploy-manager
-candidates. The public cutover changes only Caddy routing.
+The VPS deployment is the production source of truth. The portfolio runs on
+loopback port `3000`; the galaxy uses `3070`, with `3071` reserved for
+deploy-manager candidates. Caddy routes the public hostnames to those origins,
+and its pre-cutover backup remains available for emergency routing rollback.
 
 ## Audited live topology
 
 | Host | Destination |
 | --- | --- |
-| `alirezaafshan.com`, `www` | existing portfolio on `127.0.0.1:3000` |
+| `alirezaafshan.com`, `www` | galaxy on `127.0.0.1:3070` |
+| `portfolio.alirezaafshan.com` | portfolio on `127.0.0.1:3000` |
 | `fish` through `androidhell` | independent apps on `3010`–`3060` |
 | `deploy` | central signed deploy manager on `9019` |
-| galaxy candidate | reserved `127.0.0.1:3071` |
-| galaxy production | reserved `127.0.0.1:3070` |
+| galaxy candidate | `127.0.0.1:3071` during deployments |
 
 ## 1. DNS staged without changing existing traffic
 
