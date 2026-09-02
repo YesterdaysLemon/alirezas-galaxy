@@ -1,5 +1,7 @@
 'use client';
 
+/* oxlint-disable next/no-img-element -- Keep the local SVG unmodified in Vinext. */
+
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
@@ -1427,26 +1429,14 @@ export function GalaxyIndex() {
           className="dock-orb"
           onClick={() => setSettingsOpen((current) => !current)}
         >
-          <svg
+          <img
             aria-hidden="true"
             data-icon="spore-main-menu-spiral"
-            viewBox="0 0 24 24"
-          >
-            <path
-              className="spore-spiral-blade"
-              d="M10.7 10.8c1.8-.8 2.8-2.7 4.1-4.3 1.6-1.9 4-3.1 6.5-2.4-1.6 0-3.3.7-4.4 2.2-1.8 2.4-1.7 4.6-.6 6.6-2.4-.4-4.2-1.1-5.6-2.1Z"
-            />
-            <path
-              className="spore-spiral-blade"
-              d="M10.7 10.8c1.8-.8 2.8-2.7 4.1-4.3 1.6-1.9 4-3.1 6.5-2.4-1.6 0-3.3.7-4.4 2.2-1.8 2.4-1.7 4.6-.6 6.6-2.4-.4-4.2-1.1-5.6-2.1Z"
-              transform="rotate(120 12 12)"
-            />
-            <path
-              className="spore-spiral-blade"
-              d="M10.7 10.8c1.8-.8 2.8-2.7 4.1-4.3 1.6-1.9 4-3.1 6.5-2.4-1.6 0-3.3.7-4.4 2.2-1.8 2.4-1.7 4.6-.6 6.6-2.4-.4-4.2-1.1-5.6-2.1Z"
-              transform="rotate(240 12 12)"
-            />
-          </svg>
+            src="/spiral-galaxy.svg"
+            alt=""
+            width={36}
+            height={36}
+          />
         </button>
         <div
           className="dock-console"

@@ -91,12 +91,15 @@ test('the utility dock keeps its controls distinct and functional', async ({
   });
   await expect(console).toHaveAttribute('data-mode', 'credit');
   await expect(console.locator('.dock-mode-lights i')).toHaveCount(4);
-  await expect(settingsOrb.locator('svg')).toHaveAttribute(
+  await expect(settingsOrb.locator('img')).toHaveAttribute(
     'data-icon',
     'spore-main-menu-spiral',
   );
-  await expect(settingsOrb.locator('.spore-spiral-blade')).toHaveCount(3);
-  await expect(settingsOrb.locator('circle')).toHaveCount(0);
+  await expect(settingsOrb.locator('img')).toHaveAttribute(
+    'src',
+    '/spiral-galaxy.svg',
+  );
+  await expect(settingsOrb.locator('svg')).toHaveCount(0);
   await expect(tuner.locator('svg')).toHaveAttribute(
     'data-icon',
     'advance-transmission',

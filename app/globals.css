@@ -834,11 +834,15 @@ button {
     0 0 10px rgba(93, 195, 255, 0.58);
 }
 
-.dock-orb svg {
+.dock-orb svg,
+.dock-orb img {
   display: block;
   width: 36px;
   height: 36px;
   overflow: visible;
+}
+
+.dock-orb svg {
   fill: none;
   stroke: #d7f6ff;
   stroke-linecap: round;
@@ -847,10 +851,9 @@ button {
   filter: drop-shadow(0 1px 2px #003458);
 }
 
-.dock-orb .spore-spiral-blade {
-  fill: rgba(248, 253, 255, 0.96);
-  stroke: none;
-  filter: drop-shadow(0 1px 1px rgba(0, 42, 92, 0.3));
+.dock-orb img {
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 42, 92, 0.3));
 }
 
 .dock-console {
