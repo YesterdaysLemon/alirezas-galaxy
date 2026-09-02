@@ -1429,34 +1429,33 @@ export function GalaxyIndex() {
         >
           <svg
             aria-hidden="true"
-            data-icon="five-arm-spiral"
+            data-icon="spore-main-menu-spiral"
             viewBox="0 0 24 24"
           >
             <path
-              className="galaxy-spiral-arm"
-              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              className="spore-spiral-blade"
+              d="M12.7 10.5c.5-2.9 2.4-5.1 5-5.7 2.1-.5 3.8.4 4.3 2-1.9-.5-3.7 0-4.9 1.4-1.2 1.3-1.5 3-0.9 4.8-1.5-.6-2.7-1.4-3.5-2.5Z"
             />
             <path
-              className="galaxy-spiral-arm"
-              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              className="spore-spiral-blade"
+              d="M12.7 10.5c.5-2.9 2.4-5.1 5-5.7 2.1-.5 3.8.4 4.3 2-1.9-.5-3.7 0-4.9 1.4-1.2 1.3-1.5 3-0.9 4.8-1.5-.6-2.7-1.4-3.5-2.5Z"
               transform="rotate(72 12 12)"
             />
             <path
-              className="galaxy-spiral-arm"
-              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              className="spore-spiral-blade"
+              d="M12.7 10.5c.5-2.9 2.4-5.1 5-5.7 2.1-.5 3.8.4 4.3 2-1.9-.5-3.7 0-4.9 1.4-1.2 1.3-1.5 3-0.9 4.8-1.5-.6-2.7-1.4-3.5-2.5Z"
               transform="rotate(144 12 12)"
             />
             <path
-              className="galaxy-spiral-arm"
-              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              className="spore-spiral-blade"
+              d="M12.7 10.5c.5-2.9 2.4-5.1 5-5.7 2.1-.5 3.8.4 4.3 2-1.9-.5-3.7 0-4.9 1.4-1.2 1.3-1.5 3-0.9 4.8-1.5-.6-2.7-1.4-3.5-2.5Z"
               transform="rotate(216 12 12)"
             />
             <path
-              className="galaxy-spiral-arm"
-              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              className="spore-spiral-blade"
+              d="M12.7 10.5c.5-2.9 2.4-5.1 5-5.7 2.1-.5 3.8.4 4.3 2-1.9-.5-3.7 0-4.9 1.4-1.2 1.3-1.5 3-0.9 4.8-1.5-.6-2.7-1.4-3.5-2.5Z"
               transform="rotate(288 12 12)"
             />
-            <circle className="galaxy-spiral-core" cx="12" cy="12" r="1.35" />
           </svg>
         </button>
         <div
