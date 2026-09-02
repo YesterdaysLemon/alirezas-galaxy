@@ -852,6 +852,8 @@ button {
 }
 
 .dock-orb img {
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 42, 92, 0.3));
 }
@@ -1005,15 +1007,22 @@ button {
   height: 18px;
   overflow: visible;
   fill: none;
-  stroke: #b9edff;
+  stroke: #d6f5ff;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.55;
   filter: drop-shadow(0 1px 1px #003354);
 }
 
-.dock-tuner svg path:last-child {
-  stroke: #fff7a0;
+.dock-tuner .tuner-cycle-arrow {
+  stroke: #8dff68;
+}
+
+.dock-tuner .tuner-cycle-signal {
+  fill: #8dff68;
+  stroke: rgba(225, 255, 211, 0.9);
+  stroke-width: 0.8;
+  filter: drop-shadow(0 0 2px rgba(123, 255, 91, 0.78));
 }
 
 .spore-dock a:hover,

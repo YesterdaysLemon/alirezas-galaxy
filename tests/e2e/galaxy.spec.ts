@@ -99,12 +99,15 @@ test('the utility dock keeps its controls distinct and functional', async ({
     'src',
     '/spiral-galaxy.svg',
   );
+  const spiralBox = await settingsOrb.locator('img').boundingBox();
+  expect(spiralBox).not.toBeNull();
+  expect(spiralBox!.width).toBeGreaterThanOrEqual(44);
   await expect(settingsOrb.locator('svg')).toHaveCount(0);
   await expect(tuner.locator('svg')).toHaveAttribute(
     'data-icon',
-    'advance-transmission',
+    'cycle-transmission',
   );
-  await expect(tuner.locator('circle')).toHaveCount(0);
+  await expect(tuner.locator('circle')).toHaveCount(1);
   await expect(tuner.locator('path')).toHaveCount(2);
 
   const [consoleBox, orbBox, tunerBox] = await Promise.all([

@@ -1434,8 +1434,8 @@ export function GalaxyIndex() {
             data-icon="spore-main-menu-spiral"
             src="/spiral-galaxy.svg"
             alt=""
-            width={36}
-            height={36}
+            width={44}
+            height={44}
           />
         </button>
         <div
@@ -1505,11 +1505,15 @@ export function GalaxyIndex() {
           >
             <svg
               aria-hidden="true"
-              data-icon="advance-transmission"
+              data-icon="cycle-transmission"
               viewBox="0 0 24 24"
             >
-              <path d="M5.8 6.2c3.2 1.7 5.1 3.6 6.2 5.8-1.1 2.2-3 4.1-6.2 5.8" />
-              <path d="M11.8 6.2c3.2 1.7 5.1 3.6 6.2 5.8-1.1 2.2-3 4.1-6.2 5.8" />
+              <path
+                className="tuner-cycle-orbit"
+                d="M18.4 8a7.2 7.2 0 1 0 .7 7.1"
+              />
+              <path className="tuner-cycle-arrow" d="M14.8 7.8h3.9V3.9" />
+              <circle className="tuner-cycle-signal" cx="12" cy="12" r="1.65" />
             </svg>
           </button>
         </div>
