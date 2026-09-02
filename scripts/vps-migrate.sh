@@ -61,14 +61,31 @@ local_https_contains() {
 }
 
 wait_for_local_https_contains() {
-  host="$1"
-  expected="$2"
-  attempts="${3:-30}"
-  attempt=1
+  local host="$1"
+  local expected="$2"
+  local attempts="${3:-30}"
+  local attempt=1
   while [ "$attempt" -le "$attempts" ]; do
     if local_https_contains "$host" "$expected"; then
       return 0
     fi
+    attempt=$((attempt + 1))
+    sleep 2
+  done
+  return 1
+}
+
+wait_for_container_health() {
+  local container="$1"
+  local attempts="${2:-45}"
+  local attempt=1
+  local health
+  while [ "$attempt" -le "$attempts" ]; do
+    health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true)"
+    case "$health" in
+      healthy) return 0 ;;
+      unhealthy) return 1 ;;
+    esac
     attempt=$((attempt + 1))
     sleep 2
   done
@@ -221,8 +238,8 @@ deploy_app() {
   /bin/sh /opt/deploy-manager-current/scripts/deploy-app-now.sh "$APP_ID"
   http_contains "http://127.0.0.1:${APP_PORT}/" "Alireza&#x27;s Galaxy" \
     || die "galaxy did not become healthy on port ${APP_PORT}"
-  health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$APP_ID")"
-  [ "$health" = "healthy" ] || die "container health is ${health}"
+  wait_for_container_health "$APP_ID" \
+    || die "container did not report healthy before the 90-second deadline"
   ok "galaxy is healthy on 127.0.0.1:${APP_PORT}; public routing is unchanged"
 }
 
