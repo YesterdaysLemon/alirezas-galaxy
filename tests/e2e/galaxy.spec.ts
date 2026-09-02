@@ -109,6 +109,9 @@ test('the utility dock keeps its controls distinct and functional', async ({
   );
   await expect(tuner.locator('circle')).toHaveCount(1);
   await expect(tuner.locator('path')).toHaveCount(2);
+  const tunerIconBox = await tuner.locator('svg').boundingBox();
+  expect(tunerIconBox).not.toBeNull();
+  expect(tunerIconBox!.width).toBeGreaterThanOrEqual(22);
 
   const [consoleBox, orbBox, tunerBox] = await Promise.all([
     console.boundingBox(),

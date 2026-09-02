@@ -855,7 +855,7 @@ button {
   width: 44px;
   height: 44px;
   object-fit: contain;
-  filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 42, 92, 0.3));
+  filter: drop-shadow(0 1px 1px rgba(0, 42, 92, 0.3));
 }
 
 .dock-console {
@@ -1003,8 +1003,8 @@ button {
 }
 
 .dock-tuner svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   overflow: visible;
   fill: none;
   stroke: #d6f5ff;
@@ -1030,6 +1030,13 @@ button {
 .spore-dock button:hover,
 .spore-dock button:focus-visible {
   filter: brightness(1.25);
+}
+
+.spore-dock .dock-orb:hover,
+.spore-dock .dock-orb:focus-visible,
+.spore-dock .dock-tuner:hover,
+.spore-dock .dock-tuner:focus-visible {
+  filter: brightness(1.08) saturate(1.12);
 }
 
 .spore-dock a:focus-visible,
