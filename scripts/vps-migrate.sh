@@ -44,16 +44,20 @@ require_command() {
 }
 
 http_contains() {
-  url="$1"
-  expected="$2"
-  curl --fail --silent --show-error --max-time 12 "$url" | grep -Fqi "$expected"
+  local url="$1"
+  local expected="$2"
+  local body
+  body="$(curl --fail --silent --show-error --max-time 12 "$url")" || return 1
+  grep -Fqi "$expected" <<<"$body"
 }
 
 local_https_contains() {
-  host="$1"
-  expected="$2"
-  curl --insecure --fail --silent --show-error --max-time 12 \
-    --resolve "${host}:443:127.0.0.1" "https://${host}/" | grep -Fqi "$expected"
+  local host="$1"
+  local expected="$2"
+  local body
+  body="$(curl --insecure --fail --silent --show-error --max-time 12 \
+    --resolve "${host}:443:127.0.0.1" "https://${host}/")" || return 1
+  grep -Fqi "$expected" <<<"$body"
 }
 
 wait_for_local_https_contains() {
