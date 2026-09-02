@@ -812,6 +812,7 @@ export function GalaxyIndex() {
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
+    const hitAreas = nodes.map(({ hitArea }) => hitArea);
     const labelPosition = new THREE.Vector3();
     const previewPosition = new THREE.Vector3();
     const cameraFollowPosition = new THREE.Vector3();
@@ -861,6 +862,12 @@ export function GalaxyIndex() {
       pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
     };
 
+    const destinationAtPointer = () => {
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObjects(hitAreas, false)[0];
+      return hit ? (hit.object.userData.destinationIndex as number) : -1;
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       isDragging = true;
       focusRotationRef.current = null;
@@ -901,14 +908,17 @@ export function GalaxyIndex() {
 
     const endPointer = (event: PointerEvent) => {
       if (event.pointerId !== pointerId) return;
+      const isTap = event.type === 'pointerup' && dragDistance < 8;
+      if (isTap) updatePointer(event);
+      const tappedIndex = isTap ? destinationAtPointer() : -1;
       isDragging = false;
       if (renderer.domElement.hasPointerCapture(event.pointerId)) {
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
-      if (dragDistance < 8 && hoveredIndex >= 0) {
+      if (tappedIndex >= 0) {
         angularVelocity = 0;
-        expandDestination(hoveredIndex);
-      } else if (dragDistance < 8 && hoveredIndex < 0 && expandedRef.current) {
+        expandDestination(tappedIndex);
+      } else if (isTap && expandedRef.current) {
         collapseDestination();
       }
       pointerId = -1;
@@ -1075,10 +1085,7 @@ export function GalaxyIndex() {
 
       if (!isDragging && frame % 2 === 0) {
         raycaster.setFromCamera(pointer, camera);
-        const hit = raycaster.intersectObjects(
-          nodes.map(({ hitArea }) => hitArea),
-          false,
-        )[0];
+        const hit = raycaster.intersectObjects(hitAreas, false)[0];
         if (hit) {
           const nextIndex = hit.object.userData.destinationIndex as number;
           if (
