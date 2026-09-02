@@ -16,14 +16,24 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
 
   const androidHell = worlds.filter({ hasText: 'Android Hell:' });
   await androidHell.focus();
-  await expect(
-    page.getByRole('button', { name: 'Inspect Android Hell' }),
-  ).toBeAttached();
+  const androidPreview = page.getByRole('button', {
+    name: 'Inspect Android Hell',
+  });
+  await expect(androidPreview).toBeAttached();
+  await expect(androidPreview.locator('.world-preview-label')).toHaveCSS(
+    'color',
+    'rgb(146, 255, 99)',
+  );
   await androidHell.press('Enter');
 
-  await expect(
-    page.getByRole('region', { name: 'Selected world: Android Hell' }),
-  ).toBeAttached();
+  const androidDetail = page.getByRole('region', {
+    name: 'Selected world: Android Hell',
+  });
+  await expect(androidDetail).toBeAttached();
+  await expect(androidDetail.getByRole('heading', { level: 2 })).toHaveCSS(
+    'color',
+    'rgb(146, 255, 99)',
+  );
   await expect(
     page.getByRole('link', { name: 'Launch Android Hell' }),
   ).toHaveAttribute('href', 'https://androidhell.alirezaafshan.com');
@@ -38,8 +48,6 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
 
 test('the close control does not jump on hover', async ({ page }) => {
   await openHydratedGalaxy(page);
-  await page.getByRole('button', { name: 'Open galaxy settings' }).click();
-  await page.getByRole('button', { name: /galactic drift/i }).click();
   const proofBonsai = page
     .getByRole('navigation', { name: 'Website worlds' })
     .getByRole('button')
@@ -83,26 +91,26 @@ test('the utility dock keeps its controls distinct and functional', async ({
 }) => {
   await openHydratedGalaxy(page);
   const console = page.locator('.dock-console');
-  const settingsOrb = page.getByRole('button', {
-    name: 'Open galaxy settings',
+  const galaxyOrb = page.getByRole('button', {
+    name: 'Spin the galaxy faster',
   });
   const tuner = page.getByRole('button', {
     name: 'Show next footer transmission',
   });
   await expect(console).toHaveAttribute('data-mode', 'credit');
   await expect(console.locator('.dock-mode-lights i')).toHaveCount(4);
-  await expect(settingsOrb.locator('img')).toHaveAttribute(
+  await expect(galaxyOrb.locator('img')).toHaveAttribute(
     'data-icon',
     'spore-main-menu-spiral',
   );
-  await expect(settingsOrb.locator('img')).toHaveAttribute(
+  await expect(galaxyOrb.locator('img')).toHaveAttribute(
     'src',
     '/spiral-galaxy.svg',
   );
-  const spiralBox = await settingsOrb.locator('img').boundingBox();
+  const spiralBox = await galaxyOrb.locator('img').boundingBox();
   expect(spiralBox).not.toBeNull();
   expect(spiralBox!.width).toBeGreaterThanOrEqual(44);
-  await expect(settingsOrb.locator('svg')).toHaveCount(0);
+  await expect(galaxyOrb.locator('svg')).toHaveCount(0);
   await expect(tuner.locator('svg')).toHaveAttribute(
     'data-icon',
     'cycle-transmission',
@@ -115,7 +123,7 @@ test('the utility dock keeps its controls distinct and functional', async ({
 
   const [consoleBox, orbBox, tunerBox] = await Promise.all([
     console.boundingBox(),
-    settingsOrb.boundingBox(),
+    galaxyOrb.boundingBox(),
     tuner.boundingBox(),
   ]);
   expect(consoleBox).not.toBeNull();
@@ -128,17 +136,23 @@ test('the utility dock keeps its controls distinct and functional', async ({
   );
   expect(orbBox!.x).toBeLessThanOrEqual(6);
 
-  await page.getByRole('button', { name: 'Open galaxy settings' }).click();
-
-  const slider = page.getByRole('slider', { name: 'Galaxy core exposure' });
-  await expect(slider).toHaveValue('0.92');
-
-  const drift = page.getByRole('button', { name: /galactic drift/i });
-  await expect(drift).toHaveAttribute('aria-pressed', 'true');
-  await drift.click();
-  await expect(drift).toHaveAttribute('aria-pressed', 'false');
-
-  await page.getByRole('button', { name: 'Close galaxy settings' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Galaxy settings' }),
+  ).toHaveCount(0);
+  const stage = page.locator('[data-galaxy-stage]');
+  const spiral = galaxyOrb.locator('img');
+  const initialTransform = await spiral.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  for (let press = 0; press < 7; press += 1) {
+    await galaxyOrb.click();
+  }
+  await expect(stage).toHaveAttribute('data-portrait-bursts', '1');
+  await expect
+    .poll(() =>
+      spiral.evaluate((element) => getComputedStyle(element).transform),
+    )
+    .not.toBe(initialTransform);
   await expect(page.getByText('© alireza afshan · 2026')).toBeVisible();
 
   await tuner.click();

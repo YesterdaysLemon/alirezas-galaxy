@@ -400,15 +400,14 @@ export function GalaxyIndex() {
   const ambientMotionRef = useRef(true);
   const coreExposureRef = useRef(0.92);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
+  const spinGalaxyRef = useRef<() => void>(() => undefined);
+  const dockGalaxyIconRef = useRef<HTMLImageElement>(null);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [ambientMotion, setAmbientMotion] = useState(true);
-  const [coreExposure, setCoreExposure] = useState(0.92);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [dockTransmission, setDockTransmission] = useState(0);
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
@@ -446,24 +445,6 @@ export function GalaxyIndex() {
     setExpanded(false);
   };
 
-  const toggleAmbientMotion = () => {
-    setAmbientMotion((current) => {
-      ambientMotionRef.current = !current;
-      return !current;
-    });
-  };
-
-  const updateCoreExposure = (value: number) => {
-    const nextValue = THREE.MathUtils.clamp(value, 0.55, 1);
-    coreExposureRef.current = nextValue;
-    setCoreExposure(nextValue);
-    try {
-      window.localStorage.setItem('afshan-core-exposure-v2', String(nextValue));
-    } catch {
-      // The visual control still works when storage is unavailable.
-    }
-  };
-
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       try {
@@ -472,7 +453,6 @@ export function GalaxyIndex() {
         );
         if (storedExposure >= 0.55 && storedExposure <= 1) {
           coreExposureRef.current = storedExposure;
-          setCoreExposure(storedExposure);
         }
       } catch {
         // Keep the tuned default when storage is unavailable.
@@ -485,6 +465,7 @@ export function GalaxyIndex() {
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
+    const portraitBurstTarget = stage;
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -776,6 +757,9 @@ export function GalaxyIndex() {
       }
       if (portraitTextures.length === 0) return;
 
+      portraitBurstCount += 1;
+      portraitBurstTarget.dataset.portraitBursts = String(portraitBurstCount);
+
       portraitSprites.forEach(({ sprite }) => {
         portraitGroup.remove(sprite);
         sprite.material.dispose();
@@ -830,11 +814,36 @@ export function GalaxyIndex() {
     let angularVelocity = 0;
     let tiltVelocity = 0;
     let fastSpinTravel = 0;
+    let portraitBurstCount = 0;
+    let dockSpinPresses = 0;
     let frame = 0;
     let animationFrame = 0;
     let isVisible = true;
     let disposed = false;
     let previousTime = 0;
+
+    portraitBurstTarget.dataset.portraitBursts = '0';
+
+    spinGalaxyRef.current = () => {
+      focusRotationRef.current = null;
+      const direction = angularVelocity < -0.002 ? -1 : 1;
+      dockSpinPresses += 1;
+      const stagedMagnitude = Math.min(0.16, dockSpinPresses * 0.022);
+      angularVelocity =
+        direction *
+        THREE.MathUtils.clamp(
+          Math.max(Math.abs(angularVelocity) + 0.012, stagedMagnitude),
+          0.022,
+          0.16,
+        );
+
+      if (Math.abs(angularVelocity) >= 0.12 && burstCooldown <= 0) {
+        burstPortraits();
+        fastSpinTravel = 0;
+        angularVelocity *= 0.58;
+        dockSpinPresses = 0;
+      }
+    };
 
     const updatePointer = (event: PointerEvent) => {
       const bounds = renderer.domElement.getBoundingClientRect();
@@ -923,6 +932,7 @@ export function GalaxyIndex() {
       angularVelocity = 0;
       tiltVelocity = 0;
       fastSpinTravel = 0;
+      dockSpinPresses = 0;
       cameraDistance = defaultCameraDistance;
       galaxy.rotation.x = -0.08;
       galaxy.rotation.y = destinations[0].angle - Math.PI / 2;
@@ -1009,6 +1019,10 @@ export function GalaxyIndex() {
       if (fastSpinTravel >= Math.PI * 8) {
         burstPortraits();
         fastSpinTravel = 0;
+      }
+
+      if (dockGalaxyIconRef.current) {
+        dockGalaxyIconRef.current.style.transform = `rotate(${galaxy.rotation.y}rad)`;
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
@@ -1187,6 +1201,7 @@ export function GalaxyIndex() {
       renderer.domElement.removeEventListener('wheel', onWheel);
       window.clearTimeout(portraitPreloadTimer);
       resetGalaxyRef.current = () => undefined;
+      spinGalaxyRef.current = () => undefined;
       portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
       portraitTextures.forEach((texture) => texture.dispose());
       glowTexture?.dispose();
@@ -1220,7 +1235,7 @@ export function GalaxyIndex() {
       id="galaxy"
       className="spore-shell relative h-[100svh] min-h-[520px] overflow-hidden"
     >
-      <div ref={stageRef} className="absolute inset-0" />
+      <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
 
       <header className="spore-corner" aria-label="Main menu">
@@ -1374,62 +1389,14 @@ export function GalaxyIndex() {
       ) : null}
 
       <div className="spore-dock" aria-label="Galaxy controls">
-        {settingsOpen ? (
-          <dialog
-            open
-            className="dock-settings"
-            id="galaxy-settings"
-            aria-label="Galaxy settings"
-          >
-            <span className="dock-settings-title">galaxy settings</span>
-            <button
-              type="button"
-              className="dock-setting-row"
-              onClick={toggleAmbientMotion}
-              aria-pressed={ambientMotion}
-            >
-              <span>galactic drift</span>
-              <strong>{ambientMotion ? 'on' : 'off'}</strong>
-            </button>
-            <label className="dock-slider-row">
-              <span>
-                <span>core exposure</span>
-                <output>{Math.round(coreExposure * 100)}%</output>
-              </span>
-              <input
-                type="range"
-                min="0.55"
-                max="1"
-                step="0.01"
-                value={coreExposure}
-                aria-label="Galaxy core exposure"
-                onChange={(event) =>
-                  updateCoreExposure(Number(event.currentTarget.value))
-                }
-              />
-            </label>
-            <button
-              type="button"
-              className="dock-setting-row"
-              onClick={() => resetGalaxyRef.current()}
-            >
-              <span>restore homeworld</span>
-              <strong>reset</strong>
-            </button>
-          </dialog>
-        ) : null}
-
         <button
           type="button"
-          aria-label={
-            settingsOpen ? 'Close galaxy settings' : 'Open galaxy settings'
-          }
-          aria-controls="galaxy-settings"
-          aria-expanded={settingsOpen}
+          aria-label="Spin the galaxy faster"
           className="dock-orb"
-          onClick={() => setSettingsOpen((current) => !current)}
+          onClick={() => spinGalaxyRef.current()}
         >
           <img
+            ref={dockGalaxyIconRef}
             aria-hidden="true"
             data-icon="spore-main-menu-spiral"
             src="/spiral-galaxy.svg"
