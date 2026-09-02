@@ -55,3 +55,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-vps:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.DEPLOY_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request signed VPS deployment
+        env:
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_WEBHOOK_SECRET"
+          payload="$(node -e 'const payload = { event: "push", branch: "main", repo: process.env.GITHUB_REPOSITORY, sha: process.env.GITHUB_SHA }; process.stdout.write(JSON.stringify(payload));')"
+          signature="$(node -e 'const crypto = require("crypto"); const payload = process.argv[1]; const secret = process.env.DEPLOY_WEBHOOK_SECRET.trim(); process.stdout.write("sha256=" + crypto.createHmac("sha256", secret).update(payload).digest("hex"));' "$payload")"
+          curl --fail --show-error --silent \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header 'X-GitHub-Event: push' \
+            --header "X-Hub-Signature-256: $signature" \
+            --data "$payload" \
+            https://deploy.alirezaafshan.com/deploy/galaxy-menu
