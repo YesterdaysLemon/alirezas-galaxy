@@ -481,9 +481,19 @@ export function GalaxyIndex() {
     }
 
     const isCompact = window.matchMedia('(max-width: 720px)').matches;
-    const reduceMotion = window.matchMedia(
+    const reducedMotionQuery = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
-    ).matches;
+    );
+    let reduceMotion = reducedMotionQuery.matches;
+    const setMotionProfile = (matches: boolean) => {
+      reduceMotion = matches;
+      stage.dataset.motionProfile = matches ? 'gentle' : 'full';
+    };
+    const onReducedMotionChange = (event: MediaQueryListEvent) => {
+      setMotionProfile(event.matches);
+    };
+    setMotionProfile(reduceMotion);
+    reducedMotionQuery.addEventListener('change', onReducedMotionChange);
     const cores = navigator.hardwareConcurrency ?? 4;
     const starCount = isCompact || cores <= 4 ? 8800 : 17600;
     const backdropCount = isCompact ? 3000 : 7200;
@@ -1008,10 +1018,10 @@ export function GalaxyIndex() {
           tiltVelocity *= Math.pow(0.93, delta);
           if (
             ambientMotionRef.current &&
-            !reduceMotion &&
             Math.abs(angularVelocity) < 0.0012
           ) {
-            galaxy.rotation.y += 0.00018 * delta;
+            const ambientMotionScale = reduceMotion ? 0.55 : 1;
+            galaxy.rotation.y += 0.00018 * ambientMotionScale * delta;
           }
         }
       }
@@ -1035,12 +1045,13 @@ export function GalaxyIndex() {
       }
       camera.position.y += (cameraDistance * 0.37 - camera.position.y) * 0.055;
       camera.position.z += (cameraDistance * 0.93 - camera.position.z) * 0.055;
-      if (ambientMotionRef.current && !reduceMotion) {
-        backdrop.rotation.y -= 0.00006 * delta;
+      if (ambientMotionRef.current) {
+        const ambientMotionScale = reduceMotion ? 0.55 : 1;
+        backdrop.rotation.y -= 0.00006 * ambientMotionScale * delta;
         distantGalaxies.forEach((points, index) => {
           const rotationSpeed =
             index === 0 ? 0.00022 : index % 2 === 0 ? 0.000035 : -0.000028;
-          points.rotation.z += rotationSpeed * delta;
+          points.rotation.z += rotationSpeed * ambientMotionScale * delta;
         });
       }
       glowMaterial.opacity +=
@@ -1094,13 +1105,17 @@ export function GalaxyIndex() {
         const isPreviewed =
           !expandedRef.current && index === previewIndexRef.current;
         const isHovered = index === hoveredIndex;
-        const shimmer = reduceMotion
-          ? 1
-          : 0.96 + Math.sin(time * 0.0042 + index * 1.71) * 0.04;
+        const motionTime = time * (reduceMotion ? 0.72 : 1);
+        const shimmerAmplitude = reduceMotion ? 0.025 : 0.04;
+        const shimmer =
+          0.96 +
+          Math.sin(motionTime * 0.0042 + index * 1.71) * shimmerAmplitude;
         const pulse =
-          reduceMotion || (!isSelected && !isPreviewed)
+          !isSelected && !isPreviewed
             ? shimmer
-            : 1 + Math.sin(time * 0.0035) * 0.045;
+            : 1 +
+              Math.sin(motionTime * 0.0035) *
+                (reduceMotion ? 0.03 : 0.045);
         const markerTarget =
           destination.size *
           (isSelected ? 0.82 : isHovered || isPreviewed ? 0.56 : 0.51) *
@@ -1111,12 +1126,17 @@ export function GalaxyIndex() {
           ((isSelected ? 1 : isHovered || isPreviewed ? 0.92 : 0.82) -
             marker.material.opacity) *
           0.11;
-        marker.material.rotation += (0.00016 + index * 0.000025) * delta;
+        marker.material.rotation +=
+          (0.00016 + index * 0.000025) *
+          (reduceMotion ? 0.72 : 1) *
+          delta;
 
         signalWaves.forEach((wave, waveIndex) => {
-          const progress = reduceMotion
-            ? (waveIndex + 1) / 4
-            : (time * 0.00022 + wave.userData.phase + index * 0.117) % 1;
+          const progress =
+            (motionTime * 0.00022 +
+              wave.userData.phase +
+              index * 0.117) %
+            1;
           const waveScale =
             destination.size *
             (0.49 + THREE.MathUtils.smoothstep(progress, 0, 1) * 0.7);
@@ -1125,7 +1145,8 @@ export function GalaxyIndex() {
             isSelected || isHovered || isPreviewed ? 0.22 : 0.62;
           wave.scale.setScalar(waveScale);
           wave.material.opacity = envelope * prominence;
-          wave.material.rotation = -time * 0.000025 * (waveIndex + 1);
+          wave.material.rotation =
+            -motionTime * 0.000025 * (waveIndex + 1);
         });
       });
 
@@ -1191,6 +1212,7 @@ export function GalaxyIndex() {
       disposed = true;
       if (animationFrame) cancelAnimationFrame(animationFrame);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      reducedMotionQuery.removeEventListener('change', onReducedMotionChange);
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
