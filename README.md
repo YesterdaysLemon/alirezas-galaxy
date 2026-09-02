@@ -31,8 +31,16 @@ check.
 
 Pushes to `main` build and publish `ghcr.io/yesterdayslemon/alirezas-galaxy`
 through the Container workflow; pull requests build the same image without
-publishing it. A VPS deploy manager can watch the `latest` or immutable
-`sha-<commit>` tag and only replace healthy containers.
+publishing it. Once the guarded `DEPLOY_ENABLED` repository variable is armed,
+the same successful workflow requests a signed rollout from the VPS deploy
+manager. The manager builds the exact commit, tests it as a candidate on a
+spare loopback port, and only replaces the healthy production container.
+
+The staged root/portfolio handoff is documented in
+[`docs/vps-migration.md`](docs/vps-migration.md). Its setup script keeps the
+current portfolio live on port `3000`, starts the galaxy on `3070`, validates
+both, and changes only the Caddy hostname mapping. The pre-cutover Caddyfile is
+retained for immediate routing rollback.
 
 ## What is in the base
 
