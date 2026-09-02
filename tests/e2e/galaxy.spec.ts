@@ -93,8 +93,9 @@ test('the utility dock keeps its controls distinct and functional', async ({
   await expect(console.locator('.dock-mode-lights i')).toHaveCount(4);
   await expect(settingsOrb.locator('svg')).toHaveAttribute(
     'data-icon',
-    'five-point-galaxy',
+    'five-arm-spiral',
   );
+  await expect(settingsOrb.locator('.galaxy-spiral-arm')).toHaveCount(5);
   await expect(tuner.locator('svg')).toHaveAttribute(
     'data-icon',
     'advance-transmission',

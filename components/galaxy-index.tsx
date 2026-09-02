@@ -1429,17 +1429,34 @@ export function GalaxyIndex() {
         >
           <svg
             aria-hidden="true"
-            data-icon="five-point-galaxy"
+            data-icon="five-arm-spiral"
             viewBox="0 0 24 24"
           >
             <path
-              className="galaxy-star-body"
-              d="M12 2.5c2 0 2.7 4.1 3.5 5.6 1.5.5 5.5-1.1 6.1.8.7 1.9-3 3.8-4.1 5.1.1 1.6 2.9 4.9 1.3 6.1-1.6 1.2-4.5-1.8-6-2.2-1.6.4-4.5 3.4-6 2.2-1.7-1.2 1.2-4.5 1.3-6.1-1.1-1.3-4.8-3.2-4.1-5.1.6-1.9 4.6-.3 6.1-.8.8-1.5 1.5-5.6 3.5-5.6Z"
+              className="galaxy-spiral-arm"
+              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
             />
             <path
-              className="galaxy-star-spiral"
-              d="M8.4 11.9c.9-2.7 4.9-3.4 6.7-1.1 2 2.6-.1 6.2-3.2 6.1-2.7-.1-4.2-2.9-2.8-5 1.1-1.7 3.8-1.7 4.7.1.7 1.5-.8 3-2.2 2.3"
+              className="galaxy-spiral-arm"
+              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              transform="rotate(72 12 12)"
             />
+            <path
+              className="galaxy-spiral-arm"
+              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              transform="rotate(144 12 12)"
+            />
+            <path
+              className="galaxy-spiral-arm"
+              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              transform="rotate(216 12 12)"
+            />
+            <path
+              className="galaxy-spiral-arm"
+              d="M12 12c1.2-2.2 3.6-3.3 5.6-2.6 2 .7 3.4 2.6 3.9 5.2-1.5-1.6-3.2-2.1-4.8-1.6-1.7.5-3.3 0-4.7-1Z"
+              transform="rotate(288 12 12)"
+            />
+            <circle className="galaxy-spiral-core" cx="12" cy="12" r="1.35" />
           </svg>
         </button>
         <div

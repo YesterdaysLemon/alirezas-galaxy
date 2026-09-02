@@ -846,16 +846,27 @@ button {
   filter: drop-shadow(0 1px 2px #003458);
 }
 
-.dock-orb .galaxy-star-body {
-  fill: rgba(215, 246, 255, 0.3);
+.dock-orb .galaxy-spiral-arm {
+  fill: rgba(171, 231, 255, 0.34);
   stroke: #e2f9ff;
-  stroke-width: 1.15;
+  stroke-width: 0.72;
 }
 
-.dock-orb .galaxy-star-spiral {
-  fill: none;
+.dock-orb .galaxy-spiral-core {
+  fill: #fff7a0;
+  stroke: #effcff;
+  stroke-width: 0.7;
+}
+
+.dock-orb:hover .galaxy-spiral-arm,
+.dock-orb:focus-visible .galaxy-spiral-arm {
+  fill: rgba(213, 246, 255, 0.48);
+}
+
+.dock-orb:hover .galaxy-spiral-core,
+.dock-orb:focus-visible .galaxy-spiral-core {
+  fill: #fffbd4;
   stroke: #fff7a0;
-  stroke-width: 1.45;
 }
 
 .dock-console {
