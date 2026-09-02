@@ -1427,10 +1427,19 @@ export function GalaxyIndex() {
           className="dock-orb"
           onClick={() => setSettingsOpen((current) => !current)}
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M12.1 11.9c.6-2.3 3.9-2.8 5.3-.8 1.7 2.4.2 5.8-2.7 7-4.2 1.8-9-.9-9.8-5.3-.9-5 3-9.6 7.9-10 5.5-.4 10.2 4.2 9.4 9.7" />
-            <path d="M12.1 11.9c-1.4 1.5-4 .8-4.3-1.3-.3-2 1.6-3.7 3.6-3.2 1.7.4 2.6 2.3 1.8 3.8-.7 1.4-2.7 1.8-3.9.8" />
-            <circle cx="12" cy="12" r="1.25" />
+          <svg
+            aria-hidden="true"
+            data-icon="five-point-galaxy"
+            viewBox="0 0 24 24"
+          >
+            <path
+              className="galaxy-star-body"
+              d="M12 2.5c2 0 2.7 4.1 3.5 5.6 1.5.5 5.5-1.1 6.1.8.7 1.9-3 3.8-4.1 5.1.1 1.6 2.9 4.9 1.3 6.1-1.6 1.2-4.5-1.8-6-2.2-1.6.4-4.5 3.4-6 2.2-1.7-1.2 1.2-4.5 1.3-6.1-1.1-1.3-4.8-3.2-4.1-5.1.6-1.9 4.6-.3 6.1-.8.8-1.5 1.5-5.6 3.5-5.6Z"
+            />
+            <path
+              className="galaxy-star-spiral"
+              d="M8.4 11.9c.9-2.7 4.9-3.4 6.7-1.1 2 2.6-.1 6.2-3.2 6.1-2.7-.1-4.2-2.9-2.8-5 1.1-1.7 3.8-1.7 4.7.1.7 1.5-.8 3-2.2 2.3"
+            />
           </svg>
         </button>
         <div
@@ -1440,18 +1449,30 @@ export function GalaxyIndex() {
               ? 'quote'
               : dockTransmission === 2
                 ? 'source'
-                : 'credit'
+                : dockTransmission === 3
+                  ? 'contact'
+                  : 'credit'
           }
         >
           <span className="dock-mode-lights" aria-hidden="true">
-            {[0, 1, 2].map((mode) => (
+            {[0, 1, 2, 3].map((mode) => (
               <i
                 key={mode}
                 className={dockTransmission === mode ? 'is-active' : undefined}
               />
             ))}
           </span>
-          {dockTransmission === 2 ? (
+          {dockTransmission === 3 ? (
+            <a
+              id="dock-transmission"
+              href="mailto:mail@alirezaafshan.com"
+              className="dock-message"
+              data-mode="contact"
+              aria-label="Contact me by email"
+            >
+              contact me ↗
+            </a>
+          ) : dockTransmission === 2 ? (
             <a
               id="dock-transmission"
               href={quotationCollection.url}
@@ -1484,33 +1505,19 @@ export function GalaxyIndex() {
             aria-label="Show next footer transmission"
             aria-controls="dock-transmission"
             className="dock-tuner"
-            onClick={() => setDockTransmission((current) => (current + 1) % 3)}
+            onClick={() => setDockTransmission((current) => (current + 1) % 4)}
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M12 7.7a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" />
-              <path d="m9.2 4.2.5-1.7h4.6l.5 1.7 1.5.9 1.7-.4 2.3 4-1.2 1.3v1.8l1.2 1.3-2.3 4-1.7-.4-1.5.9-.5 1.7H9.7l-.5-1.7-1.5-.9-1.7.4-2.3-4 1.2-1.3V10L3.7 8.7l2.3-4 1.7.4 1.5-.9Z" />
+            <svg
+              aria-hidden="true"
+              data-icon="advance-transmission"
+              viewBox="0 0 24 24"
+            >
+              <path d="M5.8 6.2c3.2 1.7 5.1 3.6 6.2 5.8-1.1 2.2-3 4.1-6.2 5.8" />
+              <path d="M11.8 6.2c3.2 1.7 5.1 3.6 6.2 5.8-1.1 2.2-3 4.1-6.2 5.8" />
             </svg>
           </button>
         </div>
       </div>
-
-      {!expanded ? (
-        <a
-          className="contact-dock"
-          href="mailto:mail@alirezaafshan.com"
-          aria-label="Contact me by email"
-        >
-          <span className="contact-console">
-            <strong>contact me</strong>
-          </span>
-          <span className="contact-orb" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="m3.2 11.1 17-7.2-5.7 16.2-3.3-6-8-3Z" />
-              <path d="m11.2 14.1 9-10.2M11.2 14.1l-.6 4.1" />
-            </svg>
-          </span>
-        </a>
-      ) : null}
 
       <nav className="sr-only" aria-label="Website worlds">
         {destinations.map((destination, index) => (

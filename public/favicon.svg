@@ -1,7 +1,23 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="32" cy="32" r="30" fill="#061022" stroke="#8CEBFF" stroke-width="2"/>
-  <path d="M12 35C17 18 40 13 52 27C59 36 49 49 35 48C22 47 17 37 24 30C30 24 42 26 43 33C44 38 37 41 32 38" stroke="#54CCFF" stroke-width="5" stroke-linecap="round"/>
-  <path d="M15 43C25 56 48 54 56 39" stroke="#765BFF" stroke-width="4" stroke-linecap="round" opacity=".9"/>
-  <circle cx="32" cy="36" r="5" fill="#FFF27A"/>
-  <circle cx="32" cy="36" r="2" fill="white"/>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="space" cx="0" cy="0" r="1" gradientTransform="translate(23 18) rotate(53) scale(54)">
+      <stop stop-color="#245c91" />
+      <stop offset=".5" stop-color="#0b2348" />
+      <stop offset="1" stop-color="#030817" />
+    </radialGradient>
+    <linearGradient id="star" x1="10" y1="3" x2="18" y2="21" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f6ffff" />
+      <stop offset=".42" stop-color="#74ddff" />
+      <stop offset="1" stop-color="#7867ff" />
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.25" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#space)" stroke="#8cecff" stroke-width="2" />
+  <g transform="translate(4 4) scale(2.333333)" filter="url(#glow)">
+    <path d="M12 2.5c2 0 2.7 4.1 3.5 5.6 1.5.5 5.5-1.1 6.1.8.7 1.9-3 3.8-4.1 5.1.1 1.6 2.9 4.9 1.3 6.1-1.6 1.2-4.5-1.8-6-2.2-1.6.4-4.5 3.4-6 2.2-1.7-1.2 1.2-4.5 1.3-6.1-1.1-1.3-4.8-3.2-4.1-5.1.6-1.9 4.6-.3 6.1-.8.8-1.5 1.5-5.6 3.5-5.6Z" fill="url(#star)" stroke="#dffaff" stroke-width=".65" stroke-linejoin="round" />
+    <path d="M8.4 11.9c.9-2.7 4.9-3.4 6.7-1.1 2 2.6-.1 6.2-3.2 6.1-2.7-.1-4.2-2.9-2.8-5 1.1-1.7 3.8-1.7 4.7.1.7 1.5-.8 3-2.2 2.3" fill="none" stroke="#fff8a6" stroke-width="1.15" stroke-linecap="round" />
+  </g>
 </svg>

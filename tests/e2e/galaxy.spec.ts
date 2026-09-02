@@ -90,6 +90,17 @@ test('the utility dock keeps its controls distinct and functional', async ({
     name: 'Show next footer transmission',
   });
   await expect(console).toHaveAttribute('data-mode', 'credit');
+  await expect(console.locator('.dock-mode-lights i')).toHaveCount(4);
+  await expect(settingsOrb.locator('svg')).toHaveAttribute(
+    'data-icon',
+    'five-point-galaxy',
+  );
+  await expect(tuner.locator('svg')).toHaveAttribute(
+    'data-icon',
+    'advance-transmission',
+  );
+  await expect(tuner.locator('circle')).toHaveCount(0);
+  await expect(tuner.locator('path')).toHaveCount(2);
 
   const [consoleBox, orbBox, tunerBox] = await Promise.all([
     console.boundingBox(),
@@ -104,6 +115,7 @@ test('the utility dock keeps its controls distinct and functional', async ({
   expect(tunerBox!.x + tunerBox!.width).toBeLessThanOrEqual(
     consoleBox!.x + consoleBox!.width,
   );
+  expect(orbBox!.x).toBeLessThanOrEqual(6);
 
   await page.getByRole('button', { name: 'Open galaxy settings' }).click();
 
@@ -126,6 +138,11 @@ test('the utility dock keeps its controls distinct and functional', async ({
   await expect(
     page.getByRole('link', { name: /Open Bartlett's Familiar Quotations/i }),
   ).toHaveAttribute('href', 'https://www.gutenberg.org/ebooks/27889');
+  await tuner.click();
+  await expect(console).toHaveAttribute('data-mode', 'contact');
+  await expect(
+    page.getByRole('link', { name: 'Contact me by email' }),
+  ).toHaveAttribute('href', 'mailto:mail@alirezaafshan.com');
 });
 
 test('the active menu keeps yellow contained inside the selected pill', async ({
@@ -196,10 +213,6 @@ test('primary controls discover a world, introduce Alireza, and link to GitHub',
     'href',
     'https://github.com/YesterdaysLemon',
   );
-  await expect(
-    page.getByRole('link', { name: 'Contact me by email' }),
-  ).toHaveAttribute('href', 'mailto:mail@alirezaafshan.com');
-
   await primary.getByRole('button', { name: 'random world' }).click();
   const randomDetail = page.locator('.world-detail');
   await expect(randomDetail).toBeAttached();
@@ -209,10 +222,6 @@ test('primary controls discover a world, introduce Alireza, and link to GitHub',
   await expect(
     page.getByRole('region', { name: 'Selected world: Alireza Afshan' }),
   ).toBeAttached();
-  await expect(
-    page.getByRole('link', { name: 'Contact me by email' }),
-  ).not.toBeAttached();
-
   await page
     .getByRole('link', { name: 'Alireza Afshan — return home' })
     .click();
@@ -221,9 +230,6 @@ test('primary controls discover a world, introduce Alireza, and link to GitHub',
   ).not.toBeAttached();
   await expect(
     page.getByRole('button', { name: 'Inspect Alireza Afshan' }),
-  ).toBeAttached();
-  await expect(
-    page.getByRole('link', { name: 'Contact me by email' }),
   ).toBeAttached();
 });
 
@@ -247,60 +253,69 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   const githubBox = await page
     .getByRole('link', { name: 'github' })
     .boundingBox();
-  const contactBox = await page
-    .getByRole('link', { name: 'Contact me by email' })
-    .boundingBox();
   const footerBox = await page.locator('.spore-dock').boundingBox();
 
   expect(randomBox).not.toBeNull();
   expect(aboutBox).not.toBeNull();
   expect(githubBox).not.toBeNull();
-  expect(contactBox).not.toBeNull();
   expect(footerBox).not.toBeNull();
   expect(randomBox!.height).toBeGreaterThanOrEqual(42);
   expect(aboutBox!.height).toBeGreaterThanOrEqual(42);
   expect(githubBox!.height).toBeGreaterThanOrEqual(42);
-  expect(contactBox!.height).toBeGreaterThanOrEqual(48);
+  expect(footerBox!.x + footerBox!.width).toBeGreaterThanOrEqual(384);
+  expect(footerBox!.x + footerBox!.width).toBeLessThanOrEqual(390);
+
+  const tuner = page.getByRole('button', {
+    name: 'Show next footer transmission',
+  });
+  await tuner.click();
+  await tuner.click();
+  await tuner.click();
+  const contactBox = await page
+    .getByRole('link', { name: 'Contact me by email' })
+    .boundingBox();
+  expect(contactBox).not.toBeNull();
+  expect(contactBox!.height).toBeGreaterThanOrEqual(42);
   expect(contactBox!.x + contactBox!.width).toBeLessThanOrEqual(390);
-  expect(contactBox!.y + contactBox!.height).toBeLessThanOrEqual(footerBox!.y);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
 });
 
-test('footer copy is centered inside both asymmetric consoles', async ({
+test('footer copy is centered and contact lives in its transmission sequence', async ({
   page,
 }) => {
   await openHydratedGalaxy(page);
 
   const centers = async (containerSelector: string, copySelector: string) => {
     const container = page.locator(containerSelector);
-    const copy = page.locator(copySelector);
-    const [containerBox, copyBox] = await Promise.all([
-      container.boundingBox(),
-      copy.boundingBox(),
-    ]);
-    expect(containerBox).not.toBeNull();
-    expect(copyBox).not.toBeNull();
-    return {
-      container: containerBox!.x + containerBox!.width / 2,
-      copy: copyBox!.x + copyBox!.width / 2,
-    };
+    return container.evaluate((element, selector) => {
+      const copy = element.querySelector(selector);
+      if (!(copy instanceof HTMLElement)) {
+        throw new Error(`Missing footer copy: ${selector}`);
+      }
+      const containerBox = element.getBoundingClientRect();
+      const copyBox = copy.getBoundingClientRect();
+      return {
+        container: containerBox.x + containerBox.width / 2,
+        copy: copyBox.x + copyBox.width / 2,
+      };
+    }, copySelector);
   };
 
   const footer = await centers('.dock-console', '.dock-message');
   expect(Math.abs(footer.copy - footer.container)).toBeLessThan(1);
 
-  const contactConsole = page.locator('.contact-console');
-  const contactCopy = contactConsole.getByText('contact me');
-  await expect(contactConsole.getByText('open a channel')).toHaveCount(0);
-  const [consoleBox, contactBox] = await Promise.all([
-    contactConsole.boundingBox(),
-    contactCopy.boundingBox(),
-  ]);
-  expect(consoleBox).not.toBeNull();
-  expect(contactBox).not.toBeNull();
-  const visibleConsoleCenter = consoleBox!.x + (consoleBox!.width - 9) / 2;
-  const contactCenter = contactBox!.x + contactBox!.width / 2;
-  expect(Math.abs(contactCenter - visibleConsoleCenter)).toBeLessThan(1);
+  const tuner = page.getByRole('button', {
+    name: 'Show next footer transmission',
+  });
+  await tuner.click();
+  await tuner.click();
+  await tuner.click();
+  const contact = page.getByRole('link', { name: 'Contact me by email' });
+  await expect(contact).toBeVisible();
+  const contactCenters = await centers('.dock-console', '.dock-message');
+  expect(Math.abs(contactCenters.copy - contactCenters.container)).toBeLessThan(
+    1,
+  );
 });
