@@ -395,6 +395,7 @@ export function GalaxyIndex() {
   const previewRef = useRef<HTMLButtonElement>(null);
   const activeIndexRef = useRef(0);
   const previewIndexRef = useRef(0);
+  const expandedPreviewIndexRef = useRef<number | null>(null);
   const expandedRef = useRef(false);
   const cameraModeRef = useRef<'default' | 'expanded' | 'manual'>('default');
   const ambientMotionRef = useRef(true);
@@ -407,11 +408,21 @@ export function GalaxyIndex() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [expandedPreviewIndex, setExpandedPreviewIndex] = useState<
+    number | null
+  >(null);
   const [expanded, setExpanded] = useState(false);
   const [dockTransmission, setDockTransmission] = useState(0);
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
   const preview = destinations[previewIndex];
+  const floatingPreviewIndex = expanded
+    ? expandedPreviewIndex
+    : previewIndex;
+  const floatingPreview =
+    floatingPreviewIndex === null
+      ? null
+      : destinations[floatingPreviewIndex];
   const dailyQuote = getQuoteOfTheDay();
 
   const previewDestination = (index: number) => {
@@ -423,11 +434,13 @@ export function GalaxyIndex() {
   const expandDestination = (index: number) => {
     activeIndexRef.current = index;
     previewIndexRef.current = index;
+    expandedPreviewIndexRef.current = null;
     expandedRef.current = true;
     cameraModeRef.current = 'expanded';
     focusRotationRef.current = destinations[index].angle - Math.PI / 2;
     setActiveIndex(index);
     setPreviewIndex(index);
+    setExpandedPreviewIndex(null);
     setExpanded(true);
   };
 
@@ -440,8 +453,10 @@ export function GalaxyIndex() {
   };
 
   const collapseDestination = () => {
+    expandedPreviewIndexRef.current = null;
     expandedRef.current = false;
     cameraModeRef.current = 'default';
+    setExpandedPreviewIndex(null);
     setExpanded(false);
   };
 
@@ -870,6 +885,10 @@ export function GalaxyIndex() {
 
     const onPointerDown = (event: PointerEvent) => {
       isDragging = true;
+      if (expandedPreviewIndexRef.current !== null) {
+        expandedPreviewIndexRef.current = null;
+        setExpandedPreviewIndex(null);
+      }
       focusRotationRef.current = null;
       pointerId = event.pointerId;
       lastX = event.clientX;
@@ -928,6 +947,10 @@ export function GalaxyIndex() {
       if (!isDragging) {
         pointer.set(4, 4);
         renderer.domElement.style.cursor = 'grab';
+        if (expandedPreviewIndexRef.current !== null) {
+          expandedPreviewIndexRef.current = null;
+          setExpandedPreviewIndex(null);
+        }
       }
     };
 
@@ -1088,9 +1111,17 @@ export function GalaxyIndex() {
         const hit = raycaster.intersectObjects(hitAreas, false)[0];
         if (hit) {
           const nextIndex = hit.object.userData.destinationIndex as number;
-          if (
+          if (expandedRef.current) {
+            const nextExpandedPreview =
+              nextIndex === activeIndexRef.current ? null : nextIndex;
+            if (
+              nextExpandedPreview !== expandedPreviewIndexRef.current
+            ) {
+              expandedPreviewIndexRef.current = nextExpandedPreview;
+              setExpandedPreviewIndex(nextExpandedPreview);
+            }
+          } else if (
             nextIndex !== hoveredIndex &&
-            !expandedRef.current &&
             nextIndex !== previewIndexRef.current
           ) {
             previewIndexRef.current = nextIndex;
@@ -1101,6 +1132,10 @@ export function GalaxyIndex() {
         } else {
           hoveredIndex = -1;
           renderer.domElement.style.cursor = 'grab';
+          if (expandedPreviewIndexRef.current !== null) {
+            expandedPreviewIndexRef.current = null;
+            setExpandedPreviewIndex(null);
+          }
         }
       } else if (isDragging) {
         renderer.domElement.style.cursor = 'grabbing';
@@ -1197,37 +1232,41 @@ export function GalaxyIndex() {
       }
 
       const previewElement = previewRef.current;
-      if (previewElement && !expandedRef.current) {
-        const previewedIndex = previewIndexRef.current;
-        previewPosition.copy(nodes[previewedIndex].position);
-        galaxy.localToWorld(previewPosition);
-        previewPosition.project(camera);
-        const bounds = renderer.domElement.getBoundingClientRect();
-        const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
-        const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-        const previewWidth = previewElement.offsetWidth || 166;
-        const previewHeight = previewElement.offsetHeight || 62;
-        const previewMargin = bounds.width <= 720 ? 8 : 14;
-        const opensLeft =
-          screenX + previewWidth - 31 > bounds.width - previewMargin;
-        const anchorOffset = opensLeft ? previewWidth - 31 : 31;
-        const maximumPreviewX = Math.max(
-          previewMargin,
-          bounds.width - previewWidth - previewMargin,
-        );
-        const previewX = THREE.MathUtils.clamp(
-          screenX - anchorOffset,
-          previewMargin,
-          maximumPreviewX,
-        );
-        const previewY = THREE.MathUtils.clamp(
-          screenY,
-          previewMargin + previewHeight / 2,
-          bounds.height - previewMargin - previewHeight / 2,
-        );
-        previewElement.dataset.edge = opensLeft ? 'right' : 'left';
-        previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
-        previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
+      if (previewElement) {
+        const previewedIndex = expandedRef.current
+          ? expandedPreviewIndexRef.current
+          : previewIndexRef.current;
+        if (previewedIndex !== null) {
+          previewPosition.copy(nodes[previewedIndex].position);
+          galaxy.localToWorld(previewPosition);
+          previewPosition.project(camera);
+          const bounds = renderer.domElement.getBoundingClientRect();
+          const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
+          const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
+          const previewWidth = previewElement.offsetWidth || 166;
+          const previewHeight = previewElement.offsetHeight || 62;
+          const previewMargin = bounds.width <= 720 ? 8 : 14;
+          const opensLeft =
+            screenX + previewWidth - 31 > bounds.width - previewMargin;
+          const anchorOffset = opensLeft ? previewWidth - 31 : 31;
+          const maximumPreviewX = Math.max(
+            previewMargin,
+            bounds.width - previewWidth - previewMargin,
+          );
+          const previewX = THREE.MathUtils.clamp(
+            screenX - anchorOffset,
+            previewMargin,
+            maximumPreviewX,
+          );
+          const previewY = THREE.MathUtils.clamp(
+            screenY,
+            previewMargin + previewHeight / 2,
+            bounds.height - previewMargin - previewHeight / 2,
+          );
+          previewElement.dataset.edge = opensLeft ? 'right' : 'left';
+          previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
+          previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
+        }
       }
 
       for (let index = portraitSprites.length - 1; index >= 0; index -= 1) {
@@ -1356,28 +1395,30 @@ export function GalaxyIndex() {
         </nav>
       </header>
 
-      {!expanded ? (
+      {floatingPreview ? (
         <button
           type="button"
           ref={previewRef}
-          className="world-preview"
-          aria-label={`Inspect ${preview.name}`}
-          onClick={() => expandDestination(previewIndex)}
+          className={`world-preview ${expanded ? 'is-hover-hint' : ''}`}
+          aria-label={`Inspect ${floatingPreview.name}`}
+          aria-hidden={expanded || undefined}
+          tabIndex={expanded ? -1 : undefined}
+          onClick={() => expandDestination(floatingPreviewIndex!)}
           style={
             {
-              '--world-color': `#${preview.color.toString(16).padStart(6, '0')}`,
+              '--world-color': `#${floatingPreview.color.toString(16).padStart(6, '0')}`,
             } as CSSProperties
           }
         >
           <div className="world-preview-orbit">
             <div className="world-preview-face">
-              <span>{preview.glyph}</span>
-              {preview.iconSrc ? (
+              <span>{floatingPreview.glyph}</span>
+              {floatingPreview.iconSrc ? (
                 // Remote favicons are optional interface texture.
                 // oxlint-disable-next-line next/no-img-element
                 <img
-                  key={preview.iconSrc}
-                  src={preview.iconSrc}
+                  key={floatingPreview.iconSrc}
+                  src={floatingPreview.iconSrc}
                   alt=""
                   referrerPolicy="no-referrer"
                   onError={(event) => {
@@ -1387,7 +1428,7 @@ export function GalaxyIndex() {
               ) : null}
             </div>
           </div>
-          <span className="world-preview-label">{preview.name}</span>
+          <span className="world-preview-label">{floatingPreview.name}</span>
         </button>
       ) : null}
 

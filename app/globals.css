@@ -360,6 +360,10 @@ button {
   filter: brightness(1.16);
 }
 
+.world-preview.is-hover-hint {
+  pointer-events: none;
+}
+
 .world-preview:focus-visible .world-preview-orbit {
   outline: 2px solid white;
   outline-offset: 4px;

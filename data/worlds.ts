@@ -292,6 +292,21 @@ export const worldCatalog: WorldSeed[] = [
       'https://raw.githubusercontent.com/YesterdaysLemon/codex-continuity/main/site/public/icon.svg',
     glyph: '↻',
   },
+  {
+    id: 'sponsor-my-microduck',
+    name: 'Sponsor My Microduck',
+    kind: 'Tiny robot backyard',
+    url: 'https://sponsormymicroduck.alirezaafshan.com',
+    description:
+      'Four tiny robot ducks, one little backyard, and a playful sticker lab.',
+    relationship: 'owned',
+    hosting: 'first-party',
+    status: 'live',
+    iconSrc:
+      'https://sponsormymicroduck.alirezaafshan.com/favicon.svg',
+    glyph: '🦆',
+    color: 0xffd84b,
+  },
 ];
 
 export const destinations = worldCatalog.reduce<Destination[]>(

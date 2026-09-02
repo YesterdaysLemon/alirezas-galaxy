@@ -12,7 +12,7 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
     name: 'Website worlds',
   });
   const worlds = worldNavigation.getByRole('button');
-  await expect(worlds).toHaveCount(10);
+  await expect(worlds).toHaveCount(11);
 
   const androidHell = worlds.filter({ hasText: 'Android Hell:' });
   await androidHell.focus();

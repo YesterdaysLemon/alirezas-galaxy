@@ -17,6 +17,7 @@ const requiredWorlds = [
   'android-hell',
   'conspiracy',
   'codex-continuity',
+  'sponsor-my-microduck',
 ];
 
 describe('world catalog', () => {
