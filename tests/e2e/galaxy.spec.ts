@@ -328,6 +328,66 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   ).toBeLessThanOrEqual(390);
 });
 
+test('world overlays stay inside the viewport after a live resize', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await openHydratedGalaxy(page);
+
+  const preview = page.getByRole('button', {
+    name: 'Inspect Alireza Afshan',
+  });
+  await expect(preview).toBeVisible();
+  await preview.click({ force: true });
+
+  const detail = page.getByRole('region', {
+    name: 'Selected world: Alireza Afshan',
+  });
+  await expect(detail).toBeVisible();
+
+  const expectInsideViewport = async (
+    locator: import('@playwright/test').Locator,
+  ) => {
+    await expect
+      .poll(async () => {
+        const box = await locator.boundingBox();
+        const viewport = page.viewportSize();
+        return Boolean(
+          box &&
+          viewport &&
+          box.x >= 0 &&
+          box.y >= 0 &&
+          box.x + box.width <= viewport.width &&
+          box.y + box.height <= viewport.height,
+        );
+      })
+      .toBe(true);
+  };
+
+  await expectInsideViewport(detail);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectInsideViewport(detail);
+
+  const favicon = detail.locator('.world-face img');
+  await expect(favicon).toHaveAttribute(
+    'src',
+    'https://portfolio.alirezaafshan.com/apple-touch-icon.png',
+  );
+  await expect
+    .poll(() =>
+      favicon.evaluate((image) =>
+        image instanceof HTMLImageElement ? image.naturalWidth : 0,
+      ),
+    )
+    .toBeGreaterThan(0);
+
+  await page
+    .getByRole('button', { name: 'Close world details' })
+    .click({ force: true });
+  await expect(preview).toBeVisible();
+  await expectInsideViewport(preview);
+});
+
 test('footer copy is centered and contact lives in its transmission sequence', async ({
   page,
 }) => {

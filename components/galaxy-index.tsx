@@ -1158,12 +1158,33 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
-        const panelX = isCompact
-          ? 10
-          : THREE.MathUtils.clamp(screenX - 90, 220, bounds.width - 650);
-        const panelY = isCompact
-          ? bounds.height - 238
-          : THREE.MathUtils.clamp(screenY - 94, 240, bounds.height - 205);
+        const usesCompactPanel = bounds.width <= 720;
+        const panelWidth =
+          detail.offsetWidth || Math.min(640, bounds.width - 24);
+        const panelHeight =
+          detail.offsetHeight || (usesCompactPanel ? 178 : 188);
+        const horizontalMargin = usesCompactPanel ? 10 : 14;
+        const bottomClearance = usesCompactPanel ? 60 : 16;
+        const maximumPanelX = Math.max(
+          horizontalMargin,
+          bounds.width - panelWidth - horizontalMargin,
+        );
+        const minimumPanelX = usesCompactPanel
+          ? horizontalMargin
+          : Math.min(220, maximumPanelX);
+        const maximumPanelY = Math.max(
+          10,
+          bounds.height - panelHeight - bottomClearance,
+        );
+        const minimumPanelY = usesCompactPanel
+          ? maximumPanelY
+          : Math.min(240, maximumPanelY);
+        const panelX = usesCompactPanel
+          ? horizontalMargin
+          : THREE.MathUtils.clamp(screenX - 90, minimumPanelX, maximumPanelX);
+        const panelY = usesCompactPanel
+          ? maximumPanelY
+          : THREE.MathUtils.clamp(screenY - 94, minimumPanelY, maximumPanelY);
         detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0)`;
         detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
       }
@@ -1178,11 +1199,27 @@ export function GalaxyIndex() {
         const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
         const previewWidth = previewElement.offsetWidth || 166;
+        const previewHeight = previewElement.offsetHeight || 62;
+        const previewMargin = bounds.width <= 720 ? 8 : 14;
         const opensLeft =
-          screenX + previewWidth - 31 > bounds.width - (isCompact ? 8 : 14);
+          screenX + previewWidth - 31 > bounds.width - previewMargin;
         const anchorOffset = opensLeft ? previewWidth - 31 : 31;
+        const maximumPreviewX = Math.max(
+          previewMargin,
+          bounds.width - previewWidth - previewMargin,
+        );
+        const previewX = THREE.MathUtils.clamp(
+          screenX - anchorOffset,
+          previewMargin,
+          maximumPreviewX,
+        );
+        const previewY = THREE.MathUtils.clamp(
+          screenY,
+          previewMargin + previewHeight / 2,
+          bounds.height - previewMargin - previewHeight / 2,
+        );
         previewElement.dataset.edge = opensLeft ? 'right' : 'left';
-        previewElement.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-${anchorOffset}px, -50%)`;
+        previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
         previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
       }
 
@@ -1335,6 +1372,7 @@ export function GalaxyIndex() {
                   key={preview.iconSrc}
                   src={preview.iconSrc}
                   alt=""
+                  referrerPolicy="no-referrer"
                   onError={(event) => {
                     event.currentTarget.style.display = 'none';
                   }}
@@ -1391,6 +1429,7 @@ export function GalaxyIndex() {
                   key={active.iconSrc}
                   src={active.iconSrc}
                   alt=""
+                  referrerPolicy="no-referrer"
                   onError={(event) => {
                     event.currentTarget.style.display = 'none';
                   }}

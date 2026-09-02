@@ -151,7 +151,7 @@ export const worldCatalog: WorldSeed[] = [
     relationship: 'owned',
     hosting: 'first-party',
     status: 'live',
-    iconSrc: 'https://alirezaafshan.com/apple-touch-icon.png',
+    iconSrc: 'https://portfolio.alirezaafshan.com/apple-touch-icon.png',
     glyph: 'A♦',
     color: 0x70dfff,
     radius: 8.6,

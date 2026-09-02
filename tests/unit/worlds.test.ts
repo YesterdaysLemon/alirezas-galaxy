@@ -32,6 +32,7 @@ describe('world catalog', () => {
       id: 'portfolio',
       relationship: 'owned',
       hosting: 'first-party',
+      iconSrc: 'https://portfolio.alirezaafshan.com/apple-touch-icon.png',
     });
   });
 
