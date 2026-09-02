@@ -327,12 +327,13 @@ button {
 }
 
 .spore-menu-item.is-active > .menu-icon {
+  color: #122034;
   stroke: #122034;
   filter: none;
 }
 
 .spore-menu-item.is-active > .menu-icon-github {
-  fill: #122034;
+  fill: currentColor;
   stroke: none;
 }
 

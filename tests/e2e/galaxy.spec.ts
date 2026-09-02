@@ -179,6 +179,27 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   await expect(randomIcon.locator('path')).toHaveCount(1);
   await expect(randomIcon.locator('circle')).toHaveCount(0);
 
+  const activeInk = 'rgb(18, 32, 52)';
+  await page.getByRole('button', { name: 'random world' }).hover();
+  await expect(randomIcon.locator('path')).toHaveCSS('fill', activeInk);
+
+  const about = page.getByRole('button', { name: 'about' });
+  await about.hover();
+  await expect(about.locator('.menu-icon-about > path').first()).toHaveCSS(
+    'stroke',
+    activeInk,
+  );
+  await expect(about.locator('.menu-icon-about circle').first()).toHaveCSS(
+    'fill',
+    activeInk,
+  );
+
+  await github.hover();
+  await expect(github.locator('.menu-icon-github path')).toHaveCSS(
+    'fill',
+    activeInk,
+  );
+
   const activeDecoration = await github.evaluate((element) => {
     const rail = getComputedStyle(element, '::before');
     const gloss = getComputedStyle(element, '::after');
