@@ -214,7 +214,7 @@ PY
 deploy_app() {
   say "manual candidate rollout"
   [ -f "$DEPLOY_ENV" ] || die "run the install stage first"
-  /opt/deploy-manager-current/scripts/deploy-app-now.sh "$APP_ID"
+  /bin/sh /opt/deploy-manager-current/scripts/deploy-app-now.sh "$APP_ID"
   http_contains "http://127.0.0.1:${APP_PORT}/" "Alireza&#x27;s Galaxy" \
     || die "galaxy did not become healthy on port ${APP_PORT}"
   health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$APP_ID")"
