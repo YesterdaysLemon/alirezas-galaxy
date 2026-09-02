@@ -1022,7 +1022,7 @@ export function GalaxyIndex() {
       }
 
       if (dockGalaxyIconRef.current) {
-        dockGalaxyIconRef.current.style.transform = `rotate(${galaxy.rotation.y}rad)`;
+        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y}rad)`;
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
