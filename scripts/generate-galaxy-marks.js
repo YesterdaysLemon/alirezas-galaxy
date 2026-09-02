@@ -34,6 +34,8 @@ const CORE_BASE = 22;
 const CORE_SPAN = 8;
 const SAMPLES = 34; // points along the centreline
 const CAP_SAMPLES = 9; // points around each rounded end
+const FAVICON_SQUIRCLE =
+  'M128 4C67 4 43 4 24 17C11 27 4 48 4 76V180C4 208 11 229 24 239C43 252 67 252 128 252C189 252 213 252 232 239C245 229 252 208 252 180V76C252 48 245 27 232 17C213 4 189 4 128 4Z';
 
 // A logarithmic spiral, r = R_INNER * e^(GROWTH * theta), tuned so theta runs
 // from 0 at the core to WIND at R_OUTER.
@@ -197,7 +199,7 @@ function faviconSvg(g) {
       <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
     </filter>
   </defs>
-  <circle cx="128" cy="128" r="120" fill="url(#space)" stroke="#8cecff" stroke-width="8" />
+  <path id="favicon-squircle" d="${FAVICON_SQUIRCLE}" fill="url(#space)" stroke="#8cecff" stroke-width="8" />
   <g filter="url(#glow)">
     <circle cx="128" cy="128" r="${g.core}" fill="url(#arms)" />
     <g fill="url(#arms)" stroke="#dffaff" stroke-width="4" stroke-linejoin="round">

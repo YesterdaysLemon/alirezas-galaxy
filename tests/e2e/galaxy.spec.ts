@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { destinations } from '../../data/worlds';
 
 async function openHydratedGalaxy(page: import('@playwright/test').Page) {
   await page.goto('/#galaxy');
@@ -12,7 +13,7 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
     name: 'Website worlds',
   });
   const worlds = worldNavigation.getByRole('button');
-  await expect(worlds).toHaveCount(11);
+  await expect(worlds).toHaveCount(destinations.length);
 
   const androidHell = worlds.filter({ hasText: 'Android Hell:' });
   await androidHell.focus();
@@ -44,6 +45,15 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
   await expect(
     page.getByRole('region', { name: 'Selected world: Conspiracy' }),
   ).toBeAttached();
+
+  for (const name of ['Agar Protocol', 'Deploy Manager']) {
+    const newWorld = worlds.filter({ hasText: `${name}:` });
+    await newWorld.focus();
+    await newWorld.press('Enter');
+    await expect(
+      page.getByRole('region', { name: `Selected world: ${name}` }),
+    ).toBeAttached();
+  }
 });
 
 test('the close control does not jump on hover', async ({ page }) => {

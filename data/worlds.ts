@@ -21,10 +21,10 @@ type WorldSeed = Omit<Destination, 'color' | 'radius' | 'angle' | 'size'> &
 const TAU = Math.PI * 2;
 const GALAXY_ARMS = 5;
 export const MIN_WORLD_SPACING = 4.8;
-const PLACEMENT_ANGLES_PER_BAND = 21;
-const PLACEMENT_RADIAL_BANDS = 9;
-const PLACEMENT_ANGLE_STEP = 0.18;
-const PLACEMENT_RADIUS_STEP = 0.58;
+const PLACEMENT_ANGLES_PER_BAND = 41;
+const PLACEMENT_RADIAL_BANDS = 29;
+const PLACEMENT_ANGLE_STEP = 0.15;
+const PLACEMENT_RADIUS_STEP = 0.4;
 const generatedColors = [
   0x70dfff, 0x9affeb, 0xffe67d, 0x72a8ff, 0xffa6e4, 0xbda2ff, 0xffba6b,
 ];
@@ -302,10 +302,36 @@ export const worldCatalog: WorldSeed[] = [
     relationship: 'owned',
     hosting: 'first-party',
     status: 'live',
-    iconSrc:
-      'https://sponsormymicroduck.alirezaafshan.com/favicon.svg',
+    iconSrc: 'https://sponsormymicroduck.alirezaafshan.com/favicon.svg',
     glyph: '🦆',
     color: 0xffd84b,
+  },
+  {
+    id: 'agar-protocol',
+    name: 'Agar Protocol',
+    kind: 'WebGPU digital culture',
+    url: 'https://agar.alirezaafshan.com',
+    description:
+      'Cultivate, isolate, and archive evolving digital lineages in a WebGPU petri dish.',
+    relationship: 'owned',
+    hosting: 'first-party',
+    status: 'live',
+    iconSrc: 'https://agar.alirezaafshan.com/agar-mark-01.svg',
+    glyph: '◉',
+  },
+  {
+    id: 'deploy-manager',
+    name: 'Deploy Manager',
+    kind: 'Deployment control plane',
+    url: 'https://deploy.alirezaafshan.com',
+    description:
+      'A tiny release city showing live topology and safe deployments on the VPS.',
+    relationship: 'owned',
+    hosting: 'first-party',
+    status: 'live',
+    iconSrc:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 25 14h-5v11h-8V14H7L16 3Z' fill='%238edfff' stroke='%23eaffff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E",
+    glyph: '↟',
   },
 ];
 

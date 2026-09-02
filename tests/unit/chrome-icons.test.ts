@@ -11,7 +11,12 @@ describe('galaxy chrome icons', () => {
 
     expect(favicon.match(/<use\b/g)).toHaveLength(5);
     expect(favicon).toContain('id="spiral-arm"');
+    expect(favicon).toContain('id="favicon-squircle"');
+    expect(favicon).toContain('fill="url(#space)"');
     expect(favicon).toContain('fill="url(#arms)"');
+    expect(favicon).not.toContain(
+      '<circle cx="128" cy="128" r="120" fill="url(#space)"',
+    );
     expect(favicon).not.toContain('id="star"');
   });
 });

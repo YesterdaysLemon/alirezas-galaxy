@@ -18,6 +18,8 @@ const requiredWorlds = [
   'conspiracy',
   'codex-continuity',
   'sponsor-my-microduck',
+  'agar-protocol',
+  'deploy-manager',
 ];
 
 describe('world catalog', () => {
