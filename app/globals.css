@@ -82,7 +82,7 @@ button {
   left: 0;
   isolation: isolate;
   width: clamp(190px, 14.5vw, 235px);
-  height: clamp(440px, 56vh, 560px);
+  height: 100%;
   padding: max(14px, env(safe-area-inset-top)) 0 0
     max(9px, env(safe-area-inset-left));
   pointer-events: none;
@@ -97,6 +97,8 @@ button {
   position: absolute;
   z-index: -2;
   inset: 0;
+  bottom: auto;
+  height: min(440px, 100%);
   content: '';
   background:
     repeating-radial-gradient(
@@ -131,7 +133,7 @@ button {
   z-index: -1;
   top: 92px;
   left: 0;
-  width: 100%;
+  width: 52px;
   height: calc(100% - 92px);
   content: '';
   opacity: 0.32;
@@ -147,18 +149,7 @@ button {
       rgba(17, 35, 82, 0.25) 72%,
       transparent
     );
-  -webkit-mask-image: radial-gradient(
-    circle 400px at 470px 248px,
-    transparent 0 97.5%,
-    rgba(0, 0, 0, 0.8) 99%,
-    black 100%
-  );
-  mask-image: radial-gradient(
-    circle 400px at 470px 248px,
-    transparent 0 97.5%,
-    rgba(0, 0, 0, 0.8) 99%,
-    black 100%
-  );
+  border-left: 1px solid #aacaff33;
 }
 
 .sprawl-mark {
@@ -1300,10 +1291,6 @@ button {
 
   .spore-menu-item {
     height: 44px;
-  }
-
-  .spore-corner {
-    height: 280px;
   }
 }
 

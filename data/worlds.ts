@@ -55,11 +55,12 @@ function materializeWorld(
   world: WorldSeed,
   index: number,
   placedWorlds: Destination[],
+  arms = GALAXY_ARMS,
 ): Destination {
   const identity = `${world.name}:${world.url}`;
   const seedRadius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
-  const arm = index % GALAXY_ARMS;
-  const armAngle = (arm / GALAXY_ARMS) * TAU;
+  const arm = index % arms;
+  const armAngle = (arm / arms) * TAU;
   const armJitter = (hashUnit(identity, 29) - 0.5) * 0.34;
   const seedAngle = world.angle ?? armAngle + seedRadius * 0.49 + armJitter;
   const preferredAngularDirection = hashUnit(identity, 97) < 0.5 ? -1 : 1;
@@ -323,10 +324,11 @@ export const worldCatalog: WorldSeed[] = [
   },
 ];
 
-export const destinations = worldCatalog.reduce<Destination[]>(
-  (placedWorlds, world, index) => {
-    placedWorlds.push(materializeWorld(world, index, placedWorlds));
+export function generateWorlds(catalog: WorldSeed[], arms = GALAXY_ARMS) {
+  return catalog.reduce<Destination[]>((placedWorlds, world, index) => {
+    placedWorlds.push(materializeWorld(world, index, placedWorlds, arms));
     return placedWorlds;
-  },
-  [],
-);
+  }, []);
+}
+
+export const destinations = generateWorlds(worldCatalog);

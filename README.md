@@ -80,8 +80,13 @@ is the root site at `alirezaafshan.com`.
 
 Neighboring websites live in `data/webring.ts`. Add a name, URL, description,
 and kind (`friend`, `collaboration`, or `inspiration`), plus an optional icon.
-They appear in the distant galaxy's web ring, `sites.json`, and `llms.txt`,
-separately from the owned projects. Web ring links open a new tab.
+`data/galaxies.ts` gives owned projects five arms and neighbors three, using
+the same deterministic world placement and interaction code for both scenes.
+Tap the signal in the distant galaxy to fly there; the current galaxy recedes
+and becomes the return destination. Drag rotates the foreground galaxy,
+wheel/pinch zooms, and browser Back retraces the trip. Each neighbor is a star
+with the same preview/inspect/launch flow, opening its website in a new tab.
+Both catalogs are also available separately in `sites.json` and `llms.txt`.
 
 To run the browser checks against an already-running local preview, set
 `PLAYWRIGHT_BASE_URL=http://localhost:3000` and run
