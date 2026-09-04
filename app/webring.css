@@ -1,63 +1,23 @@
-/* A beacon on the other galaxy: the scene projects the actual remote star
-   into this small, keyboard-accessible portal. */
+/* A quiet star is the only visible portal; its hit target stays thumb-sized. */
 .webring-portal {
   position: absolute;
   z-index: 8;
   top: 0;
   left: 0;
-  width: 174px;
-  height: 112px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
-  color: #bbedff;
   background: transparent;
   cursor: pointer;
   pointer-events: none;
   transform: translate3d(calc(100vw - 132px), 105px, 0) translate(-50%, -50%);
 }
-.webring-portal-orbit {
-  position: absolute;
-  inset: 0 8px 20px;
-  border: 1px solid #b4e0ff16;
-  border-radius: 50%;
-  pointer-events: auto;
-  transition: border-color 160ms;
-}
-.webring-portal-label {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  min-height: 34px;
-  min-width: 104px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  transform: translateX(-50%);
-  border: 1px solid #769cc088;
-  border-radius: 18px;
-  background: linear-gradient(#365279eb, #10243dee);
-  box-shadow:
-    inset 0 1px #e0f8ff44,
-    0 0 16px #8c80f126;
-  color: #a8f890;
-  font: 900 12px var(--font-interface);
-  text-shadow: 0 1px 2px #020914;
-  white-space: nowrap;
-  pointer-events: auto;
-}
-.webring-portal:hover .webring-portal-orbit,
-.webring-portal:focus-visible .webring-portal-orbit {
-  border-color: #d7b8ff;
-  box-shadow:
-    0 0 20px #b090ff55,
-    inset 0 0 18px #98b9ff22;
-}
 .webring-portal:focus-visible {
   outline: none;
 }
-.webring-portal:focus-visible .webring-portal-label {
-  outline: 2px solid white;
+.webring-portal:focus-visible .galaxy-signal {
+  outline: 1px solid #c4def5;
   outline-offset: 3px;
 }
 .webring-portal:disabled {
@@ -67,39 +27,42 @@
   position: absolute;
   left: calc(50% + var(--signal-x, 0px));
   top: calc(50% + var(--signal-y, -14px));
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   pointer-events: auto;
 }
 .galaxy-signal i {
   position: absolute;
-  inset: 0;
-  border: 1.5px solid #fff5b2;
+  inset: 7px;
+  border: 1px solid #d9d9bd;
   border-radius: 50%;
-  box-shadow: 0 0 5px #d2c3ff99;
-  animation: neighbor-signal 2.6s ease-out infinite;
+  box-shadow: 0 0 3px #c5beec44;
+  animation: neighbor-signal 3.2s ease-out infinite;
 }
 .galaxy-signal i:nth-child(2) {
-  animation-delay: -1.3s;
+  animation-delay: -1.6s;
 }
 .galaxy-signal b {
   position: absolute;
-  inset: 16px;
+  inset: 19px;
   border-radius: 50%;
-  background: #fffbed;
+  background: #c4cad4;
   box-shadow:
-    0 0 8px 3px #fff0b2aa,
-    0 0 18px #cda2ff99;
+    0 0 4px 1px #d0d7ec66,
+    0 0 10px #b6a6dd44;
+}
+.webring-portal:hover .galaxy-signal b {
+  background: #e0e4eb;
 }
 @keyframes neighbor-signal {
   from {
     transform: scale(0.25);
-    opacity: 0.95;
+    opacity: 0.55;
   }
   to {
-    transform: scale(1.25);
+    transform: scale(1.15);
     opacity: 0;
   }
 }
@@ -117,20 +80,11 @@
   text-shadow: 0 1px 3px #000;
   pointer-events: none;
 }
+
 .spore-menu-item:disabled {
   cursor: progress;
 }
 @media (max-width: 720px), (max-height: 500px) {
-  .webring-portal {
-    width: 142px;
-    height: 104px;
-  }
-  .webring-portal-label {
-    min-height: 44px;
-  }
-  .webring-portal-orbit {
-    bottom: 25px;
-  }
   .galaxy-location {
     top: auto;
     bottom: calc(76px + env(safe-area-inset-bottom));
@@ -144,7 +98,7 @@
 @media (prefers-reduced-motion: reduce) {
   .galaxy-signal i {
     animation: none;
-    opacity: 0.55;
+    opacity: 0.3;
   }
   .galaxy-signal i:nth-child(2) {
     transform: scale(0.65);

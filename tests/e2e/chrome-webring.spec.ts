@@ -147,7 +147,7 @@ for (const viewport of [
     // Return works even with a neighbor's details open.
     await page
       .getByRole('button', { name: 'Return to my galaxy' })
-      .locator('.webring-portal-label')
+      .locator('.galaxy-signal')
       .click();
     await expect(shell).toHaveAttribute('data-galaxy', 'home');
     await expect(shell).toHaveAttribute('data-travelling', 'false');
@@ -174,7 +174,7 @@ test('browser Back and direct links navigate the galaxies', async ({
   await expect(shell).toHaveAttribute('data-travelling', 'false');
   await page
     .getByRole('button', { name: 'Return to my galaxy' })
-    .locator('.webring-portal-label')
+    .locator('.galaxy-signal')
     .click();
   await expect(shell).toHaveAttribute('data-travelling', 'false');
   await expect(shell).toHaveAttribute('data-galaxy', 'home');

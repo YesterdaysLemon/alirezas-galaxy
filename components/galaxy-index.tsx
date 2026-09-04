@@ -278,21 +278,15 @@ function createMarkerTexture() {
   });
 
   context.globalAlpha = 1;
-  context.strokeStyle = 'rgba(255,255,241,.96)';
-  context.shadowColor = 'rgba(255,246,182,1)';
-  context.shadowBlur = 10;
-  context.lineWidth = 2.2;
-  context.beginPath();
-  context.moveTo(-31, 0);
-  context.lineTo(31, 0);
-  context.moveTo(0, -31);
-  context.lineTo(0, 31);
-  context.moveTo(-15, -15);
-  context.lineTo(15, 15);
-  context.moveTo(15, -15);
-  context.lineTo(-15, 15);
-  context.stroke();
-  context.shadowBlur = 0;
+  // A luminous point with soft falloff, rather than hard asterisk spokes.
+  const starlight = context.createRadialGradient(0, 0, 0, 0, 0, 35);
+  starlight.addColorStop(0, 'rgba(255,255,250,1)');
+  starlight.addColorStop(0.12, 'rgba(255,252,222,.98)');
+  starlight.addColorStop(0.3, 'rgba(255,234,188,.55)');
+  starlight.addColorStop(0.65, 'rgba(218,224,255,.13)');
+  starlight.addColorStop(1, 'rgba(218,224,255,0)');
+  context.fillStyle = starlight;
+  context.fillRect(-35, -35, 70, 70);
   context.fillStyle = 'white';
   context.beginPath();
   context.arc(0, 0, 3.4, 0, Math.PI * 2);
@@ -697,6 +691,22 @@ export function GalaxyIndex() {
         marker.renderOrder = 8;
         galaxy.add(marker);
 
+        // Shared glow texture; only the little light breathes, not the lens.
+        const sparkle = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: glowTexture,
+            color: 0xfff2d4,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: false,
+          }),
+        );
+        sparkle.position.copy(position);
+        sparkle.scale.setScalar(destination.size * 0.22);
+        sparkle.renderOrder = 9;
+        galaxy.add(sparkle);
+
         const signalWaves = Array.from({ length: 3 }, (_, waveIndex) => {
           const material = new THREE.SpriteMaterial({
             map: signalWaveTexture,
@@ -719,7 +729,7 @@ export function GalaxyIndex() {
           return wave;
         });
 
-        return { marker, signalWaves, position, occluded: false };
+        return { marker, sparkle, signalWaves, position, occluded: false };
       });
 
       return {
@@ -1386,8 +1396,9 @@ export function GalaxyIndex() {
           coreExposureRef.current * 0.3 * foreground;
         if (id !== galaxyIdRef.current && ambientMotionRef.current)
           layer.galaxy.rotation.y += 0.0003 * delta;
-        layer.nodes.forEach(({ marker, signalWaves }) => {
+        layer.nodes.forEach(({ marker, sparkle, signalWaves }) => {
           marker.visible = id === galaxyIdRef.current && !travellingRef.current;
+          sparkle.visible = marker.visible;
           signalWaves.forEach((wave) => {
             wave.visible = marker.visible;
           });
@@ -1420,7 +1431,7 @@ export function GalaxyIndex() {
         );
         chromeRects = Array.from(
           sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .webring-portal-label, .world-close, .world-play',
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-close, .world-play',
           ),
           (element) => element.getBoundingClientRect(),
         );
@@ -1471,13 +1482,20 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      nodes.forEach(({ marker, signalWaves, occluded }, index) => {
+      nodes.forEach(({ marker, sparkle, signalWaves, occluded }, index) => {
         const destination = sceneWorlds[index];
         const isSelected = expandedRef.current && index === selectedIndex;
         const isPreviewed =
           !expandedRef.current && index === previewIndexRef.current;
         const isHovered = index === hoveredIndex;
         const motionTime = time * (reduceMotion ? 0.72 : 1);
+        const twinkle = reduceMotion
+          ? 0.75
+          : 0.75 +
+            Math.sin(time * 0.0021 + index * 1.71) * 0.17 +
+            Math.sin(time * 0.0049 + index * 2.3) * 0.08;
+        sparkle.material.opacity = occluded ? 0 : twinkle;
+        sparkle.scale.setScalar(destination.size * (0.2 + twinkle * 0.04));
         const shimmerAmplitude = reduceMotion ? 0.025 : 0.04;
         const shimmer =
           0.96 +
@@ -1666,8 +1684,9 @@ export function GalaxyIndex() {
         layer.galaxyMistMaterial.dispose();
         layer.glowMaterial.dispose();
         layer.softGlow.material.dispose();
-        layer.nodes.forEach(({ marker, signalWaves }) => {
+        layer.nodes.forEach(({ marker, sparkle, signalWaves }) => {
           marker.material.dispose();
+          sparkle.material.dispose();
           signalWaves.forEach(({ material }) => material.dispose());
         });
       });
@@ -1721,15 +1740,10 @@ export function GalaxyIndex() {
           );
         }}
       >
-        <span className="webring-portal-orbit" aria-hidden="true" />
         <span className="galaxy-signal" aria-hidden="true">
           <i />
           <i />
           <b />
-        </span>
-        <span className="webring-portal-label">
-          {galaxyId === 'home' ? 'web ring' : 'my galaxy'}{' '}
-          <span aria-hidden="true">↗</span>
         </span>
       </button>
 
