@@ -495,6 +495,16 @@ export function GalaxyIndex() {
     expandDestination((currentIndex + offset) % count);
   };
 
+  const advanceOrSpin = () => {
+    if (travellingRef.current) return;
+    if (expandedRef.current) {
+      const count = galaxies[galaxyIdRef.current].worlds.length;
+      if (count > 1) expandDestination((activeIndexRef.current + 1) % count);
+    } else {
+      spinGalaxyRef.current();
+    }
+  };
+
   const collapseDestination = () => {
     expandedPreviewIndexRef.current = null;
     expandedRef.current = false;
@@ -2002,19 +2012,41 @@ export function GalaxyIndex() {
       <div className="spore-dock" aria-label="Galaxy controls">
         <button
           type="button"
-          aria-label="Spin the galaxy faster"
+          aria-label={
+            expanded
+              ? currentWorlds.length > 1
+                ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
+                : 'Only world in this galaxy'
+              : 'Spin the galaxy faster'
+          }
+          title={
+            expanded
+              ? currentWorlds.length > 1
+                ? 'Go to the next world'
+                : 'Only world in this galaxy'
+              : 'Spin the galaxy faster'
+          }
+          data-action={expanded ? 'next' : 'spin'}
+          disabled={travelling || (expanded && currentWorlds.length < 2)}
           className="dock-orb"
-          onClick={() => spinGalaxyRef.current()}
+          onClick={advanceOrSpin}
         >
-          <img
-            ref={dockGalaxyIconRef}
-            aria-hidden="true"
-            data-icon="spore-main-menu-spiral"
-            src="/spiral-galaxy.svg"
-            alt=""
-            width={44}
-            height={44}
-          />
+          {expanded ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="next-world">
+              <path d="M5 5.8c0-.9.9-1.3 1.6-.8l8.3 6.2c.6.4.6 1.2 0 1.6L6.6 19c-.7.5-1.6.1-1.6-.8V5.8Z" />
+              <rect x="17" y="5" width="3" height="14" rx="1.5" />
+            </svg>
+          ) : (
+            <img
+              ref={dockGalaxyIconRef}
+              aria-hidden="true"
+              data-icon="spore-main-menu-spiral"
+              src="/spiral-galaxy.svg"
+              alt=""
+              width={44}
+              height={44}
+            />
+          )}
         </button>
         <div
           className="dock-console"

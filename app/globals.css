@@ -21,7 +21,8 @@
 html,
 body {
   min-height: 100%;
-  background: var(--background);
+  /* Match the browser/theme surface in safe-area and overscroll regions. */
+  background: #06101f;
 }
 
 body {
@@ -850,6 +851,18 @@ button {
   will-change: transform;
 }
 
+.dock-orb[data-action='next'] svg {
+  width: 28px;
+  height: 28px;
+  fill: #d7f6ff;
+  stroke: none;
+}
+
+.dock-orb:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .dock-console {
   position: relative;
   z-index: 2;
@@ -1152,14 +1165,21 @@ button {
 
   .world-detail {
     width: calc(100vw - 20px);
-    height: 220px;
+    height: auto;
+    min-height: 164px;
   }
 
   .world-detail-wing {
-    top: 8px;
-    left: 32px;
-    height: 202px;
-    padding: 14px 14px 62px 94px;
+    position: relative;
+    top: 0;
+    left: 28px;
+    right: auto;
+    width: calc(100% - 28px);
+    height: auto;
+    min-height: 164px;
+    padding: 14px 14px 12px 84px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     border-radius: 28px 16px 22px 5px;
   }
 
@@ -1175,8 +1195,10 @@ button {
   }
 
   .world-detail h2 {
-    margin: 3px 0 7px;
-    font-size: 17px;
+    margin: 4px 0 8px;
+    font-size: 18px;
+    white-space: normal;
+    line-height: 1.15;
   }
 
   .world-detail p {
@@ -1190,19 +1212,20 @@ button {
   }
 
   .world-orbit {
-    width: 112px;
-    height: 112px;
+    top: -4px;
+    width: 100px;
+    height: 100px;
   }
 
   .world-face {
-    width: 78px;
-    height: 78px;
+    width: 72px;
+    height: 72px;
     font-size: 24px;
   }
 
   .world-close {
-    top: 94px;
-    left: 34px;
+    top: 82px;
+    left: 28px;
     width: 44px;
     height: 44px;
     border-width: 3px;
@@ -1210,9 +1233,12 @@ button {
   }
 
   .world-play {
-    right: 7px;
-    bottom: 9px;
-    width: 118px;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    justify-self: end;
+    margin-top: 12px;
+    width: 130px;
     height: 46px;
     padding-right: 10px;
   }

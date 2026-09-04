@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 43817);
 const previewURL = process.env.PLAYWRIGHT_BASE_URL;
 const baseURL = previewURL ?? `http://localhost:${port}`;
+const browserName =
+  process.env.PLAYWRIGHT_BROWSER === 'webkit' ? 'webkit' : 'chromium';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -16,8 +18,10 @@ export default defineConfig({
   ],
   use: {
     ...devices['Desktop Edge'],
+    browserName,
     baseURL,
-    channel: process.env.CI ? undefined : 'msedge',
+    channel:
+      browserName === 'chromium' && !process.env.CI ? 'msedge' : undefined,
     trace: 'retain-on-failure',
   },
   webServer: previewURL
