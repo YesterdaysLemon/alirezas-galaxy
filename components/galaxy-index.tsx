@@ -278,18 +278,31 @@ function createMarkerTexture() {
   });
 
   context.globalAlpha = 1;
-  // A luminous point with soft falloff, rather than hard asterisk spokes.
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createStarlightTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  context.translate(128, 128);
+  // Separate the star's light from its neutral lens so its color and
+  // luminosity can vary without tinting the clear window or its rim.
   const starlight = context.createRadialGradient(0, 0, 0, 0, 0, 22);
-  starlight.addColorStop(0, 'rgba(255,255,250,1)');
-  starlight.addColorStop(0.12, 'rgba(255,252,222,.98)');
-  starlight.addColorStop(0.3, 'rgba(255,234,188,.55)');
-  starlight.addColorStop(0.65, 'rgba(218,224,255,.13)');
-  starlight.addColorStop(1, 'rgba(218,224,255,0)');
+  starlight.addColorStop(0, 'rgba(255,255,255,1)');
+  starlight.addColorStop(0.12, 'rgba(255,255,255,.98)');
+  starlight.addColorStop(0.3, 'rgba(255,255,255,.55)');
+  starlight.addColorStop(0.65, 'rgba(255,255,255,.13)');
+  starlight.addColorStop(1, 'rgba(255,255,255,0)');
   context.fillStyle = starlight;
   context.fillRect(-35, -35, 70, 70);
   context.fillStyle = 'white';
   context.beginPath();
-  context.arc(0, 0, 5.2, 0, Math.PI * 2);
+  context.arc(0, 0, 12, 0, Math.PI * 2);
   context.fill();
   context.globalAlpha = 1;
 
@@ -599,6 +612,7 @@ export function GalaxyIndex() {
 
     const glowTexture = createGlowTexture();
     const markerTexture = createMarkerTexture();
+    const starlightTexture = createStarlightTexture();
     const signalWaveTexture = createSignalWaveTexture();
 
     // Both galaxies use the same scene and interaction architecture. Travel
@@ -667,6 +681,19 @@ export function GalaxyIndex() {
       galaxy.add(keyLight);
 
       const nodes = definition.worlds.map((destination, index) => {
+        let starSeed = 7;
+        for (let char = 0; char < destination.id.length; char += 1) {
+          starSeed = Math.imul(starSeed, 31) + destination.id.charCodeAt(char);
+        }
+        const starRandom = seededRandom(starSeed);
+        const spectralColors = [
+          0xff8570, 0xffcb91, 0xf4f7ff, 0x9bccff, 0x76a5ff,
+        ];
+        const starColor =
+          spectralColors[Math.floor(starRandom() * spectralColors.length)];
+        const luminosity = 1 + starRandom() * 0.9;
+        const lightSize = 1 + starRandom() * 0.4;
+        const shimmerPhase = starRandom() * Math.PI * 2;
         const position = new THREE.Vector3(
           Math.cos(destination.angle) * destination.radius,
           0.38 + index * 0.018,
@@ -693,11 +720,12 @@ export function GalaxyIndex() {
         marker.renderOrder = 8;
         galaxy.add(marker);
 
-        // Shared glow texture; only the little light breathes, not the lens.
+        // Shared white light texture, individually tinted; the lens stays clear.
         const sparkle = new THREE.Sprite(
           new THREE.SpriteMaterial({
-            map: glowTexture,
-            color: 0xfff2d4,
+            map: starlightTexture,
+            color: starColor,
+            toneMapped: false,
             transparent: true,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
@@ -705,7 +733,7 @@ export function GalaxyIndex() {
           }),
         );
         sparkle.position.copy(position);
-        sparkle.scale.setScalar(destination.size * 0.12);
+        sparkle.scale.copy(marker.scale).multiplyScalar(lightSize);
         sparkle.renderOrder = 9;
         galaxy.add(sparkle);
 
@@ -731,7 +759,16 @@ export function GalaxyIndex() {
           return wave;
         });
 
-        return { marker, sparkle, signalWaves, position, occluded: false };
+        return {
+          marker,
+          sparkle,
+          signalWaves,
+          position,
+          luminosity,
+          lightSize,
+          shimmerPhase,
+          occluded: false,
+        };
       });
 
       return {
@@ -1484,59 +1521,75 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      nodes.forEach(({ marker, sparkle, signalWaves, occluded }, index) => {
-        const destination = sceneWorlds[index];
-        const isSelected = expandedRef.current && index === selectedIndex;
-        const isPreviewed =
-          !expandedRef.current && index === previewIndexRef.current;
-        const isHovered = index === hoveredIndex;
-        const motionTime = time * (reduceMotion ? 0.72 : 1);
-        const twinkle = reduceMotion
-          ? 0.75
-          : 0.75 +
-            Math.sin(time * 0.0021 + index * 1.71) * 0.17 +
-            Math.sin(time * 0.0049 + index * 2.3) * 0.08;
-        sparkle.material.opacity = occluded ? 0 : twinkle * 0.65;
-        sparkle.scale.setScalar(destination.size * (0.1 + twinkle * 0.02));
-        const shimmerAmplitude = reduceMotion ? 0.025 : 0.04;
-        const shimmer =
-          0.96 +
-          Math.sin(motionTime * 0.0042 + index * 1.71) * shimmerAmplitude;
-        const pulse =
-          !isSelected && !isPreviewed
-            ? shimmer
-            : 1 + Math.sin(motionTime * 0.0035) * (reduceMotion ? 0.03 : 0.045);
-        const markerTarget =
-          destination.size * (isSelected ? 0.82 : 0.66) * pulse;
-        marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
-        marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
-        marker.material.opacity +=
-          ((occluded
-            ? 0
-            : isSelected
-              ? 1
-              : isHovered || isPreviewed
+      nodes.forEach(
+        (
+          {
+            marker,
+            sparkle,
+            signalWaves,
+            luminosity,
+            lightSize,
+            shimmerPhase,
+            occluded,
+          },
+          index,
+        ) => {
+          const destination = sceneWorlds[index];
+          const isSelected = expandedRef.current && index === selectedIndex;
+          const isPreviewed =
+            !expandedRef.current && index === previewIndexRef.current;
+          const isHovered = index === hoveredIndex;
+          const motionTime = time * (reduceMotion ? 0.72 : 1);
+          const twinkle = reduceMotion
+            ? 0.75
+            : 0.75 +
+              Math.sin(time * 0.0021 + shimmerPhase) * 0.17 +
+              Math.sin(time * 0.0049 + shimmerPhase * 1.7) * 0.08;
+          sparkle.material.opacity = occluded ? 0 : twinkle * luminosity;
+          sparkle.scale
+            .copy(marker.scale)
+            .multiplyScalar(lightSize * (0.96 + twinkle * 0.06));
+          const shimmerAmplitude = reduceMotion ? 0.025 : 0.04;
+          const shimmer =
+            0.96 +
+            Math.sin(motionTime * 0.0042 + index * 1.71) * shimmerAmplitude;
+          const pulse =
+            !isSelected && !isPreviewed
+              ? shimmer
+              : 1 +
+                Math.sin(motionTime * 0.0035) * (reduceMotion ? 0.03 : 0.045);
+          const markerTarget =
+            destination.size * (isSelected ? 0.82 : 0.66) * pulse;
+          marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
+          marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
+          marker.material.opacity +=
+            ((occluded
+              ? 0
+              : isSelected
                 ? 1
-                : 0.98) -
-            marker.material.opacity) *
-          0.11;
-        marker.material.rotation +=
-          (0.00016 + index * 0.000025) * (reduceMotion ? 0.72 : 1) * delta;
+                : isHovered || isPreviewed
+                  ? 1
+                  : 0.98) -
+              marker.material.opacity) *
+            0.11;
+          marker.material.rotation +=
+            (0.00016 + index * 0.000025) * (reduceMotion ? 0.72 : 1) * delta;
 
-        signalWaves.forEach((wave, waveIndex) => {
-          const progress =
-            (motionTime * 0.00022 + wave.userData.phase + index * 0.117) % 1;
-          const waveScale =
-            destination.size *
-            (0.49 + THREE.MathUtils.smoothstep(progress, 0, 1) * 0.7);
-          const envelope = Math.pow(Math.sin(progress * Math.PI), 1.3);
-          const prominence =
-            isSelected || isHovered || isPreviewed ? 0.22 : 0.62;
-          wave.scale.setScalar(waveScale);
-          wave.material.opacity = occluded ? 0 : envelope * prominence;
-          wave.material.rotation = -motionTime * 0.000025 * (waveIndex + 1);
-        });
-      });
+          signalWaves.forEach((wave, waveIndex) => {
+            const progress =
+              (motionTime * 0.00022 + wave.userData.phase + index * 0.117) % 1;
+            const waveScale =
+              destination.size *
+              (0.49 + THREE.MathUtils.smoothstep(progress, 0, 1) * 0.7);
+            const envelope = Math.pow(Math.sin(progress * Math.PI), 1.3);
+            const prominence =
+              isSelected || isHovered || isPreviewed ? 0.22 : 0.62;
+            wave.scale.setScalar(waveScale);
+            wave.material.opacity = occluded ? 0 : envelope * prominence;
+            wave.material.rotation = -motionTime * 0.000025 * (waveIndex + 1);
+          });
+        },
+      );
 
       const detail = detailRef.current;
       if (detail) {
@@ -1673,6 +1726,7 @@ export function GalaxyIndex() {
       portraitTextures.forEach((texture) => texture.dispose());
       glowTexture?.dispose();
       markerTexture?.dispose();
+      starlightTexture?.dispose();
       signalWaveTexture?.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();

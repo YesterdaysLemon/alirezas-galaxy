@@ -320,6 +320,15 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   expect(githubBox!.height).toBeGreaterThanOrEqual(42);
   expect(footerBox!.x + footerBox!.width).toBeGreaterThanOrEqual(384);
   expect(footerBox!.x + footerBox!.width).toBeLessThanOrEqual(390);
+  const orbBox = (await page.locator('.dock-orb').boundingBox())!;
+  const consoleBox = (await page.locator('.dock-console').boundingBox())!;
+  const tunerBox = (await page.locator('.dock-tuner').boundingBox())!;
+  expect(orbBox.x).toBeGreaterThan(consoleBox.x);
+  expect(tunerBox.x).toBeLessThan(consoleBox.x + consoleBox.width / 2);
+  expect(orbBox.x + orbBox.width).toBeCloseTo(
+    footerBox!.x + footerBox!.width,
+    0,
+  );
 
   const tuner = page.getByRole('button', {
     name: 'Show next footer transmission',

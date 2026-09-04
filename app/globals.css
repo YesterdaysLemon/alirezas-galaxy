@@ -1233,12 +1233,29 @@ button {
 
   .dock-console {
     width: min(274px, calc(100vw - 58px));
-    padding-left: 25px;
+    margin-left: 0;
+    margin-right: -8px;
+    padding: 3px 25px 3px 4px;
+    border-radius: 23px 11px 11px 23px;
+    border-left-color: rgba(151, 211, 245, 0.62);
+    border-right-color: rgba(105, 179, 224, 0.38);
+  }
+
+  .dock-console::before {
+    left: auto;
+    right: -14px;
+    box-shadow: inset 3px 0 6px rgba(2, 15, 34, 0.72);
+  }
+
+  .dock-mode-lights {
+    left: auto;
+    right: 30px;
   }
 
   .spore-dock {
     right: max(5px, env(safe-area-inset-right));
     left: auto;
+    flex-direction: row-reverse;
   }
 
   .spore-dock .dock-message {
@@ -1262,6 +1279,8 @@ button {
     width: 44px;
     height: 44px;
     flex-basis: 44px;
+    margin-left: 0;
+    margin-right: auto;
   }
 }
 
