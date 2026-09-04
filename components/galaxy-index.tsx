@@ -260,15 +260,15 @@ function createMarkerTexture() {
   context.fillRect(-128, -128, 256, 256);
 
   const lens = context.createRadialGradient(-8, -10, 2, 0, 0, 39);
-  lens.addColorStop(0, 'rgba(34,37,55,.48)');
-  lens.addColorStop(0.58, 'rgba(7,9,18,.9)');
-  lens.addColorStop(1, 'rgba(0,1,7,.98)');
+  lens.addColorStop(0, 'rgba(6,12,25,.98)');
+  lens.addColorStop(0.7, 'rgba(5,9,19,.97)');
+  lens.addColorStop(1, 'rgba(9,14,30,.88)');
   context.fillStyle = lens;
   context.beginPath();
   context.arc(0, 0, 38, 0, Math.PI * 2);
   context.fill();
 
-  context.strokeStyle = 'rgba(255, 247, 207, .98)';
+  context.strokeStyle = 'rgba(238, 246, 255, .98)';
   context.lineWidth = 4.6;
   [43, 61].forEach((radius, index) => {
     context.globalAlpha = 1 - index * 0.2;
@@ -279,7 +279,7 @@ function createMarkerTexture() {
 
   context.globalAlpha = 1;
   // A luminous point with soft falloff, rather than hard asterisk spokes.
-  const starlight = context.createRadialGradient(0, 0, 0, 0, 0, 35);
+  const starlight = context.createRadialGradient(0, 0, 0, 0, 0, 22);
   starlight.addColorStop(0, 'rgba(255,255,250,1)');
   starlight.addColorStop(0.12, 'rgba(255,252,222,.98)');
   starlight.addColorStop(0.3, 'rgba(255,234,188,.55)');
@@ -289,7 +289,7 @@ function createMarkerTexture() {
   context.fillRect(-35, -35, 70, 70);
   context.fillStyle = 'white';
   context.beginPath();
-  context.arc(0, 0, 3.4, 0, Math.PI * 2);
+  context.arc(0, 0, 5.2, 0, Math.PI * 2);
   context.fill();
   context.globalAlpha = 1;
 
@@ -306,8 +306,8 @@ function createSignalWaveTexture() {
   if (!context) return null;
 
   context.translate(128, 128);
-  context.strokeStyle = 'rgba(255, 247, 205, .96)';
-  context.shadowColor = 'rgba(255, 220, 151, .92)';
+  context.strokeStyle = 'rgba(237, 234, 255, .96)';
+  context.shadowColor = 'rgba(213, 201, 255, .92)';
   context.shadowBlur = 10;
   context.lineWidth = 4;
   context.beginPath();
@@ -675,12 +675,14 @@ export function GalaxyIndex() {
         const markerMaterial = new THREE.SpriteMaterial({
           map: markerTexture,
           color: new THREE.Color(destination.color).lerp(
-            new THREE.Color(0xffe6a6),
-            0.58,
+            new THREE.Color(0xe9f3ff),
+            0.82,
           ),
           transparent: true,
-          opacity: index === 0 ? 0.92 : 0.82,
-          blending: THREE.AdditiveBlending,
+          opacity: 1,
+          // Normal compositing lets the dark, clear lens suppress local haze;
+          // additive black cannot clear anything beneath the marker.
+          blending: THREE.NormalBlending,
           depthWrite: false,
           depthTest: false,
         });
@@ -703,7 +705,7 @@ export function GalaxyIndex() {
           }),
         );
         sparkle.position.copy(position);
-        sparkle.scale.setScalar(destination.size * 0.22);
+        sparkle.scale.setScalar(destination.size * 0.12);
         sparkle.renderOrder = 9;
         galaxy.add(sparkle);
 
@@ -711,8 +713,8 @@ export function GalaxyIndex() {
           const material = new THREE.SpriteMaterial({
             map: signalWaveTexture,
             color: new THREE.Color(destination.color).lerp(
-              new THREE.Color(0xffe9ac),
-              0.68,
+              new THREE.Color(0xd3cfff),
+              0.78,
             ),
             transparent: true,
             opacity: 0,
@@ -1494,8 +1496,8 @@ export function GalaxyIndex() {
           : 0.75 +
             Math.sin(time * 0.0021 + index * 1.71) * 0.17 +
             Math.sin(time * 0.0049 + index * 2.3) * 0.08;
-        sparkle.material.opacity = occluded ? 0 : twinkle;
-        sparkle.scale.setScalar(destination.size * (0.2 + twinkle * 0.04));
+        sparkle.material.opacity = occluded ? 0 : twinkle * 0.65;
+        sparkle.scale.setScalar(destination.size * (0.1 + twinkle * 0.02));
         const shimmerAmplitude = reduceMotion ? 0.025 : 0.04;
         const shimmer =
           0.96 +
@@ -1505,9 +1507,7 @@ export function GalaxyIndex() {
             ? shimmer
             : 1 + Math.sin(motionTime * 0.0035) * (reduceMotion ? 0.03 : 0.045);
         const markerTarget =
-          destination.size *
-          (isSelected ? 0.82 : isHovered || isPreviewed ? 0.56 : 0.51) *
-          pulse;
+          destination.size * (isSelected ? 0.82 : 0.66) * pulse;
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
@@ -1516,8 +1516,8 @@ export function GalaxyIndex() {
             : isSelected
               ? 1
               : isHovered || isPreviewed
-                ? 0.92
-                : 0.82) -
+                ? 1
+                : 0.98) -
             marker.material.opacity) *
           0.11;
         marker.material.rotation +=

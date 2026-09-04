@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 340" preserveAspectRatio="none" fill="none">
+  <defs>
+    <path id="frame" d="M0 0H340C234 8 131 41 79 104C51 139 48 184 48 240V340H0Z"/>
+    <clipPath id="edge"><use href="#frame"/></clipPath>
+    <radialGradient id="glass" cx="0" cy="0" r="1" gradientTransform="translate(30 5) rotate(53) scale(279 250)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a5dafa" stop-opacity=".9"/>
+      <stop offset=".3" stop-color="#547dbc" stop-opacity=".86"/>
+      <stop offset=".62" stop-color="#27396e" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#172844" stop-opacity=".16"/>
+    </radialGradient>
+    <radialGradient id="light" cx="0" cy="0" r="1" gradientTransform="translate(45 25) scale(91)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c6f9ff" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#91ceff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <use href="#frame" fill="url(#glass)"/>
+  <g clip-path="url(#edge)">
+    <path d="M-34 29C-17 82 77 95 110 47C136 9 93-19 64-3C104-9 105 30 77 47C35 72-15 49-34 29Z" fill="#b7cdff" opacity=".18"/>
+    <path d="M-43 52C-18 118 106 129 143 61C168 17 132-30 98-19C124-12 145 18 127 48C96 104 5 98-43 52Z" fill="#c0d0ff" opacity=".13"/>
+    <path d="M-29 101C18 146 111 144 154 100C119 169 7 165-29 101Z" fill="#a9b9ff" opacity=".12"/>
+    <use href="#frame" fill="url(#light)"/>
+  </g>
+</svg>
