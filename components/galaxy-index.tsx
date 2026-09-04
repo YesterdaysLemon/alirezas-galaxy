@@ -300,9 +300,33 @@ function createStarlightTexture() {
   starlight.addColorStop(1, 'rgba(255,255,255,0)');
   context.fillStyle = starlight;
   context.fillRect(-35, -35, 70, 70);
+
+  // Diffraction spikes taper into the glow instead of reading as equally
+  // weighted asterisk strokes. The vertical pair is a little longer.
+  const diffraction = context.createRadialGradient(0, 0, 2, 0, 0, 29);
+  diffraction.addColorStop(0, 'rgba(255,255,255,1)');
+  diffraction.addColorStop(0.32, 'rgba(255,255,255,.95)');
+  diffraction.addColorStop(0.72, 'rgba(255,255,255,.5)');
+  diffraction.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = diffraction;
+  context.shadowColor = 'rgba(255,255,255,.45)';
+  context.shadowBlur = 2;
+  context.beginPath();
+  context.moveTo(0, -29);
+  context.bezierCurveTo(2, -10, 3, -4, 6, -3);
+  context.quadraticCurveTo(12, -1, 24, 0);
+  context.quadraticCurveTo(12, 1, 6, 3);
+  context.bezierCurveTo(3, 4, 2, 10, 0, 29);
+  context.bezierCurveTo(-2, 10, -3, 4, -6, 3);
+  context.quadraticCurveTo(-12, 1, -24, 0);
+  context.quadraticCurveTo(-12, -1, -6, -3);
+  context.bezierCurveTo(-3, -4, -2, -10, 0, -29);
+  context.closePath();
+  context.fill();
+  context.shadowBlur = 0;
   context.fillStyle = 'white';
   context.beginPath();
-  context.arc(0, 0, 12, 0, Math.PI * 2);
+  context.arc(0, 0, 5.5, 0, Math.PI * 2);
   context.fill();
   context.globalAlpha = 1;
 
@@ -733,6 +757,7 @@ export function GalaxyIndex() {
           }),
         );
         sparkle.position.copy(position);
+        sparkle.material.rotation = (starRandom() - 0.5) * 0.7;
         sparkle.scale.copy(marker.scale).multiplyScalar(lightSize);
         sparkle.renderOrder = 9;
         galaxy.add(sparkle);
