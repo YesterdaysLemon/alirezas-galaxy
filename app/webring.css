@@ -35,31 +35,39 @@
 }
 .galaxy-signal i {
   position: absolute;
-  inset: 7px;
-  border: 1px solid #d9d9bd;
+  inset: 5px;
+  border: 1.25px solid #deddf4;
   border-radius: 50%;
-  box-shadow: 0 0 3px #c5beec44;
+  box-shadow: 0 0 4px #c5beec77;
   animation: neighbor-signal 3.2s ease-out infinite;
 }
 .galaxy-signal i:nth-child(2) {
   animation-delay: -1.6s;
 }
-.galaxy-signal b {
+.galaxy-signal-star {
   position: absolute;
-  inset: 19px;
-  border-radius: 50%;
-  background: #c4cad4;
-  box-shadow:
-    0 0 4px 1px #d0d7ec66,
-    0 0 10px #b6a6dd44;
+  inset: 15px;
+  width: 14px;
+  height: 14px;
+  color: var(--beacon-color, #b6c7dc);
+  fill: currentColor;
+  filter: drop-shadow(0 0 2px currentColor);
+  animation: distant-star-shimmer 4.6s ease-in-out infinite;
+  pointer-events: none;
 }
-.webring-portal:hover .galaxy-signal b {
-  background: #e0e4eb;
+@keyframes distant-star-shimmer {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.58;
+  }
 }
 @keyframes neighbor-signal {
   from {
     transform: scale(0.25);
-    opacity: 0.55;
+    opacity: 0.8;
   }
   to {
     transform: scale(1.15);
@@ -96,9 +104,13 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .galaxy-signal-star {
+    animation: none;
+    opacity: 0.48;
+  }
   .galaxy-signal i {
     animation: none;
-    opacity: 0.3;
+    opacity: 0.45;
   }
   .galaxy-signal i:nth-child(2) {
     transform: scale(0.65);

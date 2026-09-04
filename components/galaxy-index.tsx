@@ -284,6 +284,9 @@ function createMarkerTexture() {
   return texture;
 }
 
+const starDiffractionPath =
+  'M0 -29C2 -10 3 -4 6 -3Q12 -1 24 0Q12 1 6 3C3 4 2 10 0 29C-2 10 -3 4 -6 3Q-12 1 -24 0Q-12 -1 -6 -3C-3 -4 -2 -10 0 -29Z';
+
 function createStarlightTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
@@ -311,18 +314,7 @@ function createStarlightTexture() {
   context.fillStyle = diffraction;
   context.shadowColor = 'rgba(255,255,255,.45)';
   context.shadowBlur = 2;
-  context.beginPath();
-  context.moveTo(0, -29);
-  context.bezierCurveTo(2, -10, 3, -4, 6, -3);
-  context.quadraticCurveTo(12, -1, 24, 0);
-  context.quadraticCurveTo(12, 1, 6, 3);
-  context.bezierCurveTo(3, 4, 2, 10, 0, 29);
-  context.bezierCurveTo(-2, 10, -3, 4, -6, 3);
-  context.quadraticCurveTo(-12, 1, -24, 0);
-  context.quadraticCurveTo(-12, -1, -6, -3);
-  context.bezierCurveTo(-3, -4, -2, -10, 0, -29);
-  context.closePath();
-  context.fill();
+  context.fill(new Path2D(starDiffractionPath));
   context.shadowBlur = 0;
   context.fillStyle = 'white';
   context.beginPath();
@@ -1473,6 +1465,10 @@ export function GalaxyIndex() {
         portal.style.transform = `translate3d(${portalX}px, ${portalY}px, 0) translate(-50%, -50%)`;
         const remote =
           galaxyScenes[galaxyIdRef.current === 'home' ? 'webring' : 'home'];
+        portal.style.setProperty(
+          '--beacon-color',
+          `#${remote.nodes[0].sparkle.material.color.getHexString()}`,
+        );
         distantSignalPosition.copy(remote.nodes[0].position);
         remote.galaxy.localToWorld(distantSignalPosition);
         distantSignalPosition.project(camera);
@@ -1822,7 +1818,14 @@ export function GalaxyIndex() {
         <span className="galaxy-signal" aria-hidden="true">
           <i />
           <i />
-          <b />
+          <svg
+            className="galaxy-signal-star"
+            viewBox="-32 -32 64 64"
+            focusable="false"
+          >
+            <path d={starDiffractionPath} />
+            <circle r="5.5" />
+          </svg>
         </span>
       </button>
 
