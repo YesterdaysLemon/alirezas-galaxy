@@ -44,9 +44,10 @@ retained for immediate routing rollback.
 
 ## What is in the base
 
-- Seven real destinations, with the portfolio selected by default
+- Owned project destinations, with the portfolio selected by default
+- A distant-galaxy web ring for friends, collaborations, and interesting sites
 - Favicon or project-glyph callouts that follow the currently previewed world
-- Hover-to-preview browsing with enlarged, forgiving planet hit targets
+- Hover-to-preview browsing with screen-sized mouse and touch targets
 - Click-to-zoom world details with Launch shown only after confirmation
 - A Spore-style glass action body with its own close control
 - Heavier pointer/touch drag, long inertial spin, and wheel zoom
@@ -54,6 +55,7 @@ retained for immediate routing rollback.
 - Five spiral arms whose attached worlds keep drifting after selection
 - Working reset and galactic-drift controls in the joined lower dock
 - Keyboard-accessible HTML navigation alongside the WebGL scene
+- Transparent chrome passes through clicks; mobile controls keep 44 px targets
 - Reduced-motion support and a non-WebGL-safe interface layer
 
 ## Performance shape
@@ -61,7 +63,7 @@ retained for immediate routing rollback.
 The scene uses one compact galaxy buffer rendered in a crisp pass and a mist
 pass, one buffer for the distant field, two shared buffers for particle-built
 background galaxies, capped device pixel ratio, adaptive particle counts, and
-throttled raycasting against only seven markers. Rendering pauses when the page
+throttled screen-space picking against the world markers. Rendering pauses when the page
 is hidden or offscreen.
 
 ## Personalize it
@@ -73,8 +75,18 @@ first slice uses the public GitHub avatar as its portrait texture. Before the
 final release, replace that URL with optimized 256 px WebP or AVIF selfie crops;
 `public/selfies/README.md` records the asset contract.
 
-The portfolio destination intentionally targets `portfolio.alirezaafshan.com`
-for the planned domain handoff in which this galaxy becomes the root site.
+The portfolio destination targets `portfolio.alirezaafshan.com`; the galaxy
+is the root site at `alirezaafshan.com`.
+
+Neighboring websites live in `data/webring.ts`. Add a name, URL, description,
+and kind (`friend`, `collaboration`, or `inspiration`), plus an optional icon.
+They appear in the distant galaxy's web ring, `sites.json`, and `llms.txt`,
+separately from the owned projects. Web ring links open a new tab.
+
+To run the browser checks against an already-running local preview, set
+`PLAYWRIGHT_BASE_URL=http://localhost:3000` and run
+`npm run test:e2e -- --workers=1`. Without that variable, the suite starts its
+own development server.
 
 ## References
 

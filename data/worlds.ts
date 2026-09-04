@@ -242,18 +242,6 @@ export const worldCatalog: WorldSeed[] = [
     size: 0.8,
   },
   {
-    id: 'learn2design',
-    name: 'Learn2Design',
-    kind: 'Open research',
-    url: 'https://www.learn2design2026.com/',
-    description: 'Open, reproducible optimizer research for Learn2Design 2026.',
-    relationship: 'collaboration',
-    hosting: 'external',
-    status: 'live',
-    iconSrc: 'https://www.learn2design2026.com/asl_icon.png',
-    glyph: '◎',
-  },
-  {
     id: 'android-hell',
     name: 'Android Hell',
     kind: 'Subject distress intake',

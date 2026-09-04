@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { webring } from '@/data/webring';
 import {
   destinations,
   MIN_WORLD_SPACING,
@@ -13,7 +14,6 @@ const requiredWorlds = [
   'aquarium',
   'bird-of-the-day',
   'application-builder',
-  'learn2design',
   'android-hell',
   'conspiracy',
   'codex-continuity',
@@ -39,11 +39,15 @@ describe('world catalog', () => {
     });
   });
 
-  it('classifies collaboration separately from external hosting', () => {
-    expect(destinations.find(({ id }) => id === 'learn2design')).toMatchObject({
-      relationship: 'collaboration',
-      hosting: 'external',
+  it('reserves the home galaxy for owned projects and puts collaborations in the web ring', () => {
+    expect(
+      destinations.every(({ relationship }) => relationship === 'owned'),
+    ).toBe(true);
+    expect(webring.find(({ id }) => id === 'learn2design')).toMatchObject({
+      kind: 'collaboration',
     });
+    const worldUrls = new Set(destinations.map(({ url }) => url));
+    expect(webring.every(({ url }) => !worldUrls.has(url))).toBe(true);
     expect(
       destinations.find(({ id }) => id === 'codex-continuity'),
     ).toMatchObject({

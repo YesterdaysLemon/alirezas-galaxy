@@ -6,6 +6,7 @@ import robots from '@/app/robots';
 import sitemap from '@/app/sitemap';
 import { GET as sitesJson } from '@/app/sites.json/route';
 import { buildStructuredData, publicWorlds, siteIdentity } from '@/data/site';
+import { webring } from '@/data/webring';
 
 describe('operational surfaces', () => {
   it('keeps the sitemap local to the canonical origin', () => {
@@ -28,7 +29,13 @@ describe('operational surfaces', () => {
       expect(body).toContain(`[${destination.name}](${destination.url})`);
     }
     expect(body).toContain('## Owned worlds');
-    expect(body).toContain('## Collaborations');
+    const [ownedSection, ringSection] = body
+      .split('## Owned worlds')[1]
+      .split('## Web ring');
+    for (const neighbor of webring) {
+      expect(ownedSection).not.toContain(neighbor.url);
+      expect(ringSection).toContain(`[${neighbor.name}](${neighbor.url})`);
+    }
   });
 
   it('welcomes agents while protecting human privacy', async () => {
@@ -46,8 +53,10 @@ describe('operational surfaces', () => {
   it('publishes a machine-readable catalog without rendering coordinates', async () => {
     const payload = (await sitesJson().json()) as {
       worlds: Array<Record<string, unknown>>;
+      webring: Array<Record<string, unknown>>;
     };
     expect(payload.worlds).toHaveLength(publicWorlds.length);
+    expect(payload.webring).toEqual(webring);
     expect(payload.worlds[0]).not.toHaveProperty('angle');
     expect(payload.worlds[0]).not.toHaveProperty('color');
     expect(
@@ -63,8 +72,13 @@ describe('operational surfaces', () => {
     const graph = buildStructuredData()['@graph'] as Array<
       Record<string, unknown>
     >;
-    const itemList = graph.find((entry) => entry['@type'] === 'ItemList');
+    const itemList = graph.find(
+      (entry) => entry['@id'] === `${siteIdentity.origin}/#worlds`,
+    );
     expect(itemList).toMatchObject({ numberOfItems: publicWorlds.length });
+    expect(
+      graph.find((entry) => entry['@id'] === `${siteIdentity.origin}/#webring`),
+    ).toMatchObject({ numberOfItems: webring.length });
   });
 
   it('answers health checks without caching them', async () => {

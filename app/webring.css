@@ -1,0 +1,235 @@
+/* The lens surrounds the real particle galaxy. Its empty corners let the
+   canvas receive clicks; only the visible orbit and label are interactive. */
+.webring-portal {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 0;
+  width: 174px;
+  height: 112px;
+  padding: 0;
+  border: 0;
+  color: #bbedff;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: none;
+  transform: translate3d(calc(100vw - 132px), 105px, 0) translate(-50%, -50%);
+}
+
+.webring-portal-orbit {
+  position: absolute;
+  inset: 0 8px 20px;
+  border: 1px solid #b4e0ff40;
+  border-radius: 50%;
+  box-shadow:
+    0 0 22px #6063ef1f,
+    inset 0 0 14px #a6d1ff14;
+  pointer-events: auto;
+}
+
+.webring-portal-label {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  min-height: 34px;
+  min-width: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transform: translateX(-50%);
+  border: 1px solid #769cc088;
+  border-radius: 18px;
+  background: linear-gradient(#365279eb, #10243dee);
+  box-shadow:
+    inset 0 1px #e0f8ff44,
+    0 0 16px #8c80f126;
+  color: #a8f890;
+  font: 900 12px var(--font-interface);
+  text-shadow: 0 1px 2px #020914;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.webring-portal:hover .webring-portal-orbit,
+.webring-portal:focus-visible .webring-portal-orbit,
+.webring-portal[aria-expanded='true'] .webring-portal-orbit {
+  border-color: #d7b8ff;
+  box-shadow:
+    0 0 20px #b090ff66,
+    inset 0 0 18px #98b9ff33;
+}
+
+.webring-portal:focus-visible {
+  outline: none;
+}
+.webring-portal:focus-visible .webring-portal-label {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}
+
+.webring-panel {
+  margin: 0;
+  left: auto;
+  position: absolute;
+  z-index: 15;
+  top: 178px;
+  right: max(18px, env(safe-area-inset-right));
+  width: min(378px, calc(100vw - 24px));
+  max-height: calc(100dvh - 262px);
+  padding: 22px 20px 15px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #aec6e39c;
+  border-radius: 30px 14px 26px 14px;
+  color: #deebf9;
+  background: linear-gradient(135deg, #364b70f7, #13213bf7 52%, #1d1735f7);
+  box-shadow:
+    inset 0 1px #f0f9ff66,
+    inset 0 -2px #020c1ddd,
+    0 12px 34px #0009,
+    0 0 30px #7e6cbc26;
+}
+
+.webring-eyebrow,
+.webring-neighbor-kind {
+  display: block;
+  margin: 0 0 7px;
+  color: #c4adee;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.webring-panel h2 {
+  font-weight: 900;
+  margin: 0 30px 8px 0;
+  color: #a2ff78;
+  font-size: 23px;
+  letter-spacing: -0.045em;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 8px #99ff6626;
+}
+.webring-intro {
+  margin: 0 20px 18px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #cfdbec;
+}
+.webring-close {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: 2px solid #abc8df;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #f36f7e, #8c1f42 66%, #40172c);
+  color: #ffe3eb;
+  font:
+    900 25px/1 Arial,
+    sans-serif;
+  cursor: pointer;
+  box-shadow: inset 0 0 7px #ffffff55;
+}
+.webring-neighbors {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.webring-neighbor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 100px;
+  padding: 14px 12px;
+  border: 1px solid #aac6e444;
+  border-radius: 16px 8px 16px 8px;
+  background: linear-gradient(#38536d66, #07152b99);
+  color: #eaf5ff;
+  text-decoration: none;
+  box-shadow: inset 0 1px #ddf1ff26;
+}
+.webring-neighbor-icon {
+  position: relative;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 2px solid #c4d5f0;
+  border-radius: 16px;
+  background: #355575;
+  font-size: 24px;
+}
+.webring-neighbor-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.webring-neighbor-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.webring-neighbor-copy strong {
+  font-size: 16px;
+  color: #b4ff9a;
+}
+.webring-neighbor-copy > span:not(.webring-neighbor-kind) {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.webring-neighbor-kind {
+  margin: 0;
+}
+.webring-neighbor-copy small {
+  color: #9db8d7;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.webring-visit {
+  margin-left: auto;
+  font-size: 22px;
+  color: #ecdfa3;
+}
+.webring-footnote {
+  margin: 15px 0 0;
+  font-size: 10px;
+  color: #aebcd4;
+  text-align: center;
+}
+.webring-neighbor:hover {
+  border-color: #b7ee9d;
+  background-color: #345a5955;
+}
+.webring-neighbor:focus-visible,
+.webring-close:focus-visible {
+  outline: 2px solid #fff497;
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px), (max-height: 500px) {
+  .webring-portal {
+    width: 142px;
+    height: 104px;
+  }
+  .webring-portal-label {
+    min-height: 44px;
+  }
+  .webring-portal-orbit {
+    bottom: 25px;
+  }
+  .webring-panel {
+    top: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    right: max(12px, env(safe-area-inset-right));
+    max-height: calc(100dvh - 110px - env(safe-area-inset-bottom));
+  }
+}

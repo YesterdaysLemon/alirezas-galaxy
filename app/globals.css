@@ -42,6 +42,11 @@ button {
 }
 
 .spore-shell {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  height: 100svh;
+  height: 100dvh;
   color: white;
   background: #020308;
   isolation: isolate;
@@ -78,7 +83,14 @@ button {
   isolation: isolate;
   width: clamp(190px, 14.5vw, 235px);
   height: clamp(440px, 56vh, 560px);
-  padding: 14px 0 0 9px;
+  padding: max(14px, env(safe-area-inset-top)) 0 0
+    max(9px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.spore-corner a,
+.spore-corner button {
+  pointer-events: auto;
 }
 
 .spore-corner::before {
@@ -348,7 +360,7 @@ button {
   color: white;
   cursor: pointer;
   opacity: 0;
-  pointer-events: auto;
+  pointer-events: none;
   background: transparent;
   outline: none;
   will-change: transform;
@@ -362,6 +374,11 @@ button {
 
 .world-preview.is-hover-hint {
   pointer-events: none;
+}
+
+.world-preview:not(.is-hover-hint) .world-preview-orbit,
+.world-preview:not(.is-hover-hint) .world-preview-label {
+  pointer-events: auto;
 }
 
 .world-preview:focus-visible .world-preview-orbit {
@@ -731,7 +748,6 @@ button {
 .world-play:hover,
 .world-play:focus-visible {
   filter: brightness(1.16) saturate(1.08);
-  transform: translateX(3px);
 }
 
 .world-close:hover,
@@ -787,16 +803,18 @@ button {
 .spore-dock {
   position: absolute;
   z-index: 10;
-  bottom: 6px;
-  left: 5px;
+  bottom: max(6px, env(safe-area-inset-bottom));
+  left: max(5px, env(safe-area-inset-left));
   isolation: isolate;
   display: flex;
   height: 58px;
   align-items: center;
+  pointer-events: none;
 }
 
 .spore-dock a,
 .spore-dock button {
+  pointer-events: auto;
   padding: 0;
   border: 0;
   appearance: none;
@@ -1130,11 +1148,12 @@ button {
   font-size: 13px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-height: 500px) {
   .spore-corner {
     width: 184px;
     height: 276px;
-    padding: 11px 0 0 8px;
+    padding: max(11px, env(safe-area-inset-top)) 0 0
+      max(8px, env(safe-area-inset-left));
   }
 
   .sprawl-mark {
@@ -1148,7 +1167,7 @@ button {
   }
 
   .spore-menu-item {
-    height: 42px;
+    height: 44px;
     padding: 0 14px;
     font-size: 13px;
   }
@@ -1161,14 +1180,14 @@ button {
 
   .world-detail {
     width: calc(100vw - 20px);
-    height: 178px;
+    height: 220px;
   }
 
   .world-detail-wing {
     top: 8px;
-    left: 62px;
-    height: 150px;
-    padding: 11px 10px 9px 65px;
+    left: 32px;
+    height: 202px;
+    padding: 14px 14px 62px 94px;
     border-radius: 28px 16px 22px 5px;
   }
 
@@ -1180,7 +1199,7 @@ button {
   }
 
   .world-kind {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .world-detail h2 {
@@ -1189,9 +1208,9 @@ button {
   }
 
   .world-detail p {
-    max-width: calc(100% - 120px);
-    font-size: 9px;
-    line-height: 1.28;
+    max-width: none;
+    font-size: 12px;
+    line-height: 1.45;
   }
 
   .world-address {
@@ -1211,9 +1230,9 @@ button {
 
   .world-close {
     top: 94px;
-    left: 39px;
-    width: 36px;
-    height: 36px;
+    left: 34px;
+    width: 44px;
+    height: 44px;
     border-width: 3px;
     font-size: 24px;
   }
@@ -1246,12 +1265,13 @@ button {
   }
 
   .spore-dock {
-    right: 5px;
+    right: max(5px, env(safe-area-inset-right));
     left: auto;
   }
 
   .spore-dock .dock-message {
-    padding: 0 6px;
+    inset: 0 49px;
+    padding: 0 3px;
     font-size: 11px;
   }
 
@@ -1262,6 +1282,15 @@ button {
   .spore-dock .dock-message[data-mode='quote'] {
     font-size: 9px;
   }
+
+  .dock-console {
+    height: 50px;
+  }
+  .dock-tuner {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
 }
 
 @media (max-height: 620px) {
@@ -1270,11 +1299,17 @@ button {
   }
 
   .spore-menu-item {
-    height: 30px;
+    height: 44px;
   }
 
   .spore-corner {
     height: 280px;
+  }
+}
+
+@media (min-width: 721px) and (max-height: 500px) {
+  .world-detail {
+    width: min(520px, calc(100vw - 220px));
   }
 }
 

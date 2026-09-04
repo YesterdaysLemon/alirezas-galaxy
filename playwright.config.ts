@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 43817);
-const baseURL = `http://localhost:${port}`;
+const previewURL = process.env.PLAYWRIGHT_BASE_URL;
+const baseURL = previewURL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -19,10 +20,12 @@ export default defineConfig({
     channel: process.env.CI ? undefined : 'msedge',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: `npm run dev -- --host 127.0.0.1 --port ${port}`,
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: previewURL
+    ? undefined
+    : {
+        command: `npm run dev -- --host 127.0.0.1 --port ${port}`,
+        url: baseURL,
+        reuseExistingServer: false,
+        timeout: 120_000,
+      },
 });

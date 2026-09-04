@@ -1,4 +1,5 @@
 import { serializeWorlds, siteIdentity } from '@/data/site';
+import { webring } from '@/data/webring';
 
 export function GET() {
   return Response.json(
@@ -7,6 +8,7 @@ export function GET() {
       owner: siteIdentity.owner,
       canonicalUrl: siteIdentity.origin,
       worlds: serializeWorlds(),
+      webring,
     },
     {
       headers: {

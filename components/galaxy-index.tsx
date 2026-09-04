@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
 import { destinations } from '@/data/worlds';
+import { webring } from '@/data/webring';
+import { WebringPanel } from './webring-panel';
 
 const pointsVertexShader = /* glsl */ `
   uniform float uPixelRatio;
@@ -393,6 +395,9 @@ export function GalaxyIndex() {
   const stageRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
+  const ringPortalRef = useRef<HTMLButtonElement>(null);
+  const ringOpenRef = useRef(false);
+  const [ringOpen, setRingOpen] = useState(false);
   const activeIndexRef = useRef(0);
   const previewIndexRef = useRef(0);
   const expandedPreviewIndexRef = useRef<number | null>(null);
@@ -416,13 +421,9 @@ export function GalaxyIndex() {
   const [menuHighlight, setMenuHighlight] = useState(0);
   const active = destinations[activeIndex];
   const preview = destinations[previewIndex];
-  const floatingPreviewIndex = expanded
-    ? expandedPreviewIndex
-    : previewIndex;
+  const floatingPreviewIndex = expanded ? expandedPreviewIndex : previewIndex;
   const floatingPreview =
-    floatingPreviewIndex === null
-      ? null
-      : destinations[floatingPreviewIndex];
+    floatingPreviewIndex === null ? null : destinations[floatingPreviewIndex];
   const dailyQuote = getQuoteOfTheDay();
 
   const previewDestination = (index: number) => {
@@ -432,6 +433,8 @@ export function GalaxyIndex() {
   };
 
   const expandDestination = (index: number) => {
+    ringOpenRef.current = false;
+    setRingOpen(false);
     activeIndexRef.current = index;
     previewIndexRef.current = index;
     expandedPreviewIndexRef.current = null;
@@ -460,6 +463,28 @@ export function GalaxyIndex() {
     setExpanded(false);
   };
 
+  const openWebring = () => {
+    collapseDestination();
+    ringOpenRef.current = true;
+    setRingOpen(true);
+  };
+
+  const closeWebring = () => {
+    ringOpenRef.current = false;
+    setRingOpen(false);
+    ringPortalRef.current?.focus({ preventScroll: true });
+  };
+
+  useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (ringOpenRef.current) closeWebring();
+      else if (expandedRef.current) collapseDestination();
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, []);
+
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       try {
@@ -480,6 +505,7 @@ export function GalaxyIndex() {
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
+    const sceneShell = stage.parentElement!;
     const portraitBurstTarget = stage;
 
     let renderer: THREE.WebGLRenderer;
@@ -496,6 +522,7 @@ export function GalaxyIndex() {
     }
 
     const isCompact = window.matchMedia('(max-width: 720px)').matches;
+    let compactViewport = isCompact;
     const reducedMotionQuery = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     );
@@ -519,8 +546,8 @@ export function GalaxyIndex() {
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
     const cameraLookTarget = new THREE.Vector3(0.7, 0, 0);
-    const defaultCameraDistance = isCompact ? 25.5 : 20.5;
-    const expandedCameraDistance = isCompact ? 21.8 : 17.25;
+    let defaultCameraDistance = isCompact ? 25.5 : 20.5;
+    let expandedCameraDistance = isCompact ? 21.8 : 17.25;
     let cameraDistance = defaultCameraDistance;
     camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
     camera.lookAt(0.7, 0, 0);
@@ -659,12 +686,6 @@ export function GalaxyIndex() {
 
     const markerTexture = createMarkerTexture();
     const signalWaveTexture = createSignalWaveTexture();
-    const hitGeometry = new THREE.SphereGeometry(0.72, 8, 6);
-    const hitMaterial = new THREE.MeshBasicMaterial({
-      colorWrite: false,
-      depthTest: false,
-      depthWrite: false,
-    });
     const nodes = destinations.map((destination, index) => {
       const position = new THREE.Vector3(
         Math.cos(destination.angle) * destination.radius,
@@ -712,12 +733,7 @@ export function GalaxyIndex() {
         return wave;
       });
 
-      const hitArea = new THREE.Mesh(hitGeometry, hitMaterial);
-      hitArea.position.copy(position);
-      hitArea.userData.destinationIndex = index;
-      galaxy.add(hitArea);
-
-      return { marker, signalWaves, hitArea, position };
+      return { marker, signalWaves, position, occluded: false };
     });
 
     const portraitGroup = new THREE.Group();
@@ -825,12 +841,20 @@ export function GalaxyIndex() {
       isCompact ? 2600 : 1700,
     );
 
-    const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2(4, 4);
-    const hitAreas = nodes.map(({ hitArea }) => hitArea);
     const labelPosition = new THREE.Vector3();
     const previewPosition = new THREE.Vector3();
     const cameraFollowPosition = new THREE.Vector3();
+    const ringPosition = new THREE.Vector3();
+    const projectedHit = new THREE.Vector3();
+    let stageWidth = stage.clientWidth;
+    let stageHeight = stage.clientHeight;
+    let bottomInset = 0;
+    let rightInset = 0;
+    let leftInset = 0;
+    let touchPointer = false;
+    let lastDetailIndex = -1;
+    let chromeRects: DOMRect[] = [];
     let hoveredIndex = -1;
     let isDragging = false;
     let pointerId = -1;
@@ -872,15 +896,33 @@ export function GalaxyIndex() {
     };
 
     const updatePointer = (event: PointerEvent) => {
+      touchPointer = event.pointerType === 'touch';
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
       pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
     };
 
     const destinationAtPointer = () => {
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(hitAreas, false)[0];
-      return hit ? (hit.object.userData.destinationIndex as number) : -1;
+      // Pick the nearest visible star in screen space. World-sized spheres
+      // shrink into tiny touch targets at the back of the spiral.
+      let nearest = -1;
+      let nearestDistance = touchPointer ? 28 : 22;
+      nodes.forEach(({ position, occluded }, index) => {
+        if (occluded) return;
+        projectedHit.copy(position);
+        galaxy.localToWorld(projectedHit);
+        projectedHit.project(camera);
+        if (projectedHit.z > 1 || projectedHit.z < -1) return;
+        const distance = Math.hypot(
+          ((projectedHit.x - pointer.x) * stageWidth) / 2,
+          ((projectedHit.y - pointer.y) * stageHeight) / 2,
+        );
+        if (distance < nearestDistance) {
+          nearest = index;
+          nearestDistance = distance;
+        }
+      });
+      return nearest;
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -972,6 +1014,8 @@ export function GalaxyIndex() {
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
     resetGalaxyRef.current = () => {
+      ringOpenRef.current = false;
+      setRingOpen(false);
       angularVelocity = 0;
       tiltVelocity = 0;
       fastSpinTravel = 0;
@@ -995,6 +1039,16 @@ export function GalaxyIndex() {
     const resizeObserver = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width <= 0 || height <= 0) return;
+      stageWidth = width;
+      stageHeight = height;
+      const safeArea = getComputedStyle(sceneShell);
+      bottomInset = parseFloat(safeArea.getPropertyValue('--safe-bottom')) || 0;
+      rightInset = parseFloat(safeArea.getPropertyValue('--safe-right')) || 0;
+      leftInset = parseFloat(safeArea.getPropertyValue('--safe-left')) || 0;
+      lastDetailIndex = -1;
+      compactViewport = width <= 720 || height <= 500;
+      defaultCameraDistance = width <= 720 ? 25.5 : 20.5;
+      expandedCameraDistance = width <= 720 ? 21.8 : 17.25;
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -1049,10 +1103,7 @@ export function GalaxyIndex() {
           fastSpinTravel += Math.abs(appliedRotation);
           angularVelocity *= Math.pow(0.968, delta);
           tiltVelocity *= Math.pow(0.93, delta);
-          if (
-            ambientMotionRef.current &&
-            Math.abs(angularVelocity) < 0.0012
-          ) {
+          if (ambientMotionRef.current && Math.abs(angularVelocity) < 0.0012) {
             const ambientMotionScale = reduceMotion ? 0.55 : 1;
             galaxy.rotation.y += 0.00018 * ambientMotionScale * delta;
           }
@@ -1106,17 +1157,71 @@ export function GalaxyIndex() {
       cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * 0.028 * delta;
       camera.lookAt(cameraLookTarget);
 
+      // Keep the neighboring galaxy in the open sky, clear of the main menu
+      // and mobile browser safe areas. Its particles keep their own rotation.
+      const portalX = stageWidth - (compactViewport ? 83 : 132) - rightInset;
+      const portalY =
+        stageHeight <= 500 && stageWidth > 720
+          ? 44
+          : compactViewport
+            ? 100
+            : 105;
+      ringPosition
+        .set(
+          (portalX / stageWidth) * 2 - 1,
+          1 - ((portalY - 14) / stageHeight) * 2,
+          0.5,
+        )
+        .unproject(camera);
+      ringPosition
+        .sub(camera.position)
+        .normalize()
+        .multiplyScalar(44)
+        .add(camera.position);
+      distantGalaxies[0].position.copy(ringPosition);
+      distantCore.position.copy(ringPosition);
+      const unitsPerPixel =
+        (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 44) /
+        stageHeight;
+      const neighborScale = (compactViewport ? 58 : 74) * unitsPerPixel;
+      distantGalaxies[0].scale.set(neighborScale, neighborScale * 0.331, 1);
+      distantCore.scale.set(neighborScale * 0.77, neighborScale * 0.26, 1);
+      const portal = ringPortalRef.current;
+      if (portal)
+        portal.style.transform = `translate3d(${portalX}px, ${portalY}px, 0) translate(-50%, -50%)`;
+
+      // Sample only actual controls, never the transparent corner/dock
+      // wrappers. A beacon behind a real button should not invite a lost tap.
+      if (frame % 8 === 1) {
+        chromeRects = Array.from(
+          sceneShell.querySelectorAll(
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .webring-panel, .webring-portal-label, .world-close, .world-play',
+          ),
+          (element) => element.getBoundingClientRect(),
+        );
+      }
+      nodes.forEach((node) => {
+        projectedHit.copy(node.position);
+        galaxy.localToWorld(projectedHit);
+        projectedHit.project(camera);
+        const x = (projectedHit.x * 0.5 + 0.5) * stageWidth;
+        const y = (-projectedHit.y * 0.5 + 0.5) * stageHeight;
+        node.occluded = chromeRects.some(
+          (rect) =>
+            x >= rect.left - 8 &&
+            x <= rect.right + 8 &&
+            y >= rect.top - 8 &&
+            y <= rect.bottom + 8,
+        );
+      });
+
       if (!isDragging && frame % 2 === 0) {
-        raycaster.setFromCamera(pointer, camera);
-        const hit = raycaster.intersectObjects(hitAreas, false)[0];
-        if (hit) {
-          const nextIndex = hit.object.userData.destinationIndex as number;
+        const nextIndex = destinationAtPointer();
+        if (nextIndex >= 0) {
           if (expandedRef.current) {
             const nextExpandedPreview =
               nextIndex === activeIndexRef.current ? null : nextIndex;
-            if (
-              nextExpandedPreview !== expandedPreviewIndexRef.current
-            ) {
+            if (nextExpandedPreview !== expandedPreviewIndexRef.current) {
               expandedPreviewIndexRef.current = nextExpandedPreview;
               setExpandedPreviewIndex(nextExpandedPreview);
             }
@@ -1141,7 +1246,7 @@ export function GalaxyIndex() {
         renderer.domElement.style.cursor = 'grabbing';
       }
 
-      nodes.forEach(({ marker, signalWaves }, index) => {
+      nodes.forEach(({ marker, signalWaves, occluded }, index) => {
         const destination = destinations[index];
         const isSelected = expandedRef.current && index === selectedIndex;
         const isPreviewed =
@@ -1155,9 +1260,7 @@ export function GalaxyIndex() {
         const pulse =
           !isSelected && !isPreviewed
             ? shimmer
-            : 1 +
-              Math.sin(motionTime * 0.0035) *
-                (reduceMotion ? 0.03 : 0.045);
+            : 1 + Math.sin(motionTime * 0.0035) * (reduceMotion ? 0.03 : 0.045);
         const markerTarget =
           destination.size *
           (isSelected ? 0.82 : isHovered || isPreviewed ? 0.56 : 0.51) *
@@ -1165,20 +1268,21 @@ export function GalaxyIndex() {
         marker.scale.x += (markerTarget - marker.scale.x) * 0.11;
         marker.scale.y += (markerTarget - marker.scale.y) * 0.11;
         marker.material.opacity +=
-          ((isSelected ? 1 : isHovered || isPreviewed ? 0.92 : 0.82) -
+          ((occluded
+            ? 0
+            : isSelected
+              ? 1
+              : isHovered || isPreviewed
+                ? 0.92
+                : 0.82) -
             marker.material.opacity) *
           0.11;
         marker.material.rotation +=
-          (0.00016 + index * 0.000025) *
-          (reduceMotion ? 0.72 : 1) *
-          delta;
+          (0.00016 + index * 0.000025) * (reduceMotion ? 0.72 : 1) * delta;
 
         signalWaves.forEach((wave, waveIndex) => {
           const progress =
-            (motionTime * 0.00022 +
-              wave.userData.phase +
-              index * 0.117) %
-            1;
+            (motionTime * 0.00022 + wave.userData.phase + index * 0.117) % 1;
           const waveScale =
             destination.size *
             (0.49 + THREE.MathUtils.smoothstep(progress, 0, 1) * 0.7);
@@ -1186,9 +1290,8 @@ export function GalaxyIndex() {
           const prominence =
             isSelected || isHovered || isPreviewed ? 0.22 : 0.62;
           wave.scale.setScalar(waveScale);
-          wave.material.opacity = envelope * prominence;
-          wave.material.rotation =
-            -motionTime * 0.000025 * (waveIndex + 1);
+          wave.material.opacity = occluded ? 0 : envelope * prominence;
+          wave.material.rotation = -motionTime * 0.000025 * (waveIndex + 1);
         });
       });
 
@@ -1200,16 +1303,19 @@ export function GalaxyIndex() {
         const bounds = renderer.domElement.getBoundingClientRect();
         const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
         const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
-        const usesCompactPanel = bounds.width <= 720;
+        const usesCompactPanel = compactViewport;
         const panelWidth =
           detail.offsetWidth || Math.min(640, bounds.width - 24);
         const panelHeight =
           detail.offsetHeight || (usesCompactPanel ? 178 : 188);
-        const horizontalMargin = usesCompactPanel ? 10 : 14;
-        const bottomClearance = usesCompactPanel ? 60 : 16;
+        const horizontalMargin = Math.max(
+          usesCompactPanel ? 10 : 14,
+          leftInset,
+        );
+        const bottomClearance = (usesCompactPanel ? 80 : 76) + bottomInset;
         const maximumPanelX = Math.max(
           horizontalMargin,
-          bounds.width - panelWidth - horizontalMargin,
+          bounds.width - panelWidth - Math.max(horizontalMargin, rightInset),
         );
         const minimumPanelX = usesCompactPanel
           ? horizontalMargin
@@ -1222,12 +1328,22 @@ export function GalaxyIndex() {
           ? maximumPanelY
           : Math.min(240, maximumPanelY);
         const panelX = usesCompactPanel
-          ? horizontalMargin
+          ? bounds.width > 720
+            ? maximumPanelX
+            : horizontalMargin
           : THREE.MathUtils.clamp(screenX - 90, minimumPanelX, maximumPanelX);
         const panelY = usesCompactPanel
           ? maximumPanelY
           : THREE.MathUtils.clamp(screenY - 94, minimumPanelY, maximumPanelY);
-        detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0)`;
+        // Let a person finish aiming at Launch / Close without chasing the
+        // orbit. Release the card again when its controls lose hover/focus.
+        if (
+          lastDetailIndex !== selectedIndex ||
+          !detail.matches(':hover, :focus-within')
+        ) {
+          detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0)`;
+        }
+        lastDetailIndex = selectedIndex;
         detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
       }
 
@@ -1264,6 +1380,9 @@ export function GalaxyIndex() {
             bounds.height - previewMargin - previewHeight / 2,
           );
           previewElement.dataset.edge = opensLeft ? 'right' : 'left';
+          previewElement.style.visibility = nodes[previewedIndex].occluded
+            ? 'hidden'
+            : '';
           previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
           previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
         }
@@ -1324,8 +1443,6 @@ export function GalaxyIndex() {
       nearGalaxyGeometry.dispose();
       farGalaxyGeometry.dispose();
       distantGalaxies.forEach(({ material }) => material.dispose());
-      hitGeometry.dispose();
-      hitMaterial.dispose();
       nodes.forEach(({ marker, signalWaves }) => {
         marker.material.dispose();
         signalWaves.forEach(({ material }) => material.dispose());
@@ -1336,12 +1453,16 @@ export function GalaxyIndex() {
   }, []);
 
   return (
-    <main
-      id="galaxy"
-      className="spore-shell relative h-[100svh] min-h-[520px] overflow-hidden"
-    >
+    <main id="galaxy" className="spore-shell relative overflow-hidden">
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
+
+      <WebringPanel
+        open={ringOpen}
+        onOpen={openWebring}
+        onClose={closeWebring}
+        portalRef={ringPortalRef}
+      />
 
       <header className="spore-corner" aria-label="Main menu">
         <a
@@ -1395,7 +1516,7 @@ export function GalaxyIndex() {
         </nav>
       </header>
 
-      {floatingPreview ? (
+      {floatingPreview && !ringOpen ? (
         <button
           type="button"
           ref={previewRef}
@@ -1624,6 +1745,15 @@ export function GalaxyIndex() {
               <li key={destination.id}>
                 <a href={destination.url}>{destination.name}</a>
                 <span>{destination.description}</span>
+              </li>
+            ))}
+          </ul>
+          <h2>Web ring</h2>
+          <ul>
+            {webring.map((neighbor) => (
+              <li key={neighbor.id}>
+                <a href={neighbor.url}>{neighbor.name}</a>
+                <span>{neighbor.description}</span>
               </li>
             ))}
           </ul>

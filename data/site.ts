@@ -1,4 +1,5 @@
 import { destinations } from './worlds';
+import { webring } from './webring';
 
 export const siteIdentity = {
   name: "Alireza's Galaxy",
@@ -51,10 +52,11 @@ export function renderLlmsText() {
   const owned = publicWorlds.filter(
     (destination) => destination.relationship === 'owned',
   );
-  const collaborations = publicWorlds.filter(
-    (destination) => destination.relationship === 'collaboration',
-  );
-  const renderLink = (destination: (typeof publicWorlds)[number]) =>
+  const renderLink = (destination: {
+    name: string;
+    url: string;
+    description: string;
+  }) =>
     `- [${destination.name}](${destination.url}): ${destination.description}`;
 
   return [
@@ -75,8 +77,15 @@ export function renderLlmsText() {
     '## Owned worlds',
     '',
     ...owned.map(renderLink),
-    ...(collaborations.length
-      ? ['', '## Collaborations', '', ...collaborations.map(renderLink)]
+    ...(webring.length
+      ? [
+          '',
+          '## Web ring',
+          '',
+          'Friends, collaborations, and interesting sites beyond the home galaxy. These are not solely authored by Alireza.',
+          '',
+          ...webring.map(renderLink),
+        ]
       : []),
     '',
     '## Machine-readable',
@@ -105,7 +114,23 @@ export function buildStructuredData() {
         url: siteIdentity.origin,
         description: siteIdentity.description,
         author: { '@id': `${siteIdentity.origin}/#person` },
-        hasPart: { '@id': `${siteIdentity.origin}/#worlds` },
+        hasPart: [
+          { '@id': `${siteIdentity.origin}/#worlds` },
+          { '@id': `${siteIdentity.origin}/#webring` },
+        ],
+      },
+      {
+        '@type': 'ItemList',
+        '@id': `${siteIdentity.origin}/#webring`,
+        name: 'Web ring — neighboring websites',
+        numberOfItems: webring.length,
+        itemListElement: webring.map((neighbor, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: neighbor.name,
+          url: neighbor.url,
+          description: neighbor.description,
+        })),
       },
       {
         '@type': 'ItemList',
