@@ -21,17 +21,17 @@ const PUBLIC = path.join(
 
 const ARMS = 5;
 const CENTER = 128;
-const WIND = 1.4 * Math.PI; // how far around each arm sweeps
-const R_INNER = 26; // where an arm leaves the core
+const WIND = Math.PI; // an open half-turn keeps the thicker arms distinct
+const R_INNER = 22; // tighter inner sweep around the smaller core
 const R_OUTER = 104; // where its tip lands
-const W_ROOT = 30; // arm width at the core, before the per-count scale
-const W_TIP = 18; // arm width at the tip; keep below W_ROOT so it tapers in
+const W_ROOT = 36; // fuller arms, before the per-count scale
+const W_TIP = 24; // broad rounded tips, still tapered from the root
 // The mark is loaded through <img src="/spiral-galaxy.svg">, and inside an
 // <img> currentColor resolves to black instead of inheriting the page colour,
 // so the fill has to be baked in.
 const MARK_FILL = '#d6f5ff';
-const CORE_BASE = 22;
-const CORE_SPAN = 8;
+const CORE_BASE = 14;
+const CORE_SPAN = 6;
 const SAMPLES = 34; // points along the centreline
 const CAP_SAMPLES = 9; // points around each rounded end
 const FAVICON_SQUIRCLE =

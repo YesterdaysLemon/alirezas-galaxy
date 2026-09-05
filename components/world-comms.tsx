@@ -9,6 +9,17 @@ const worldStyle = (world: Destination) =>
     '--world-color': `#${world.color.toString(16).padStart(6, '0')}`,
   }) as CSSProperties;
 
+function PanelFasteners() {
+  return (
+    <span className="comms-fasteners" aria-hidden="true">
+      <i />
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
 function Portrait({
   world,
   compact = false,
@@ -67,7 +78,9 @@ export function WorldPreview({
       <span className="world-preview-screen">
         <span className="world-preview-label">{world.name}</span>
         <span className="world-preview-address">
-          {new URL(world.url).hostname.replace(/^www\./, '')}
+          <span className="world-preview-address-text">
+            {new URL(world.url).hostname.replace(/^www\./, '')}
+          </span>
         </span>
       </span>
     </button>
@@ -94,7 +107,6 @@ export function WorldComms({
       aria-label={`Selected world: ${world.name}`}
       style={worldStyle(world)}
     >
-      <span className="comms-chassis" aria-hidden="true" />
       <div className="comms-top">
         <Portrait world={world} />
         <div className="world-detail-wing">
@@ -105,6 +117,7 @@ export function WorldComms({
           <span className="world-address">
             {new URL(world.url).hostname.replace(/^www\./, '')}
           </span>
+          <PanelFasteners />
         </div>
       </div>
       <div className="comms-coupler" aria-hidden="true">
@@ -140,6 +153,7 @@ export function WorldComms({
             <span>view source</span>
           </a>
         )}
+        <PanelFasteners />
       </div>
       <button
         type="button"
@@ -149,12 +163,6 @@ export function WorldComms({
       >
         ×
       </button>
-      <span className="comms-fasteners" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-        <i />
-      </span>
     </section>
   );
 }

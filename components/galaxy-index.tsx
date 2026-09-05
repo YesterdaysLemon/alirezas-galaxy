@@ -4,6 +4,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { WorldPreview, WorldComms } from './world-comms';
+import { followCard, type CardMotion } from '@/lib/card-motion';
+import { DistantGalaxyParallax } from '@/lib/distant-galaxy-parallax';
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
@@ -447,7 +449,6 @@ export function GalaxyIndex() {
   >(null);
   const [expanded, setExpanded] = useState(false);
   const [dockTransmission, setDockTransmission] = useState(0);
-  const [menuHighlight, setMenuHighlight] = useState(0);
   const currentWorlds = galaxies[galaxyId].worlds;
   const active = currentWorlds[activeIndex] ?? currentWorlds[0];
   const preview = currentWorlds[previewIndex] ?? currentWorlds[0];
@@ -945,6 +946,11 @@ export function GalaxyIndex() {
     const projectedHit = new THREE.Vector3();
     let stageWidth = stage.clientWidth;
     let stageHeight = stage.clientHeight;
+    const distantParallax = new DistantGalaxyParallax(
+      stageWidth,
+      stageHeight,
+      defaultCameraDistance,
+    );
     let bottomInset = 0;
     let rightInset = 0;
     let leftInset = 0;
@@ -952,6 +958,7 @@ export function GalaxyIndex() {
     const pointers = new Map<number, { x: number; y: number }>();
     let pinchDistance = 0;
     let lastDetailIndex = -1;
+    let detailMotion: CardMotion | null = null;
     let chromeRects: DOMRect[] = [];
     let hoveredIndex = -1;
     let isDragging = false;
@@ -1261,6 +1268,7 @@ export function GalaxyIndex() {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      distantParallax.resize(width, height, defaultCameraDistance, rightInset);
     });
     resizeObserver.observe(stage);
 
@@ -1395,29 +1403,15 @@ export function GalaxyIndex() {
       cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * 0.028 * delta;
       camera.lookAt(cameraLookTarget);
 
-      // Keep the neighboring galaxy in the open sky, clear of the main menu
-      // and mobile browser safe areas. Its particles keep their own rotation.
-      const portalX = stageWidth - (compactViewport ? 83 : 132) - rightInset;
-      const portalY =
-        stageHeight <= 500 && stageWidth > 720
-          ? 44
-          : compactViewport
-            ? 100
-            : 105;
-      ringPosition
-        .set(
-          (portalX / stageWidth) * 2 - 1,
-          1 - ((portalY - 14) / stageHeight) * 2,
-          0.5,
-        )
-        .unproject(camera);
-      ringPosition
-        .sub(camera.position)
-        .normalize()
-        .multiplyScalar(44)
-        .add(camera.position);
+      // Let the distant galaxy share the scene's camera parallax instead of
+      // cancelling it by re-pinning the galaxy to fixed screen coordinates.
+      distantParallax.update(camera, ringPosition, reduceMotion);
+      const portalX = distantParallax.screenX;
+      const portalY = distantParallax.screenY + 14;
       const unitsPerPixel =
-        (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 44) /
+        (2 *
+          Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+          distantParallax.depth) /
         stageHeight;
       const neighborScale = (compactViewport ? 58 : 74) * unitsPerPixel;
       for (const id of ['home', 'webring'] as const) {
@@ -1678,16 +1672,34 @@ export function GalaxyIndex() {
               minimumPanelY,
               maximumPanelY,
             );
-        // Let a person finish aiming at Launch / Close without chasing the
-        // orbit. Release the card again when its controls lose hover/focus.
-        if (
-          lastDetailIndex !== selectedIndex ||
-          !detail.matches(':hover, :focus-within')
-        ) {
-          detail.style.transform = `translate3d(${panelX}px, ${panelY}px, 0)`;
-        }
+        // Capture instantly; brief pointer exits do not release the card.
+        // After that grace period, ease back into the projected orbit.
+        detailMotion = followCard(
+          lastDetailIndex === selectedIndex ? detailMotion : null,
+          { x: panelX, y: panelY },
+          {
+            now: time,
+            deltaMs: elapsedMs,
+            held: detail.matches(':hover, :focus-within'),
+            reducedMotion: reduceMotion || usesCompactPanel,
+          },
+        );
+        detailMotion.x = THREE.MathUtils.clamp(
+          detailMotion.x,
+          minimumPanelX,
+          maximumPanelX,
+        );
+        detailMotion.y = THREE.MathUtils.clamp(
+          detailMotion.y,
+          minimumPanelY,
+          maximumPanelY,
+        );
+        detail.style.transform = `translate3d(${detailMotion.x}px, ${detailMotion.y}px, 0)`;
         lastDetailIndex = selectedIndex;
         detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
+      } else {
+        detailMotion = null;
+        lastDetailIndex = -1;
       }
 
       const previewElement = previewRef.current;
@@ -1733,6 +1745,8 @@ export function GalaxyIndex() {
           previewElement.style.visibility = nodes[previewedIndex].occluded
             ? 'hidden'
             : '';
+          // Compact previews always track their star directly. Only the open
+          // dialog above gets hover capture and a smoothed return to orbit.
           previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
           previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
         }
@@ -1871,6 +1885,7 @@ export function GalaxyIndex() {
       </p>
 
       <header className="spore-corner" aria-label="Main menu">
+        <span className="spore-canopy-spiral" aria-hidden="true" />
         <a
           className="sprawl-mark"
           href="#galaxy"
@@ -1887,40 +1902,28 @@ export function GalaxyIndex() {
           <button
             type="button"
             disabled={travelling}
-            className={`spore-menu-item ${menuHighlight === 0 ? 'is-active' : ''}`}
+            className="spore-menu-item"
             onClick={expandRandomDestination}
-            onMouseEnter={() => setMenuHighlight(0)}
-            onMouseLeave={() => setMenuHighlight(0)}
-            onFocus={() => setMenuHighlight(0)}
-            onBlur={() => setMenuHighlight(0)}
           >
             <MenuIcon name="random" />
             {galaxyId === 'home' ? 'random world' : 'random neighbor'}
           </button>
           <button
             type="button"
-            className={`spore-menu-item ${menuHighlight === 1 ? 'is-active' : ''}`}
+            className="spore-menu-item"
             disabled={travelling}
             onClick={() =>
               galaxyIdRef.current === 'home'
                 ? expandDestination(0)
                 : travelRef.current('home', true)
             }
-            onMouseEnter={() => setMenuHighlight(1)}
-            onMouseLeave={() => setMenuHighlight(0)}
-            onFocus={() => setMenuHighlight(1)}
-            onBlur={() => setMenuHighlight(0)}
           >
             <MenuIcon name="about" />
             about
           </button>
           <a
-            className={`spore-menu-item ${menuHighlight === 2 ? 'is-active' : ''}`}
+            className="spore-menu-item"
             href="https://github.com/YesterdaysLemon"
-            onMouseEnter={() => setMenuHighlight(2)}
-            onMouseLeave={() => setMenuHighlight(0)}
-            onFocus={() => setMenuHighlight(2)}
-            onBlur={() => setMenuHighlight(0)}
           >
             <MenuIcon name="github" />
             github
