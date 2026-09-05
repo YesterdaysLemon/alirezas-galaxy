@@ -94,9 +94,14 @@ export function WorldComms({
       aria-label={`Selected world: ${world.name}`}
       style={worldStyle(world)}
     >
+      <span className="comms-chassis" aria-hidden="true" />
       <div className="comms-top">
         <Portrait world={world} />
         <div className="world-detail-wing">
+          <span className="comms-title-mount" aria-hidden="true">
+            <i />
+            <i />
+          </span>
           <h2 title={world.name}>{world.name}</h2>
           <span className="world-kind">{world.kind}</span>
           <p>{message?.intro ?? world.description}</p>
@@ -104,6 +109,11 @@ export function WorldComms({
             {new URL(world.url).hostname.replace(/^www\./, '')}
           </span>
         </div>
+      </div>
+      <div className="comms-coupler" aria-hidden="true">
+        <i />
+        <b />
+        <i />
       </div>
       <div className="world-replies">
         <a
