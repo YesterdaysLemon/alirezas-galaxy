@@ -1702,11 +1702,18 @@ export function GalaxyIndex() {
           const bounds = renderer.domElement.getBoundingClientRect();
           const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
           const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
+          const previewMargin = bounds.width <= 720 ? 8 : 14;
+          // Fit the nameplate into the available space before clamping its
+          // position, keeping the circular portrait centered on its star.
+          const rightRoom = bounds.width - screenX - previewMargin - 19;
+          const leftRoom = screenX - previewMargin - 19;
+          const opensLeft = rightRoom < 150 && leftRoom > rightRoom;
+          previewElement.style.setProperty(
+            '--preview-room',
+            `${Math.floor(Math.min(220, Math.max(90, opensLeft ? leftRoom : rightRoom)))}px`,
+          );
           const previewWidth = previewElement.offsetWidth || 166;
           const previewHeight = previewElement.offsetHeight || 62;
-          const previewMargin = bounds.width <= 720 ? 8 : 14;
-          const opensLeft =
-            screenX + previewWidth - 31 > bounds.width - previewMargin;
           const anchorOffset = opensLeft ? previewWidth - 31 : 31;
           const maximumPreviewX = Math.max(
             previewMargin,

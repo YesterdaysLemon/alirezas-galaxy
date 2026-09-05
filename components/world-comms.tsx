@@ -98,10 +98,7 @@ export function WorldComms({
       <div className="comms-top">
         <Portrait world={world} />
         <div className="world-detail-wing">
-          <span className="comms-title-mount" aria-hidden="true">
-            <i />
-            <i />
-          </span>
+          <span className="comms-title-mount" aria-hidden="true" />
           <h2 title={world.name}>{world.name}</h2>
           <span className="world-kind">{world.kind}</span>
           <p>{message?.intro ?? world.description}</p>
