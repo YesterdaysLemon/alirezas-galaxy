@@ -80,7 +80,12 @@ test('mobile details fit their content above the toolbar as the viewport changes
   await page.getByRole('button', { name: 'about', exact: true }).tap();
   const detail = page.locator('.world-detail');
   await expect(detail).toHaveCSS('opacity', '1');
-  expect((await detail.boundingBox())!.height).toBeLessThan(200);
+  // Keep the portrait/message compact independently of the reply count.
+  const repliesHeight = (await detail.locator('.world-replies').boundingBox())!
+    .height;
+  expect((await detail.boundingBox())!.height - repliesHeight).toBeLessThan(
+    150,
+  );
   for (const viewport of [
     { width: 430, height: 760 },
     { width: 430, height: 630 },

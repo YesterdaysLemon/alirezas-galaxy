@@ -49,7 +49,7 @@ retained for immediate routing rollback.
 - Favicon or project-glyph callouts that follow the currently previewed world
 - Hover-to-preview browsing with screen-sized mouse and touch targets
 - Click-to-zoom world details with Launch shown only after confirmation
-- A Spore-style glass action body with its own close control
+- A Spore communications-style portrait bay, message screen, and reply controls
 - Heavier pointer/touch drag, long inertial spin, and wheel zoom
 - A four-revolution portrait Easter egg
 - Five spiral arms whose attached worlds keep drifting after selection
@@ -67,6 +67,11 @@ throttled screen-space picking against the world markers. Rendering pauses when 
 is hidden or offscreen.
 
 ## Personalize it
+
+`data/world-comms.ts` holds short, authored project introductions and opt-in
+public repository links. Unlisted projects use their catalog description;
+projects without a source URL show only the open-world reply. The console UI
+lives in `components/world-comms.tsx` and `app/world-comms.css`.
 
 Destinations live in `data/worlds.ts`. Add one catalog object for a new website;
 its orbit, spiral arm, color, and marker size are generated deterministically

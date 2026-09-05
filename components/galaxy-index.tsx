@@ -2,7 +2,8 @@
 
 /* oxlint-disable next/no-img-element -- Keep the local SVG unmodified in Vinext. */
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { WorldPreview, WorldComms } from './world-comms';
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
@@ -1501,7 +1502,7 @@ export function GalaxyIndex() {
         );
         chromeRects = Array.from(
           sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-close, .world-play',
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail',
           ),
           (element) => element.getBoundingClientRect(),
         );
@@ -1635,6 +1636,13 @@ export function GalaxyIndex() {
           detail.offsetWidth || Math.min(640, bounds.width - 24);
         const panelHeight =
           detail.offsetHeight || (usesCompactPanel ? 178 : 188);
+        const portrait = detail.querySelector<HTMLElement>('.world-orbit');
+        const anchorX = portrait
+          ? portrait.offsetLeft + portrait.offsetWidth / 2
+          : 58;
+        const anchorY = portrait
+          ? portrait.offsetTop + portrait.offsetHeight / 2
+          : 80;
         const horizontalMargin = Math.max(
           usesCompactPanel ? 10 : 14,
           leftInset,
@@ -1658,10 +1666,18 @@ export function GalaxyIndex() {
           ? bounds.width > 720
             ? maximumPanelX
             : horizontalMargin
-          : THREE.MathUtils.clamp(screenX - 90, minimumPanelX, maximumPanelX);
+          : THREE.MathUtils.clamp(
+              screenX - anchorX,
+              minimumPanelX,
+              maximumPanelX,
+            );
         const panelY = usesCompactPanel
           ? maximumPanelY
-          : THREE.MathUtils.clamp(screenY - 94, minimumPanelY, maximumPanelY);
+          : THREE.MathUtils.clamp(
+              screenY - anchorY,
+              minimumPanelY,
+              maximumPanelY,
+            );
         // Let a person finish aiming at Launch / Close without chasing the
         // orbit. Release the card again when its controls lose hover/focus.
         if (
@@ -1906,107 +1922,21 @@ export function GalaxyIndex() {
       </header>
 
       {floatingPreview && !travelling ? (
-        <button
-          type="button"
-          ref={previewRef}
-          className={`world-preview ${expanded ? 'is-hover-hint' : ''}`}
-          aria-label={`Inspect ${floatingPreview.name}`}
-          aria-hidden={expanded || undefined}
-          tabIndex={expanded ? -1 : undefined}
-          onClick={() => expandDestination(floatingPreviewIndex!)}
-          style={
-            {
-              '--world-color': `#${floatingPreview.color.toString(16).padStart(6, '0')}`,
-            } as CSSProperties
-          }
-        >
-          <div className="world-preview-orbit">
-            <div className="world-preview-face">
-              <span>{floatingPreview.glyph}</span>
-              {floatingPreview.iconSrc ? (
-                // Remote favicons are optional interface texture.
-                // oxlint-disable-next-line next/no-img-element
-                <img
-                  key={floatingPreview.iconSrc}
-                  src={floatingPreview.iconSrc}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-            </div>
-          </div>
-          <span className="world-preview-label">{floatingPreview.name}</span>
-        </button>
+        <WorldPreview
+          world={floatingPreview}
+          previewRef={previewRef}
+          hint={expanded}
+          onInspect={() => expandDestination(floatingPreviewIndex!)}
+        />
       ) : null}
 
       {expanded ? (
-        <section
-          ref={detailRef}
-          className="world-detail"
-          data-world-id={active.id}
-          aria-label={`Selected world: ${active.name}`}
-          style={
-            {
-              '--world-color': `#${active.color.toString(16).padStart(6, '0')}`,
-            } as CSSProperties
-          }
-        >
-          <div className="world-detail-wing">
-            <span className="world-kind">{active.kind}</span>
-            <h2>{active.name}</h2>
-            <p>{active.description}</p>
-            <span className="world-address">
-              {new URL(active.url).hostname.replace(/^www\./, '')}
-            </span>
-
-            <a
-              href={active.url}
-              target={galaxyId === 'webring' ? '_blank' : undefined}
-              rel={galaxyId === 'webring' ? 'noopener noreferrer' : undefined}
-              className="world-play"
-              aria-label={`Launch ${active.name}`}
-            >
-              <span className="play-triangle" aria-hidden="true">
-                ▶
-              </span>
-              <span>
-                <small>open world</small>
-                <strong>Launch</strong>
-              </span>
-            </a>
-          </div>
-
-          <div className="world-orbit" aria-hidden="true">
-            <div className="world-face">
-              <span>{active.glyph}</span>
-              {active.iconSrc ? (
-                // Remote favicons are tiny, optional UI texture—not LCP content.
-                // oxlint-disable-next-line next/no-img-element
-                <img
-                  key={active.iconSrc}
-                  src={active.iconSrc}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="world-close"
-            aria-label="Close world details"
-            onClick={collapseDestination}
-          >
-            ×
-          </button>
-        </section>
+        <WorldComms
+          world={active}
+          detailRef={detailRef}
+          external={galaxyId === 'webring'}
+          onClose={collapseDestination}
+        />
       ) : null}
 
       <div className="spore-dock" aria-label="Galaxy controls">
