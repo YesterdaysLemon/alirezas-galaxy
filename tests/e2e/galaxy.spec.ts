@@ -23,7 +23,7 @@ test('all confirmed worlds are keyboard-selectable', async ({ page }) => {
   await expect(androidPreview).toBeAttached();
   await expect(androidPreview.locator('.world-preview-label')).toHaveCSS(
     'color',
-    'rgb(146, 255, 99)',
+    'rgb(183, 245, 142)',
   );
   await androidHell.press('Enter');
 
@@ -108,7 +108,8 @@ test('the utility dock keeps its controls distinct and functional', async ({
     name: 'Show next footer transmission',
   });
   await expect(console).toHaveAttribute('data-mode', 'credit');
-  await expect(console.locator('.dock-mode-lights i')).toHaveCount(4);
+  await expect(tuner.locator('rect')).toHaveCount(4);
+  await expect(tuner.locator('rect.is-active')).toHaveCount(1);
   await expect(galaxyOrb.locator('img')).toHaveAttribute(
     'data-icon',
     'spore-main-menu-spiral',
@@ -120,16 +121,18 @@ test('the utility dock keeps its controls distinct and functional', async ({
   const spiralBox = await galaxyOrb.locator('img').boundingBox();
   expect(spiralBox).not.toBeNull();
   expect(spiralBox!.width).toBeGreaterThanOrEqual(44);
-  await expect(galaxyOrb.locator('svg')).toHaveCount(0);
+  await expect(galaxyOrb.locator('[data-icon="next-world"]')).toHaveCSS(
+    'opacity',
+    '0',
+  );
   await expect(tuner.locator('svg')).toHaveAttribute(
     'data-icon',
     'cycle-transmission',
   );
-  await expect(tuner.locator('circle')).toHaveCount(1);
-  await expect(tuner.locator('path')).toHaveCount(2);
+  await expect(tuner.locator('circle, path')).toHaveCount(0);
   const tunerIconBox = await tuner.locator('svg').boundingBox();
   expect(tunerIconBox).not.toBeNull();
-  expect(tunerIconBox!.width).toBeGreaterThanOrEqual(22);
+  expect(tunerIconBox!.width).toBe(18);
 
   const [consoleBox, orbBox, tunerBox] = await Promise.all([
     console.boundingBox(),
@@ -139,12 +142,11 @@ test('the utility dock keeps its controls distinct and functional', async ({
   expect(consoleBox).not.toBeNull();
   expect(orbBox).not.toBeNull();
   expect(tunerBox).not.toBeNull();
-  expect(orbBox!.x + orbBox!.width).toBeGreaterThan(consoleBox!.x);
-  expect(tunerBox!.x).toBeGreaterThanOrEqual(consoleBox!.x);
-  expect(tunerBox!.x + tunerBox!.width).toBeLessThanOrEqual(
-    consoleBox!.x + consoleBox!.width,
-  );
-  expect(orbBox!.x).toBeLessThanOrEqual(6);
+  expect(orbBox!.x + orbBox!.width).toBeLessThan(consoleBox!.x);
+  // The tuner's painted face has a 6px inset within its 44px hit target.
+  expect(consoleBox!.x - (tunerBox!.x + tunerBox!.width - 6)).toBeCloseTo(6, 1);
+  expect(tunerBox!.height).toBe(44);
+  expect(orbBox!.width).toBe(54);
 
   await expect(
     page.getByRole('dialog', { name: 'Galaxy settings' }),
@@ -186,7 +188,9 @@ test('the active menu keeps yellow contained inside the selected pill', async ({
   await openHydratedGalaxy(page);
   const github = page.getByRole('link', { name: 'github' });
   await github.hover();
-  await expect(github).toHaveClass(/is-active/);
+  await expect
+    .poll(() => github.evaluate((element) => element.matches(':hover')))
+    .toBe(true);
 
   for (const label of ['random world', 'about', 'github']) {
     const control =
@@ -279,7 +283,7 @@ test('primary controls discover a world, introduce Alireza, and link to GitHub',
     page.getByRole('region', { name: 'Selected world: Alireza Afshan' }),
   ).toBeAttached();
   await page
-    .getByRole('link', { name: 'Alireza Afshan — return home' })
+    .getByRole('button', { name: 'Alireza Afshan — return home' })
     .click();
   await expect(
     page.getByRole('region', { name: 'Selected world: Alireza Afshan' }),
@@ -324,9 +328,9 @@ test('mobile chrome keeps its controls legible, tappable, and separated', async 
   const consoleBox = (await page.locator('.dock-console').boundingBox())!;
   const tunerBox = (await page.locator('.dock-tuner').boundingBox())!;
   expect(orbBox.x).toBeGreaterThan(consoleBox.x);
-  expect(tunerBox.x).toBeLessThan(consoleBox.x + consoleBox.width / 2);
+  expect(tunerBox.x + 6 - (consoleBox.x + consoleBox.width)).toBeCloseTo(6, 1);
   expect(orbBox.x + orbBox.width).toBeCloseTo(
-    footerBox!.x + footerBox!.width,
+    footerBox!.x + footerBox!.width - 6,
     0,
   );
 

@@ -1,0 +1,477 @@
+/* Chosen lab motions: E2/W2, M1+M3, R3, C1, F1, B3.
+   The renderer owns root transforms. Animate only nested artwork. */
+.spore-shell {
+  --comms-motion-spring: cubic-bezier(0.2, 0.9, 0.25, 1.25);
+  --comms-entry-time: 1100ms;
+}
+.spore-shell .preview-motion {
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.spore-shell .preview-orbit-arrival {
+  display: grid;
+  flex: 0 0 62px;
+  position: relative;
+  z-index: 2;
+  animation: galaxy-hinge-socket var(--comms-entry-time) both;
+}
+.spore-shell .world-preview[data-edge='right'] .preview-motion {
+  flex-direction: row-reverse;
+}
+.spore-shell .world-preview-screen {
+  perspective: 500px;
+  transition: transform 360ms var(--comms-motion-spring) 45ms;
+}
+.spore-shell .world-preview-orbit {
+  transition: transform 280ms var(--comms-motion-spring);
+}
+.spore-shell .world-preview:is(:hover, :focus-visible) .world-preview-screen {
+  transform: translateX(7px);
+}
+.spore-shell
+  .world-preview[data-edge='right']:is(:hover, :focus-visible)
+  .world-preview-screen {
+  transform: translateX(-7px);
+}
+.spore-shell .world-preview:is(:hover, :focus-visible) .world-preview-orbit {
+  transform: rotate(-6deg);
+}
+.spore-shell .world-preview-label {
+  transform-origin: 0 100%;
+  animation: galaxy-upper-leaf var(--comms-entry-time) both;
+}
+.spore-shell .world-preview-address {
+  transform-origin: 0 0;
+  animation: galaxy-lower-leaf var(--comms-entry-time) both;
+}
+.spore-shell .world-preview[data-edge='right'] .world-preview-label {
+  transform-origin: 100% 100%;
+}
+.spore-shell .world-preview[data-edge='right'] .world-preview-address {
+  transform-origin: 100% 0;
+}
+.spore-shell .world-preview-screen::after {
+  animation: galaxy-fastener-seat var(--comms-entry-time) both;
+}
+.spore-shell .world-preview-name-text,
+.spore-shell .world-preview-address-text,
+.spore-shell .world-preview-face img,
+.spore-shell .world-preview-face > span:not(.comms-screen-static) {
+  animation: galaxy-signal-resolve var(--comms-entry-time) both;
+}
+.comms-screen-static {
+  position: absolute;
+  z-index: 4;
+  inset: 3px;
+  overflow: hidden;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  background-color: #143242;
+  background-image:
+    repeating-linear-gradient(
+      3deg,
+      #b4d2cd99 0 1px,
+      transparent 1px 3px,
+      #18323aa6 3px 5px
+    ),
+    repeating-linear-gradient(
+      97deg,
+      transparent 0 3px,
+      #d4e6da66 3px 4px,
+      transparent 4px 9px
+    ),
+    linear-gradient(
+      transparent 40%,
+      #9bd9d199 49%,
+      #ccf2e3 50%,
+      transparent 59%
+    );
+  background-size:
+    13px 17px,
+    19px 11px,
+    100% 200%;
+}
+.spore-shell .comms-screen-static {
+  animation: galaxy-static-resolve var(--comms-entry-time) linear both;
+}
+.world-preview-face .comms-screen-static {
+  inset: 0;
+  border-radius: 50%;
+}
+
+@keyframes galaxy-hinge-socket {
+  0% {
+    opacity: 0;
+    transform: scale(0.05) rotate(-100deg);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(0.65) rotate(-45deg);
+  }
+  32% {
+    transform: scale(1.06) rotate(5deg);
+  }
+  49%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes galaxy-upper-leaf {
+  0%,
+  18% {
+    opacity: 0;
+    transform: rotateY(-90deg) rotateX(65deg);
+  }
+  22% {
+    opacity: 1;
+  }
+  48% {
+    transform: rotateY(6deg) rotateX(-7deg);
+  }
+  62%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes galaxy-lower-leaf {
+  0%,
+  32% {
+    opacity: 0;
+    transform: rotateY(-90deg) rotateX(-75deg);
+  }
+  36% {
+    opacity: 1;
+  }
+  57% {
+    transform: rotateY(4deg) rotateX(5deg);
+  }
+  68%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes galaxy-fastener-seat {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  70%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes galaxy-signal-resolve {
+  0%,
+  61% {
+    opacity: 0;
+    filter: blur(3px) saturate(0.2);
+  }
+  76% {
+    opacity: 0.4;
+    filter: blur(1px) saturate(0.6);
+  }
+  94%,
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+@keyframes galaxy-static-resolve {
+  0% {
+    opacity: 0.55;
+    background-position:
+      0 0,
+      0 0,
+      0 100%;
+  }
+  18% {
+    opacity: 0.55;
+    background-position:
+      13px -17px,
+      -19px 11px,
+      0 80%;
+  }
+  32% {
+    opacity: 0.5;
+    background-position:
+      -5px 9px,
+      8px -4px,
+      0 60%;
+  }
+  48% {
+    opacity: 0.45;
+    background-position:
+      7px -11px,
+      -5px 8px,
+      0 40%;
+  }
+  65% {
+    opacity: 0.25;
+    background-position:
+      -13px 17px,
+      19px -11px,
+      0 20%;
+  }
+  84%,
+  100% {
+    opacity: 0;
+    background-position:
+      5px -9px,
+      -8px 4px,
+      0 0;
+  }
+}
+
+/* M1 + M3: the highlight arrives before the label; one ripple crosses it. */
+.spore-shell .spore-menu-item {
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    #05172fa3,
+    #081d354d 52%,
+    #0818390a 84%,
+    transparent
+  );
+  transition:
+    color 240ms 70ms,
+    filter 240ms,
+    box-shadow 320ms,
+    text-shadow 320ms;
+}
+.spore-shell .spore-menu-item:is(:hover, :focus-visible) {
+  width: 100%;
+}
+.menu-motion-light {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms ease-out;
+  background:
+    radial-gradient(
+      ellipse at 24% 43%,
+      #ffffdcbb,
+      #fff4a12b 48%,
+      transparent 72%
+    ),
+    linear-gradient(
+      90deg,
+      #ffe967,
+      #ffe16a 45%,
+      #f4cc3bb8 67%,
+      #efc22a24 88%,
+      transparent
+    );
+  pointer-events: none;
+}
+.menu-motion-label {
+  position: relative;
+  pointer-events: none;
+  transition: transform 320ms ease-out 90ms;
+}
+.menu-motion-ripple {
+  position: absolute;
+  top: 50%;
+  left: 25px;
+  width: 70px;
+  height: 70px;
+  border: 2px solid #ffffd2;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.1);
+  pointer-events: none;
+}
+.spore-shell .spore-menu-item:not(:disabled):is(:hover, :focus-visible) {
+  .menu-motion-light {
+    transform: scaleX(1);
+  }
+  .menu-motion-label {
+    transform: translateX(4px);
+  }
+}
+@keyframes galaxy-glass-ripple {
+  from {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(4);
+  }
+}
+
+/* R3 + C1: illumination on the reply, rotation inside the close socket. */
+.spore-shell .world-play,
+.spore-shell .world-source {
+  --reply-charge: #eeffc9;
+  --reply-glow: #b5e66366;
+  transition:
+    box-shadow 360ms,
+    filter 240ms;
+}
+.spore-shell .world-source {
+  --reply-charge: #d1f1ff;
+  --reply-glow: #72cfff66;
+}
+.spore-shell :is(.world-play, .world-source):is(:hover, :focus-visible) {
+  box-shadow:
+    inset 0 0 0 1px var(--reply-charge),
+    inset 0 0 10px var(--reply-glow),
+    0 0 9px var(--reply-glow);
+  filter: brightness(1.12);
+}
+.world-close-symbol {
+  display: block;
+  pointer-events: none;
+}
+.spore-shell .world-close-symbol {
+  transition: transform 300ms var(--comms-motion-spring);
+}
+.spore-shell .world-close:is(:hover, :focus-visible) .world-close-symbol {
+  transform: rotate(90deg) scale(1.06);
+}
+
+/* The renderer owns both live galaxy rotation and the temporary flywheel kick. */
+.dock-flywheel {
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* B3: a separate orbital accent preserves the quiet idle signal waves. */
+.galaxy-signal-orbit {
+  position: absolute;
+  inset: 0;
+  border: 1px dashed;
+  border-color: #b2dcf8 transparent #b2dcf8 transparent;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotate(0);
+  transition:
+    transform 950ms ease-out,
+    opacity 380ms ease-out;
+}
+.spore-shell .galaxy-signal:hover .galaxy-signal-orbit,
+.spore-shell .webring-portal:focus-visible .galaxy-signal-orbit {
+  transform: rotate(210deg);
+  opacity: 0.55;
+}
+@keyframes galaxy-orbital-sweep {
+  from {
+    transform: rotate(0);
+    opacity: 0.7;
+  }
+  to {
+    transform: rotate(210deg);
+    opacity: 0.45;
+  }
+}
+
+/* Expanded comms use the same socket -> hinged leaves -> resolved signal. */
+.spore-shell .world-detail {
+  animation: none;
+}
+.spore-shell .world-detail .world-orbit {
+  animation: galaxy-hinge-socket var(--comms-entry-time) both;
+}
+.spore-shell .world-detail-wing {
+  transform-origin: left center;
+  animation: galaxy-upper-leaf var(--comms-entry-time) both;
+}
+.spore-shell .world-replies {
+  transform-origin: top center;
+  animation: galaxy-lower-leaf var(--comms-entry-time) both;
+}
+.spore-shell
+  .world-detail
+  :is(
+    h2,
+    .world-kind,
+    p,
+    .world-address,
+    .world-face img,
+    .world-face > span:not(.comms-screen-static)
+  ) {
+  animation: galaxy-signal-resolve var(--comms-entry-time) both;
+}
+.spore-shell .world-detail :is(.comms-coupler, .world-close) {
+  animation: galaxy-fastener-seat var(--comms-entry-time) both;
+}
+.spore-shell .world-close {
+  transition: filter 280ms;
+}
+.spore-shell [data-phase='leaving'],
+.spore-shell [data-phase='leaving'] * {
+  pointer-events: none !important;
+}
+.spore-shell .world-detail-wing > .comms-screen-static {
+  inset: 6px;
+}
+.spore-shell .world-face > .comms-screen-static {
+  border-radius: 50%;
+}
+.spore-shell .dock-orb > :is(svg, .dock-flywheel) {
+  grid-area: 1 / 1;
+  transition: opacity 320ms ease;
+}
+.spore-shell .dock-orb[data-action='spin'] > svg,
+.spore-shell .dock-orb[data-action='next'] > .dock-flywheel {
+  opacity: 0;
+}
+.spore-shell button.sprawl-mark {
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.spore-shell .dock-orb {
+  display: grid;
+  place-items: center;
+}
+.spore-shell :is(.dock-orb, .dock-tuner, .dock-message, .sprawl-mark) {
+  transition:
+    filter 280ms,
+    color 280ms,
+    box-shadow 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spore-shell .world-detail *,
+  .spore-shell .preview-motion *,
+  .spore-shell .preview-motion *::after,
+  .spore-shell .menu-motion-light,
+  .spore-shell .menu-motion-label,
+  .spore-shell .menu-motion-ripple,
+  .spore-shell .world-close-symbol,
+  .spore-shell .dock-flywheel,
+  .spore-shell .galaxy-signal-orbit {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .spore-shell .comms-screen-static,
+  .spore-shell .menu-motion-ripple {
+    display: none;
+  }
+  .spore-shell .menu-motion-light {
+    opacity: 0;
+  }
+  .spore-shell
+    .spore-menu-item:not(:disabled):is(:hover, :focus-visible)
+    .menu-motion-light {
+    opacity: 1;
+  }
+  .spore-shell .galaxy-signal:hover .galaxy-signal-orbit,
+  .spore-shell .webring-portal:focus-visible .galaxy-signal-orbit {
+    opacity: 0.45;
+  }
+}

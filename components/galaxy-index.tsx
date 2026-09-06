@@ -3,7 +3,9 @@
 /* oxlint-disable next/no-img-element -- Keep the local SVG unmodified in Vinext. */
 
 import { useEffect, useRef, useState } from 'react';
-import { WorldPreview, WorldComms } from './world-comms';
+import { CommsPresence } from './comms-presence';
+import { DockHousing } from './dock-housing';
+import { DockSpin } from '@/lib/dock-spin';
 import { followCard, type CardMotion } from '@/lib/card-motion';
 import { DistantGalaxyParallax } from '@/lib/distant-galaxy-parallax';
 import * as THREE from 'three';
@@ -438,12 +440,15 @@ export function GalaxyIndex() {
   const coreExposureRef = useRef(0.92);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
   const spinGalaxyRef = useRef<() => void>(() => undefined);
+  const hoverGalaxyRef = useRef<() => void>(() => undefined);
   const dockGalaxyIconRef = useRef<HTMLImageElement>(null);
   const focusRotationRef = useRef<number | null>(
     destinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [previewVisible, setPreviewVisible] = useState(true);
+  const previewVisibleRef = useRef(true);
   const [expandedPreviewIndex, setExpandedPreviewIndex] = useState<
     number | null
   >(null);
@@ -452,7 +457,11 @@ export function GalaxyIndex() {
   const currentWorlds = galaxies[galaxyId].worlds;
   const active = currentWorlds[activeIndex] ?? currentWorlds[0];
   const preview = currentWorlds[previewIndex] ?? currentWorlds[0];
-  const floatingPreviewIndex = expanded ? expandedPreviewIndex : previewIndex;
+  const floatingPreviewIndex = expanded
+    ? expandedPreviewIndex
+    : previewVisible
+      ? previewIndex
+      : null;
   const floatingPreview =
     floatingPreviewIndex === null ? null : currentWorlds[floatingPreviewIndex];
   const dailyQuote = getQuoteOfTheDay();
@@ -469,6 +478,8 @@ export function GalaxyIndex() {
 
   const previewDestination = (index: number) => {
     if (expandedRef.current) return;
+    previewVisibleRef.current = true;
+    setPreviewVisible(true);
     previewIndexRef.current = index;
     setPreviewIndex(index);
   };
@@ -961,12 +972,14 @@ export function GalaxyIndex() {
     let detailMotion: CardMotion | null = null;
     let chromeRects: DOMRect[] = [];
     let hoveredIndex = -1;
+    let hasHoveredWorld = false;
     let isDragging = false;
     let pointerId = -1;
     let lastX = 0;
     let lastY = 0;
     let dragDistance = 0;
     let angularVelocity = 0;
+    const dockSpin = new DockSpin();
     let tiltVelocity = 0;
     let fastSpinTravel = 0;
     let portraitBurstCount = 0;
@@ -997,6 +1010,7 @@ export function GalaxyIndex() {
       tiltVelocity = 0;
       fastSpinTravel = 0;
       dockSpinPresses = 0;
+      dockSpin.reset();
       pointer.set(4, 4);
       hoveredIndex = -1;
       travelStart = travelProgress;
@@ -1038,10 +1052,17 @@ export function GalaxyIndex() {
 
     portraitBurstTarget.dataset.portraitBursts = '0';
 
+    hoverGalaxyRef.current = () => {
+      if (travellingRef.current || expandedRef.current || reduceMotion) return;
+      // CSS screen rotation has the opposite sign to the scene's Y rotation.
+      dockSpin.kick(angularVelocity < -0.002 ? -1 : 1);
+    };
+
     spinGalaxyRef.current = () => {
       if (travellingRef.current) return;
       focusRotationRef.current = null;
       const direction = angularVelocity < -0.002 ? -1 : 1;
+      if (!reduceMotion) dockSpin.kick(-direction);
       dockSpinPresses += 1;
       const stagedMagnitude = Math.min(0.16, dockSpinPresses * 0.022);
       angularVelocity =
@@ -1349,7 +1370,8 @@ export function GalaxyIndex() {
       }
 
       if (dockGalaxyIconRef.current) {
-        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y}rad)`;
+        const dockPhase = dockSpin.step(elapsedMs / 1000, reduceMotion);
+        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
       }
 
       burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
@@ -1477,14 +1499,20 @@ export function GalaxyIndex() {
         distantSignalPosition.copy(remote.nodes[0].position);
         remote.galaxy.localToWorld(distantSignalPosition);
         distantSignalPosition.project(camera);
-        portal.style.setProperty(
-          '--signal-x',
-          `${(distantSignalPosition.x * 0.5 + 0.5) * stageWidth - portalX}px`,
+        // Keep the entire touch target reachable when a remote star's orbit
+        // projects beyond a short landscape viewport.
+        const signalX = THREE.MathUtils.clamp(
+          (distantSignalPosition.x * 0.5 + 0.5) * stageWidth,
+          28 + leftInset,
+          stageWidth - 28 - rightInset,
         );
-        portal.style.setProperty(
-          '--signal-y',
-          `${(-distantSignalPosition.y * 0.5 + 0.5) * stageHeight - portalY}px`,
+        const signalY = THREE.MathUtils.clamp(
+          (-distantSignalPosition.y * 0.5 + 0.5) * stageHeight,
+          28,
+          stageHeight - 90 - bottomInset,
         );
+        portal.style.setProperty('--signal-x', `${signalX - portalX}px`);
+        portal.style.setProperty('--signal-y', `${signalY - portalY}px`);
       }
 
       // Sample only actual controls, never the transparent corner/dock
@@ -1496,7 +1524,7 @@ export function GalaxyIndex() {
         );
         chromeRects = Array.from(
           sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail',
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
           ),
           (element) => element.getBoundingClientRect(),
         );
@@ -1519,6 +1547,11 @@ export function GalaxyIndex() {
       if (!isDragging && frame % 2 === 0) {
         const nextIndex = destinationAtPointer();
         if (nextIndex >= 0) {
+          hasHoveredWorld = true;
+          if (!previewVisibleRef.current) {
+            previewVisibleRef.current = true;
+            setPreviewVisible(true);
+          }
           if (expandedRef.current) {
             const nextExpandedPreview =
               nextIndex === activeIndexRef.current ? null : nextIndex;
@@ -1536,6 +1569,15 @@ export function GalaxyIndex() {
           hoveredIndex = nextIndex;
           renderer.domElement.style.cursor = 'pointer';
         } else {
+          if (
+            hasHoveredWorld &&
+            previewVisibleRef.current &&
+            !previewRef.current?.matches(':hover, :focus-within') &&
+            !document.activeElement?.closest('[aria-label="Website worlds"]')
+          ) {
+            previewVisibleRef.current = false;
+            setPreviewVisible(false);
+          }
           hoveredIndex = -1;
           renderer.domElement.style.cursor = 'grab';
           if (expandedPreviewIndexRef.current !== null) {
@@ -1641,7 +1683,8 @@ export function GalaxyIndex() {
           usesCompactPanel ? 10 : 14,
           leftInset,
         );
-        const bottomClearance = (usesCompactPanel ? 80 : 76) + bottomInset;
+        // 76 px housing, its safe-area offset, and an 8 px visual gap.
+        const bottomClearance = 76 + Math.max(6, bottomInset) + 8;
         const maximumPanelX = Math.max(
           horizontalMargin,
           bounds.width - panelWidth - Math.max(horizontalMargin, rightInset),
@@ -1790,6 +1833,7 @@ export function GalaxyIndex() {
       window.clearTimeout(portraitPreloadTimer);
       resetGalaxyRef.current = () => undefined;
       spinGalaxyRef.current = () => undefined;
+      hoverGalaxyRef.current = () => undefined;
       portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
       portraitTextures.forEach((texture) => texture.dispose());
       glowTexture?.dispose();
@@ -1826,6 +1870,23 @@ export function GalaxyIndex() {
       data-galaxy={galaxyId}
       data-travelling={travelling}
       data-arms={galaxies[galaxyId].arms}
+      onPointerOver={(event) => {
+        const menu = (event.target as Element).closest('.spore-menu-item');
+        if (
+          !menu ||
+          menu.contains(event.relatedTarget as Node | null) ||
+          matchMedia('(prefers-reduced-motion: reduce)').matches
+        )
+          return;
+        // A finite ripple finishes independently of hover; leaving never cancels it.
+        menu.querySelector('.menu-motion-ripple')?.animate(
+          [
+            { opacity: 0.7, transform: 'translate(-50%, -50%) scale(0.1)' },
+            { opacity: 0, transform: 'translate(-50%, -50%) scale(4)' },
+          ],
+          { duration: 620, easing: 'ease-out' },
+        );
+      }}
     >
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
@@ -1865,6 +1926,7 @@ export function GalaxyIndex() {
         <span className="galaxy-signal" aria-hidden="true">
           <i />
           <i />
+          <span className="galaxy-signal-orbit" />
           <svg
             className="galaxy-signal-star"
             viewBox="-32 -32 64 64"
@@ -1886,9 +1948,9 @@ export function GalaxyIndex() {
 
       <header className="spore-corner" aria-label="Main menu">
         <span className="spore-canopy-spiral" aria-hidden="true" />
-        <a
+        <button
+          type="button"
           className="sprawl-mark"
-          href="#galaxy"
           aria-label="Alireza Afshan — return home"
           onClick={(event) => {
             event.preventDefault();
@@ -1897,7 +1959,7 @@ export function GalaxyIndex() {
         >
           <span>alireza</span>
           <span>afshan</span>
-        </a>
+        </button>
         <nav className="spore-menu" aria-label="Primary">
           <button
             type="button"
@@ -1905,8 +1967,12 @@ export function GalaxyIndex() {
             className="spore-menu-item"
             onClick={expandRandomDestination}
           >
+            <span className="menu-motion-light" aria-hidden="true" />
+            <span className="menu-motion-ripple" aria-hidden="true" />
             <MenuIcon name="random" />
-            {galaxyId === 'home' ? 'random world' : 'random neighbor'}
+            <span className="menu-motion-label">
+              {galaxyId === 'home' ? 'random world' : 'random neighbor'}
+            </span>
           </button>
           <button
             type="button"
@@ -1918,76 +1984,120 @@ export function GalaxyIndex() {
                 : travelRef.current('home', true)
             }
           >
+            <span className="menu-motion-light" aria-hidden="true" />
+            <span className="menu-motion-ripple" aria-hidden="true" />
             <MenuIcon name="about" />
-            about
+            <span className="menu-motion-label">about</span>
           </button>
           <a
             className="spore-menu-item"
             href="https://github.com/YesterdaysLemon"
+            target="_blank"
+            rel="noopener noreferrer"
           >
+            <span className="menu-motion-light" aria-hidden="true" />
+            <span className="menu-motion-ripple" aria-hidden="true" />
             <MenuIcon name="github" />
-            github
+            <span className="menu-motion-label">github</span>
           </a>
         </nav>
       </header>
 
-      {floatingPreview && !travelling ? (
-        <WorldPreview
-          world={floatingPreview}
-          previewRef={previewRef}
-          hint={expanded}
-          onInspect={() => expandDestination(floatingPreviewIndex!)}
-        />
-      ) : null}
-
-      {expanded ? (
-        <WorldComms
-          world={active}
-          detailRef={detailRef}
-          external={galaxyId === 'webring'}
-          onClose={collapseDestination}
-        />
-      ) : null}
+      <CommsPresence
+        kind="preview"
+        world={!travelling ? floatingPreview : null}
+        anchorRef={previewRef}
+        hint={expanded}
+        onAction={() => expandDestination(floatingPreviewIndex!)}
+      />
+      <CommsPresence
+        kind="detail"
+        world={expanded ? active : null}
+        anchorRef={detailRef}
+        onAction={collapseDestination}
+      />
 
       <div className="spore-dock" aria-label="Galaxy controls">
-        <button
-          type="button"
-          aria-label={
-            expanded
-              ? currentWorlds.length > 1
-                ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
-                : 'Only world in this galaxy'
-              : 'Spin the galaxy faster'
-          }
-          title={
-            expanded
-              ? currentWorlds.length > 1
-                ? 'Go to the next world'
-                : 'Only world in this galaxy'
-              : 'Spin the galaxy faster'
-          }
-          data-action={expanded ? 'next' : 'spin'}
-          disabled={travelling || (expanded && currentWorlds.length < 2)}
-          className="dock-orb"
-          onClick={advanceOrSpin}
-        >
-          {expanded ? (
+        <DockHousing />
+        <div className="dock-buttons">
+          <button
+            type="button"
+            aria-label={
+              expanded
+                ? currentWorlds.length > 1
+                  ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
+                  : 'Only world in this galaxy'
+                : 'Spin the galaxy faster'
+            }
+            title={
+              expanded
+                ? currentWorlds.length > 1
+                  ? 'Go to the next world'
+                  : 'Only world in this galaxy'
+                : 'Spin the galaxy faster'
+            }
+            data-action={expanded ? 'next' : 'spin'}
+            disabled={travelling || (expanded && currentWorlds.length < 2)}
+            className="dock-orb"
+            onClick={advanceOrSpin}
+            onPointerEnter={(event) => {
+              if (event.pointerType === 'mouse' || event.pointerType === 'pen')
+                hoverGalaxyRef.current();
+            }}
+            onFocus={(event) => {
+              if (event.currentTarget.matches(':focus-visible'))
+                hoverGalaxyRef.current();
+            }}
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="next-world">
               <path d="M5 5.8c0-.9.9-1.3 1.6-.8l8.3 6.2c.6.4.6 1.2 0 1.6L6.6 19c-.7.5-1.6.1-1.6-.8V5.8Z" />
               <rect x="17" y="5" width="3" height="14" rx="1.5" />
             </svg>
-          ) : (
-            <img
-              ref={dockGalaxyIconRef}
+            <span className="dock-flywheel">
+              <img
+                ref={dockGalaxyIconRef}
+                aria-hidden="true"
+                data-icon="spore-main-menu-spiral"
+                src={
+                  galaxyId === 'webring'
+                    ? '/spiral-galaxy-3.svg'
+                    : '/spiral-galaxy.svg'
+                }
+                alt=""
+                width={44}
+                height={44}
+              />
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label="Show next footer transmission"
+            aria-controls="dock-transmission"
+            className="dock-tuner"
+            title="Cycle transmissions: credit, quote, source, contact"
+            onClick={() => setDockTransmission((current) => (current + 1) % 4)}
+          >
+            <svg
               aria-hidden="true"
-              data-icon="spore-main-menu-spiral"
-              src="/spiral-galaxy.svg"
-              alt=""
-              width={44}
-              height={44}
-            />
-          )}
-        </button>
+              data-icon="cycle-transmission"
+              viewBox="0 0 24 24"
+            >
+              {[0, 1, 2, 3].map((mode) => (
+                <rect
+                  key={mode}
+                  x={mode % 2 ? 13 : 5}
+                  y={mode > 1 ? 13 : 5}
+                  width="6"
+                  height="6"
+                  rx=".8"
+                  className={
+                    dockTransmission === mode ? 'is-active' : undefined
+                  }
+                />
+              ))}
+            </svg>
+          </button>
+        </div>
         <div
           className="dock-console"
           data-mode={
@@ -2000,34 +2110,32 @@ export function GalaxyIndex() {
                   : 'credit'
           }
         >
-          <span className="dock-mode-lights" aria-hidden="true">
-            {[0, 1, 2, 3].map((mode) => (
-              <i
-                key={mode}
-                className={dockTransmission === mode ? 'is-active' : undefined}
-              />
-            ))}
-          </span>
           {dockTransmission === 3 ? (
             <a
               id="dock-transmission"
               href="mailto:mail@alirezaafshan.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="dock-message"
               data-mode="contact"
               aria-label="Contact me by email"
             >
-              contact me ↗
+              <span className="dock-text">contact me ↗</span>
             </a>
           ) : dockTransmission === 2 ? (
             <a
               id="dock-transmission"
               href={quotationCollection.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="dock-message"
               data-mode="source"
               aria-label={`Open ${quotationCollection.label}`}
               title={quotationCollection.label}
             >
-              open bartlett&apos;s quotations ↗
+              <span className="dock-text">
+                open bartlett&apos;s quotations ↗
+              </span>
             </a>
           ) : (
             <output
@@ -2041,31 +2149,13 @@ export function GalaxyIndex() {
                   : '© alireza afshan · 2026'
               }
             >
-              {dockTransmission === 1
-                ? `“${dailyQuote.text}” — ${dailyQuote.author}`
-                : '© alireza afshan · 2026'}
+              <span className="dock-text">
+                {dockTransmission === 1
+                  ? `“${dailyQuote.text}” — ${dailyQuote.author}`
+                  : '© alireza afshan · 2026'}
+              </span>
             </output>
           )}
-          <button
-            type="button"
-            aria-label="Show next footer transmission"
-            aria-controls="dock-transmission"
-            className="dock-tuner"
-            onClick={() => setDockTransmission((current) => (current + 1) % 4)}
-          >
-            <svg
-              aria-hidden="true"
-              data-icon="cycle-transmission"
-              viewBox="0 0 24 24"
-            >
-              <path
-                className="tuner-cycle-orbit"
-                d="M18.4 8a7.2 7.2 0 1 0 .7 7.1"
-              />
-              <path className="tuner-cycle-arrow" d="M14.8 7.8h3.9V3.9" />
-              <circle className="tuner-cycle-signal" cx="12" cy="12" r="1.65" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -2096,7 +2186,13 @@ export function GalaxyIndex() {
           <ul>
             {destinations.map((destination) => (
               <li key={destination.id}>
-                <a href={destination.url}>{destination.name}</a>
+                <a
+                  href={destination.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {destination.name}
+                </a>
                 <span>{destination.description}</span>
               </li>
             ))}
@@ -2105,7 +2201,13 @@ export function GalaxyIndex() {
           <ul>
             {webring.map((neighbor) => (
               <li key={neighbor.id}>
-                <a href={neighbor.url}>{neighbor.name}</a>
+                <a
+                  href={neighbor.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {neighbor.name}
+                </a>
                 <span>{neighbor.description}</span>
               </li>
             ))}

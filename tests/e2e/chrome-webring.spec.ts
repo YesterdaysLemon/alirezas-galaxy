@@ -2,6 +2,20 @@ import { expect, test } from '@playwright/test';
 
 test.use({ hasTouch: true });
 
+async function tapBeacon(page: import('@playwright/test').Page, name: string) {
+  const signal = page.getByRole('button', { name }).locator('.galaxy-signal');
+  await expect(signal).toBeVisible();
+  // Its orbit is renderer-driven, so it never satisfies a static-box wait.
+  // Tap its current painted center through real pointer input instead.
+  const box = (await signal.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 test('a quiet star has a finger-sized hit target on mobile', async ({
   page,
 }) => {
@@ -76,7 +90,9 @@ for (const viewport of [
     await expect(close).toBeVisible();
     await page.locator('.world-detail').evaluate(async (element) => {
       await Promise.all(
-        element.getAnimations().map((animation) => animation.finished),
+        element
+          .getAnimations({ subtree: true })
+          .map((animation) => animation.finished),
       );
     });
     const closeBox = (await close.boundingBox())!;
@@ -117,9 +133,8 @@ for (const viewport of [
       element.setAttribute('data-scene-instance', 'original'),
     );
     await expect(shell).toHaveAttribute('data-arms', '5');
-    const portal = page.getByRole('button', { name: 'Travel to the web ring' });
     // A tap on the pulsing star itself starts the journey.
-    await portal.locator('.galaxy-signal').click();
+    await tapBeacon(page, 'Travel to the web ring');
     await expect(shell).toHaveAttribute('data-travelling', 'true');
     await expect(shell).toHaveAttribute('data-galaxy', 'webring');
     await expect(shell).toHaveAttribute('data-travelling', 'false');
@@ -145,10 +160,7 @@ for (const viewport of [
       page.getByRole('link', { name: 'Launch Learn2Design' }),
     ).toHaveAttribute('target', '_blank');
     // Return works even with a neighbor's details open.
-    await page
-      .getByRole('button', { name: 'Return to my galaxy' })
-      .locator('.galaxy-signal')
-      .click();
+    await tapBeacon(page, 'Return to my galaxy');
     await expect(shell).toHaveAttribute('data-galaxy', 'home');
     await expect(shell).toHaveAttribute('data-travelling', 'false');
     await expect(shell).toHaveAttribute('data-arms', '5');
@@ -172,10 +184,7 @@ test('browser Back and direct links navigate the galaxies', async ({
   const shell = page.locator('#galaxy');
   await expect(shell).toHaveAttribute('data-galaxy', 'webring');
   await expect(shell).toHaveAttribute('data-travelling', 'false');
-  await page
-    .getByRole('button', { name: 'Return to my galaxy' })
-    .locator('.galaxy-signal')
-    .click();
+  await tapBeacon(page, 'Return to my galaxy');
   await expect(shell).toHaveAttribute('data-travelling', 'false');
   await expect(shell).toHaveAttribute('data-galaxy', 'home');
   await page.goBack();

@@ -6,7 +6,7 @@ export type Destination = {
   description: string;
   relationship: 'owned' | 'collaboration';
   hosting: 'first-party' | 'external';
-  status: 'live' | 'preview' | 'archived';
+  status: 'live' | 'sleeping' | 'preview' | 'archived';
   iconSrc?: string;
   glyph: string;
   color: number;
@@ -225,24 +225,6 @@ export const worldCatalog: WorldSeed[] = [
     size: 0.76,
   },
   {
-    id: 'application-builder',
-    name: 'Application Builder',
-    kind: 'Codex plugin',
-    url: 'https://job-application-batch-builder.alirezaafshan4.chatgpt.site',
-    description:
-      'Evidence-first application batches without the polished nonsense.',
-    relationship: 'owned',
-    hosting: 'external',
-    status: 'live',
-    iconSrc:
-      'https://job-application-batch-builder.alirezaafshan4.chatgpt.site/_sites/dispatch-assets/favicon.svg',
-    glyph: '▤',
-    color: 0xbda2ff,
-    radius: 7.45,
-    angle: 3.57,
-    size: 0.8,
-  },
-  {
     id: 'android-hell',
     name: 'Android Hell',
     kind: 'Subject distress intake',
@@ -259,11 +241,11 @@ export const worldCatalog: WorldSeed[] = [
     id: 'conspiracy',
     name: 'Conspiracy',
     kind: 'Collaborative evidence board',
-    url: 'https://yesterdayslemon.github.io/conspiracy/',
+    url: 'https://conspiracy.alirezaafshan.com',
     description:
       'A tactile noir evidence board where people and agents investigate together.',
     relationship: 'owned',
-    hosting: 'external',
+    hosting: 'first-party',
     status: 'live',
     glyph: '⌁',
   },
@@ -271,14 +253,13 @@ export const worldCatalog: WorldSeed[] = [
     id: 'codex-continuity',
     name: 'Codex Continuity',
     kind: 'Desktop continuity utility',
-    url: 'https://codex-continuity.alirezaafshan4.chatgpt.site',
+    url: 'https://continuity.alirezaafshan.com',
     description:
       'Keeps Codex tasks recoverable while the desktop app updates or restarts.',
     relationship: 'owned',
-    hosting: 'external',
+    hosting: 'first-party',
     status: 'live',
-    iconSrc:
-      'https://raw.githubusercontent.com/YesterdaysLemon/codex-continuity/main/site/public/icon.svg',
+    iconSrc: 'https://continuity.alirezaafshan.com/icon.svg',
     glyph: '↻',
   },
   {
@@ -305,7 +286,7 @@ export const worldCatalog: WorldSeed[] = [
     relationship: 'owned',
     hosting: 'first-party',
     status: 'live',
-    iconSrc: 'https://agar.alirezaafshan.com/agar-mark-01.svg',
+    iconSrc: 'https://agar.alirezaafshan.com/agar-mark-02.svg',
     glyph: '◉',
   },
   {
@@ -318,9 +299,21 @@ export const worldCatalog: WorldSeed[] = [
     relationship: 'owned',
     hosting: 'first-party',
     status: 'live',
-    iconSrc:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 25 14h-5v11h-8V14H7L16 3Z' fill='%238edfff' stroke='%23eaffff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E",
+    iconSrc: 'https://deploy.alirezaafshan.com/favicon.svg',
     glyph: '↟',
+  },
+  {
+    id: 'oyster-house',
+    name: 'Oyster House',
+    kind: 'Agent house · sleeping',
+    url: 'https://agent.alirezaafshan.com',
+    description:
+      'The agents are sleeping. A quiet public landing page while the runtime is offline.',
+    relationship: 'owned',
+    hosting: 'first-party',
+    status: 'sleeping',
+    iconSrc: 'https://agent.alirezaafshan.com/favicon.svg',
+    glyph: '☾',
   },
 ];
 

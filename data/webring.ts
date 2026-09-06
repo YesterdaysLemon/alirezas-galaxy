@@ -13,6 +13,15 @@ export type WebringNeighbor = {
 // use this same list. These entries never take a star in the home galaxy.
 export const webring: WebringNeighbor[] = [
   {
+    id: 'chatjimmy',
+    name: 'ChatJimmy',
+    url: 'https://chatjimmy.ai/',
+    description: 'A little corner of the web for a chat with Jimmy.',
+    kind: 'inspiration',
+    iconSrc: 'https://chatjimmy.ai/favicon.ico',
+    glyph: '✳',
+  },
+  {
     id: 'learn2design',
     name: 'Learn2Design',
     url: 'https://www.learn2design2026.com/',

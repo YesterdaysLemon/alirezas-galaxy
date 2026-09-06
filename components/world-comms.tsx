@@ -46,6 +46,7 @@ function Portrait({
             }}
           />
         )}
+        <span className="comms-screen-static" aria-hidden="true" />
       </div>
     </div>
   );
@@ -55,11 +56,13 @@ export function WorldPreview({
   world,
   previewRef,
   hint,
+  leaving = false,
   onInspect,
 }: {
   world: Destination;
   previewRef: RefObject<HTMLButtonElement | null>;
   hint: boolean;
+  leaving?: boolean;
   onInspect: () => void;
 }) {
   return (
@@ -69,17 +72,27 @@ export function WorldPreview({
       className={`world-preview ${hint ? 'is-hover-hint' : ''}`}
       data-world-id={world.id}
       aria-label={`Inspect ${world.name}`}
-      aria-hidden={hint || undefined}
-      tabIndex={hint ? -1 : undefined}
+      aria-hidden={hint || leaving || undefined}
+      inert={leaving || undefined}
+      data-phase={leaving ? 'leaving' : undefined}
+      tabIndex={hint || leaving ? -1 : undefined}
       onClick={onInspect}
       style={worldStyle(world)}
     >
-      <Portrait world={world} compact />
-      <span className="world-preview-screen">
-        <span className="world-preview-label">{world.name}</span>
-        <span className="world-preview-address">
-          <span className="world-preview-address-text">
-            {new URL(world.url).hostname.replace(/^www\./, '')}
+      <span className="preview-motion">
+        <span className="preview-orbit-arrival">
+          <Portrait world={world} compact />
+        </span>
+        <span className="world-preview-screen">
+          <span className="world-preview-label">
+            <span className="world-preview-name-text">{world.name}</span>
+            <span className="comms-screen-static" aria-hidden="true" />
+          </span>
+          <span className="world-preview-address">
+            <span className="world-preview-address-text">
+              {new URL(world.url).hostname.replace(/^www\./, '')}
+            </span>
+            <span className="comms-screen-static" aria-hidden="true" />
           </span>
         </span>
       </span>
@@ -90,12 +103,12 @@ export function WorldPreview({
 export function WorldComms({
   world,
   detailRef,
-  external,
+  leaving = false,
   onClose,
 }: {
   world: Destination;
   detailRef: RefObject<HTMLElement | null>;
-  external: boolean;
+  leaving?: boolean;
   onClose: () => void;
 }) {
   const message = worldComms[world.id];
@@ -105,6 +118,9 @@ export function WorldComms({
       className="world-detail"
       data-world-id={world.id}
       aria-label={`Selected world: ${world.name}`}
+      aria-hidden={leaving || undefined}
+      inert={leaving || undefined}
+      data-phase={leaving ? 'leaving' : undefined}
       style={worldStyle(world)}
     >
       <div className="comms-top">
@@ -118,6 +134,7 @@ export function WorldComms({
             {new URL(world.url).hostname.replace(/^www\./, '')}
           </span>
           <PanelFasteners />
+          <span className="comms-screen-static" aria-hidden="true" />
         </div>
       </div>
       <div className="comms-coupler" aria-hidden="true">
@@ -128,8 +145,8 @@ export function WorldComms({
       <div className="world-replies">
         <a
           href={world.url}
-          target={external ? '_blank' : undefined}
-          rel={external ? 'noopener noreferrer' : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
           className="world-play"
           aria-label={`Launch ${world.name}`}
         >
@@ -137,7 +154,7 @@ export function WorldComms({
             ▸
           </span>
           <span>open world</span>
-          {external && <span className="sr-only"> (opens in a new tab)</span>}
+          <span className="sr-only"> (opens in a new tab)</span>
         </a>
         {message?.source && (
           <a
@@ -161,7 +178,9 @@ export function WorldComms({
         aria-label="Close world details"
         onClick={onClose}
       >
-        ×
+        <span className="world-close-symbol" aria-hidden="true">
+          ×
+        </span>
       </button>
     </section>
   );

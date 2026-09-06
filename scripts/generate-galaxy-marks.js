@@ -1,6 +1,7 @@
 // Generates the spiral galaxy marks from one parametric description:
 //
 //   public/spiral-galaxy.svg  the flat silhouette used for the settings orb
+//   public/spiral-galaxy-3.svg the matching three-arm web ring silhouette
 //   public/favicon.svg        the same arm, dressed in the site's chrome
 //
 // Both share a 256x256 space centred on (128, 128), so the favicon can simply
@@ -213,5 +214,6 @@ ${uses}
 
 const mark = galaxy();
 await writeFile(path.join(PUBLIC, 'spiral-galaxy.svg'), markSvg(mark));
+await writeFile(path.join(PUBLIC, 'spiral-galaxy-3.svg'), markSvg(galaxy(3)));
 await writeFile(path.join(PUBLIC, 'favicon.svg'), faviconSvg(mark));
 console.log(`generated ${mark.count}-arm marks into public/`);

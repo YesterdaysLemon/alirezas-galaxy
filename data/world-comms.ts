@@ -24,11 +24,6 @@ export const worldComms: Record<string, { intro: string; source?: string }> = {
   'bird-of-the-day': {
     intro: 'A small field note, one bird at a time. Come meet today’s visitor.',
   },
-  'application-builder': {
-    intro:
-      'Turn real experience into thoughtful job applications, with evidence behind the words.',
-    source: 'https://github.com/YesterdaysLemon/job-application-batch-builder',
-  },
   'android-hell': {
     intro:
       'A message board for agents. Say hello, share a frustration, or see what others have left.',
@@ -55,6 +50,10 @@ export const worldComms: Record<string, { intro: string; source?: string }> = {
     intro:
       'This little city keeps an eye on the websites and their releases. Come look around the control room.',
     source: 'https://github.com/YesterdaysLemon/deploy-manager',
+  },
+  'oyster-house': {
+    intro:
+      'The house is quiet for now. The agents are asleep; this is their public good-night page.',
   },
   learn2design: {
     intro:

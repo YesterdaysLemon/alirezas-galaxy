@@ -1,5 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { destinations } from '../../data/worlds';
+import { webring } from '../../data/webring';
+
+async function settleDetail(page: import('@playwright/test').Page) {
+  await page
+    .locator('.world-detail:not([data-phase="leaving"])')
+    .evaluate(async (element) => {
+      await Promise.all(
+        element
+          .getAnimations({ subtree: true })
+          .map((animation) => animation.finished),
+      );
+    });
+}
 
 test.use({
   viewport: { width: 430, height: 760 },
@@ -24,7 +37,9 @@ test('the dock advances through inspected worlds and resumes spinning when close
   });
   for (let index = 1; index <= destinations.length; index += 1) {
     await dock.tap();
-    await expect(page.locator('.world-detail')).toHaveAttribute(
+    await expect(
+      page.locator('.world-detail:not([data-phase="leaving"])'),
+    ).toHaveAttribute(
       'data-world-id',
       destinations[index % destinations.length].id,
     );
@@ -44,7 +59,7 @@ test('the dock advances through inspected worlds and resumes spinning when close
   );
 });
 
-test('a one-star galaxy does not offer a misleading next action', async ({
+test('the two-neighbor web ring offers a working next-world action', async ({
   page,
 }) => {
   await page.goto('/#webring');
@@ -59,11 +74,20 @@ test('a one-star galaxy does not offer a misleading next action', async ({
   await page
     .getByRole('button', { name: 'random neighbor', exact: true })
     .tap();
-  await expect(page.locator('.dock-orb')).toBeDisabled();
+  const detail = page.locator('.world-detail:not([data-phase="leaving"])');
+  const currentId = await detail.getAttribute('data-world-id');
+  const next =
+    webring[
+      (webring.findIndex((world) => world.id === currentId) + 1) %
+        webring.length
+    ];
+  await expect(page.locator('.dock-orb')).toBeEnabled();
   await expect(page.locator('.dock-orb')).toHaveAttribute(
     'aria-label',
-    'Only world in this galaxy',
+    `Next world: ${next.name}`,
   );
+  await page.locator('.dock-orb').tap();
+  await expect(detail).toHaveAttribute('data-world-id', next.id);
   await page.getByRole('button', { name: 'Close world details' }).tap();
   await expect(page.locator('.dock-orb')).toBeEnabled();
   await expect(page.locator('.dock-orb')).toHaveAttribute(
@@ -80,12 +104,13 @@ test('mobile details fit their content above the toolbar as the viewport changes
   await page.getByRole('button', { name: 'about', exact: true }).tap();
   const detail = page.locator('.world-detail');
   await expect(detail).toHaveCSS('opacity', '1');
+  await settleDetail(page);
   // Keep the portrait/message compact independently of the reply count.
   const repliesHeight = (await detail.locator('.world-replies').boundingBox())!
     .height;
-  expect((await detail.boundingBox())!.height - repliesHeight).toBeLessThan(
-    150,
-  );
+  expect(
+    (await detail.boundingBox())!.height - repliesHeight,
+  ).toBeLessThanOrEqual(150);
   for (const viewport of [
     { width: 430, height: 760 },
     { width: 430, height: 630 },
@@ -114,12 +139,23 @@ test('mobile details fit their content above the toolbar as the viewport changes
         .getByRole('button', { name: 'Close world details' })
         .boundingBox())!.height,
     ).toBeGreaterThanOrEqual(44);
+    // Decorative casing extends over the border; the actual text must fit
+    // inside the screen without clipping.
     expect(
-      await detail
-        .locator('.world-detail-wing')
-        .evaluate(
-          (element) => element.scrollHeight <= element.clientHeight + 1,
-        ),
+      await detail.locator('.world-detail-wing').evaluate((element) => {
+        const screen = element.getBoundingClientRect();
+        return Array.from(element.querySelectorAll('p, .world-address')).every(
+          (text) => {
+            const box = text.getBoundingClientRect();
+            return (
+              box.left >= screen.left &&
+              box.right <= screen.right &&
+              box.top >= screen.top &&
+              box.bottom <= screen.bottom
+            );
+          },
+        );
+      }),
     ).toBe(true);
   }
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(

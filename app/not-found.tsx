@@ -5,7 +5,9 @@ export default function NotFound() {
     <main className="lost-signal">
       <p>signal lost</p>
       <h1>This world isn&apos;t mapped.</h1>
-      <Link href="/#galaxy">Return to the galaxy</Link>
+      <Link href="/#galaxy" target="_blank" rel="noopener noreferrer">
+        Return to the galaxy
+      </Link>
     </main>
   );
 }

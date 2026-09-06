@@ -4,6 +4,7 @@ import { buildStructuredData, siteIdentity } from '@/data/site';
 import './globals.css';
 import './webring.css';
 import './world-comms.css';
+import './galaxy-motion.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

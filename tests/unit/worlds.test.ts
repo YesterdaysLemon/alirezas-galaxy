@@ -13,13 +13,13 @@ const requiredWorlds = [
   'proof-bonsai',
   'aquarium',
   'bird-of-the-day',
-  'application-builder',
   'android-hell',
   'conspiracy',
   'codex-continuity',
   'sponsor-my-microduck',
   'agar-protocol',
   'deploy-manager',
+  'oyster-house',
 ];
 
 describe('world catalog', () => {
@@ -38,6 +38,13 @@ describe('world catalog', () => {
       iconSrc: 'https://portfolio.alirezaafshan.com/apple-touch-icon.png',
     });
   });
+  it('maps ChatJimmy as a discovery in the separate web ring', () => {
+    expect(webring.find(({ id }) => id === 'chatjimmy')).toMatchObject({
+      url: 'https://chatjimmy.ai/',
+      kind: 'inspiration',
+    });
+    expect(destinations.some(({ id }) => id === 'chatjimmy')).toBe(false);
+  });
 
   it('reserves the home galaxy for owned projects and puts collaborations in the web ring', () => {
     expect(
@@ -52,8 +59,41 @@ describe('world catalog', () => {
       destinations.find(({ id }) => id === 'codex-continuity'),
     ).toMatchObject({
       relationship: 'owned',
-      hosting: 'external',
+      hosting: 'first-party',
     });
+  });
+
+  it('uses verified public domains instead of development hosts', () => {
+    for (const world of destinations) {
+      expect(new URL(world.url).hostname.endsWith('.alirezaafshan.com')).toBe(true);
+      expect(world.hosting).toBe('first-party');
+    }
+    expect(destinations.find(({ id }) => id === 'conspiracy')?.url).toBe(
+      'https://conspiracy.alirezaafshan.com',
+    );
+    expect(destinations.find(({ id }) => id === 'codex-continuity')?.url).toBe(
+      'https://continuity.alirezaafshan.com',
+    );
+    expect(destinations.some(({ id }) => id === 'application-builder')).toBe(false);
+  });
+
+  it('does not describe the sleeping Oyster runtime as live', () => {
+    expect(destinations.find(({ id }) => id === 'oyster-house')).toMatchObject({
+      status: 'sleeping',
+      kind: 'Agent house · sleeping',
+    });
+  });
+
+  it('uses the current published brand icons', () => {
+    expect(destinations.find(({ id }) => id === 'agar-protocol')?.iconSrc).toBe(
+      'https://agar.alirezaafshan.com/agar-mark-02.svg',
+    );
+    expect(destinations.find(({ id }) => id === 'deploy-manager')?.iconSrc).toBe(
+      'https://deploy.alirezaafshan.com/favicon.svg',
+    );
+    expect(webring.find(({ id }) => id === 'chatjimmy')?.iconSrc).toBe(
+      'https://chatjimmy.ai/favicon.ico',
+    );
   });
 
   it('materializes safe deterministic galaxy coordinates', () => {
