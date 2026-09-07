@@ -9,6 +9,13 @@ const motionCss = await readFile('app/galaxy-motion.css', 'utf8');
 const galaxySource = await readFile('components/galaxy-index.tsx', 'utf8');
 
 describe('selected galaxy motion integration', () => {
+  it('mounts the preview screw on its folding plate, not the stationary wrapper', async () => {
+    const chromeCss = await readFile('app/world-comms.css', 'utf8');
+    expect(chromeCss).toContain('.world-preview-address::after');
+    expect(motionCss).toContain('.world-preview-address::after');
+    expect(chromeCss).not.toContain('.world-preview-screen::after');
+    expect(motionCss).not.toContain('.world-preview-screen::after');
+  });
   it('starts static during opening, not after the hinges settle', () => {
     const staticMotion = motionCss.slice(
       motionCss.indexOf('@keyframes galaxy-static-resolve'),

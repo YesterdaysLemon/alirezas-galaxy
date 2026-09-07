@@ -51,7 +51,7 @@
 .spore-shell .world-preview[data-edge='right'] .world-preview-address {
   transform-origin: 100% 0;
 }
-.spore-shell .world-preview-screen::after {
+.spore-shell .world-preview-address::after {
   animation: galaxy-fastener-seat var(--comms-entry-time) both;
 }
 .spore-shell .world-preview-name-text,
@@ -234,9 +234,9 @@
   width: 100%;
   background: linear-gradient(
     90deg,
-    #05172fa3,
-    #081d354d 52%,
-    #0818390a 84%,
+    #243d58b8,
+    #29425e66 42%,
+    #3b557112 76%,
     transparent
   );
   transition:
@@ -258,18 +258,18 @@
   transition: transform 320ms ease-out;
   background:
     radial-gradient(
-      ellipse at 24% 43%,
+      ellipse at 22% 43%,
       #ffffdcbb,
-      #fff4a12b 48%,
-      transparent 72%
+      #fff4a12b 38%,
+      transparent 60%
     ),
     linear-gradient(
       90deg,
       #ffe967,
-      #ffe16a 45%,
-      #f4cc3bb8 67%,
-      #efc22a24 88%,
-      transparent
+      #ffe16a 64%,
+      #f4cc3bd9 78%,
+      #efc22a14 88%,
+      transparent 94%
     );
   pointer-events: none;
 }

@@ -86,12 +86,12 @@
   background: none;
   box-shadow: none;
 }
-.world-preview-screen::after {
+.world-preview-address::after {
   content: '';
   position: absolute;
   z-index: 2;
-  right: 1px;
-  bottom: 1px;
+  right: -2px;
+  bottom: -2px;
   width: 6px;
   height: 6px;
   border: 1px solid #172d39;
@@ -137,7 +137,9 @@
   border-radius: 4px;
   background: linear-gradient(135deg, #b3c7c9, #536f7c 55%, #92aaaf);
   box-shadow: 0 1px 0 1px #071421;
-  overflow: hidden;
+  /* The screw sits over the border and travels with this folding plate.
+     The inner text span handles truncation independently. */
+  overflow: visible;
   font-size: 11px;
   line-height: 1;
   text-align: left;
@@ -186,9 +188,9 @@
   margin-left: 0;
   margin-right: -12px;
 }
-.world-preview[data-edge='right'] .world-preview-screen::after {
+.world-preview[data-edge='right'] .world-preview-address::after {
   right: auto;
-  left: 1px;
+  left: -2px;
 }
 .world-preview[data-edge='right'] .world-preview-label {
   margin-left: 6px;
