@@ -8,6 +8,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+# Exclusions must happen before route discovery and static-asset bundling.
+RUN test ! -e app/motion-lab && test ! -e app/static-lab && test ! -e public/icon-lab.html
 RUN npm run build
 
 FROM node:22.22.0-slim AS runtime

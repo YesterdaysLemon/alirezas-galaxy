@@ -9,3 +9,15 @@ work
 .env*
 *.log
 *.tsbuildinfo
+
+# UI experiments remain available to local dev, never to release builds.
+# Match public HTML pages, not real world icons such as celegans-lab.svg.
+app/**/*-lab
+app/**/lab
+app/**/labs
+components/**/*-lab.tsx
+data/**/*-lab.ts
+public/**/*-lab.html
+public/**/*-lab
+public/**/lab
+public/**/labs

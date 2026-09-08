@@ -56,12 +56,14 @@ export function WorldPreview({
   world,
   previewRef,
   hint,
+  contentReady = false,
   leaving = false,
   onInspect,
 }: {
   world: Destination;
   previewRef: RefObject<HTMLButtonElement | null>;
   hint: boolean;
+  contentReady?: boolean;
   leaving?: boolean;
   onInspect: () => void;
 }) {
@@ -71,6 +73,8 @@ export function WorldPreview({
       ref={previewRef}
       className={`world-preview ${hint ? 'is-hover-hint' : ''}`}
       data-world-id={world.id}
+      data-content-ready={contentReady}
+      aria-busy={!contentReady}
       aria-label={`Inspect ${world.name}`}
       aria-hidden={hint || leaving || undefined}
       inert={leaving || undefined}
@@ -103,11 +107,13 @@ export function WorldPreview({
 export function WorldComms({
   world,
   detailRef,
+  contentReady = false,
   leaving = false,
   onClose,
 }: {
   world: Destination;
   detailRef: RefObject<HTMLElement | null>;
+  contentReady?: boolean;
   leaving?: boolean;
   onClose: () => void;
 }) {
@@ -117,6 +123,8 @@ export function WorldComms({
       ref={detailRef}
       className="world-detail"
       data-world-id={world.id}
+      data-content-ready={contentReady}
+      aria-busy={!contentReady}
       aria-label={`Selected world: ${world.name}`}
       aria-hidden={leaving || undefined}
       inert={leaving || undefined}
@@ -129,7 +137,8 @@ export function WorldComms({
           <span className="comms-title-mount" aria-hidden="true" />
           <h2 title={world.name}>{world.name}</h2>
           <span className="world-kind">
-            {world.kind}{world.status === 'preview' ? ' · preview' : ''}
+            {world.kind}
+            {world.status === 'preview' ? ' · preview' : ''}
           </span>
           <p>{message?.intro ?? world.description}</p>
           <span className="world-address">
@@ -145,6 +154,7 @@ export function WorldComms({
         <i />
       </div>
       <div className="world-replies">
+        <span className="comms-screen-static" aria-hidden="true" />
         <a
           href={world.url}
           target="_blank"
@@ -155,7 +165,9 @@ export function WorldComms({
           <span aria-hidden="true" className="comms-response-arrow">
             ▸
           </span>
-          <span>{world.status === 'preview' ? 'preview world' : 'open world'}</span>
+          <span>
+            {world.status === 'preview' ? 'preview world' : 'open world'}
+          </span>
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
         {message?.source && (

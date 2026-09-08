@@ -40,12 +40,19 @@ describe('selected galaxy motion integration', () => {
     expect(chromeCss).not.toContain('.world-preview-screen::after');
     expect(motionCss).not.toContain('.world-preview-screen::after');
   });
-  it('starts static during opening, not after the hinges settle', () => {
-    const staticMotion = motionCss.slice(
-      motionCss.indexOf('@keyframes galaxy-static-resolve'),
+  it('holds static until both content and world positioning are ready', () => {
+    const gate = motionCss.slice(
+      motionCss.indexOf('/* Static is a readiness gate'),
+      motionCss.indexOf('@keyframes galaxy-static-loading'),
     );
-    expect(staticMotion).toMatch(/0%\s*\{\s*opacity: 0\.55/);
-    expect(staticMotion).toMatch(/84%,\s*100%\s*\{\s*opacity: 0/);
+    expect(gate).toContain("[data-content-ready='false']");
+    expect(gate).toContain(":not([data-position-ready='true'])");
+    expect(gate).toContain('opacity: 0.55');
+    expect(gate).toContain(
+      'galaxy-static-loading var(--comms-entry-time) linear infinite',
+    );
+    expect(gate).toContain('visibility: hidden');
+    expect(gate).not.toContain('galaxy-static-resolve');
   });
   it('keeps preview arrival and hover artwork inside one stable button', () => {
     const markup = renderToStaticMarkup(
@@ -61,6 +68,32 @@ describe('selected galaxy motion integration', () => {
     expect(markup).toContain('class="preview-orbit-arrival"');
     expect(markup.match(/class="comms-screen-static"/g)).toHaveLength(3);
     expect(markup).toContain('aria-label="Inspect Alireza Afshan"');
+  });
+  it('retains the live crosshatch texture and its three-layer scan-band motion', () => {
+    expect(motionCss).not.toContain('feTurbulence');
+    expect(motionCss).not.toContain('galaxy-static-hold');
+    expect(motionCss).toContain('background-color: #143242');
+    expect(motionCss).toContain('#b4d2cd99 0 1px');
+    expect(motionCss).toContain('#d4e6da66 3px 4px');
+    expect(motionCss).toContain('#ccf2e3 50%');
+    const loading = motionCss.slice(
+      motionCss.indexOf('@keyframes galaxy-static-loading'),
+      motionCss.indexOf('.world-preview-face .comms-screen-static'),
+    );
+    expect(loading).toContain('0 100%');
+    expect(loading).toContain('0 20%');
+    expect(loading).not.toContain('opacity:');
+  });
+  it('keeps title and body screens on equal layers behind the icon', () => {
+    expect(motionCss).toMatch(
+      /\.spore-shell \.world-preview-screen\s*\{[^}]*z-index: 1;[^}]*isolation: isolate;/,
+    );
+    expect(motionCss).toMatch(
+      /\.spore-shell \.world-preview-label,\s*\.spore-shell \.world-preview-address\s*\{[^}]*z-index: 0;[^}]*isolation: isolate;/,
+    );
+    expect(motionCss).toMatch(
+      /\.spore-shell \.world-detail \.world-orbit\s*\{[^}]*z-index: 2;/,
+    );
   });
   it('retains passive hints and the real modal close control', () => {
     const hint = renderToStaticMarkup(

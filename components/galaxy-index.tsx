@@ -7,6 +7,7 @@ import { CommsPresence } from './comms-presence';
 import { DockHousing } from './dock-housing';
 import { DockHover, DockSpin } from '@/lib/dock-spin';
 import { UI_MOTION_SPEED, uiDuration } from '@/lib/ui-motion';
+import { syncCommsIdentity } from '@/lib/comms-readiness';
 import { followCard, type CardMotion } from '@/lib/card-motion';
 import { DistantGalaxyParallax } from '@/lib/distant-galaxy-parallax';
 import * as THREE from 'three';
@@ -1668,7 +1669,7 @@ export function GalaxyIndex() {
       );
 
       const detail = detailRef.current;
-      if (detail) {
+      if (detail && syncCommsIdentity(detail, sceneWorlds[selectedIndex]?.id)) {
         labelPosition.copy(nodes[selectedIndex].position);
         galaxy.localToWorld(labelPosition);
         labelPosition.project(camera);
@@ -1758,7 +1759,15 @@ export function GalaxyIndex() {
         const previewedIndex = expandedRef.current
           ? expandedPreviewIndexRef.current
           : previewIndexRef.current;
-        if (previewedIndex !== null) {
+        if (
+          syncCommsIdentity(
+            previewElement,
+            previewedIndex === null
+              ? undefined
+              : sceneWorlds[previewedIndex]?.id,
+          ) &&
+          previewedIndex !== null
+        ) {
           previewPosition.copy(nodes[previewedIndex].position);
           galaxy.localToWorld(previewPosition);
           previewPosition.project(camera);

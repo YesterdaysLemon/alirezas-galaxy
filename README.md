@@ -29,6 +29,13 @@ host port, then place your deploy manager or reverse proxy in front of it. The
 container runs unprivileged, with a read-only filesystem and a built-in health
 check.
 
+UI experiment pages are local-only. `.dockerignore` excludes `app/**/lab`,
+`app/**/labs`, `app/**/*-lab`, matching lab component/data modules, and public
+lab directories or `*-lab.html` pages before the release build discovers routes.
+This keeps `/motion-lab`, `/static-lab`, and `/icon-lab.html` out of the deployed
+image while preserving them for `npm run dev`. Ordinary destination assets such
+as `celegans-lab.svg` are retained.
+
 Pushes to `main` build and publish `ghcr.io/yesterdayslemon/alirezas-galaxy`
 through the Container workflow; pull requests build the same image without
 publishing it. Once the guarded `DEPLOY_ENABLED` repository variable is armed,

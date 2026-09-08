@@ -20,6 +20,8 @@
   flex-direction: row-reverse;
 }
 .spore-shell .world-preview-screen {
+  z-index: 1;
+  isolation: isolate;
   perspective: 500px;
   transition: transform calc(360ms / var(--ui-motion-speed, 1))
     var(--comms-motion-spring) calc(45ms / var(--ui-motion-speed, 1));
@@ -27,6 +29,11 @@
 .spore-shell .world-preview-orbit {
   transition: transform calc(280ms / var(--ui-motion-speed, 1))
     var(--comms-motion-spring);
+}
+.spore-shell .world-preview-label,
+.spore-shell .world-preview-address {
+  z-index: 0;
+  isolation: isolate;
 }
 .spore-shell .world-preview:is(:hover, :focus-visible) .world-preview-screen {
   transform: translateX(7px);
@@ -96,7 +103,82 @@
     100% 200%;
 }
 .spore-shell .comms-screen-static {
-  animation: galaxy-static-resolve var(--comms-entry-time) linear both;
+  /* Preserve the live crosshatch and scan band; readiness owns the reveal. */
+  transition: opacity 90ms linear;
+}
+/* Static is a readiness gate, not a timer that can reveal an old world. */
+.spore-shell
+  :is(.world-preview, .world-detail):is(
+    [data-content-ready='false'],
+    :not([data-position-ready='true'])
+  )
+  .comms-screen-static {
+  display: block;
+  opacity: 0.55;
+  animation: galaxy-static-loading var(--comms-entry-time) linear infinite;
+}
+.spore-shell
+  :is(.world-preview, .world-detail):is(
+    [data-content-ready='false'],
+    :not([data-position-ready='true'])
+  )
+  :is(
+    .world-preview-name-text,
+    .world-preview-address-text,
+    .world-preview-face img,
+    .world-preview-face > span:not(.comms-screen-static),
+    .world-face img,
+    .world-face > span:not(.comms-screen-static),
+    h2,
+    .world-kind,
+    p,
+    .world-address,
+    .world-replies a
+  ) {
+  visibility: hidden;
+}
+.spore-shell :is(.world-preview, .world-detail)[data-position-ready='false'],
+.spore-shell :is(.world-preview, .world-detail)[data-position-ready='false'] * {
+  pointer-events: none !important;
+}
+@keyframes galaxy-static-loading {
+  0% {
+    background-position:
+      0 0,
+      0 0,
+      0 100%;
+  }
+  18% {
+    background-position:
+      13px -17px,
+      -19px 11px,
+      0 80%;
+  }
+  32% {
+    background-position:
+      -5px 9px,
+      8px -4px,
+      0 60%;
+  }
+  48% {
+    background-position:
+      7px -11px,
+      -5px 8px,
+      0 40%;
+  }
+  65% {
+    background-position:
+      -13px 17px,
+      19px -11px,
+      0 20%;
+  }
+  84%,
+  100% {
+    background-position:
+      5px -9px,
+      -8px 4px,
+      0 0;
+  }
 }
 .world-preview-face .comms-screen-static {
   inset: 0;
@@ -387,6 +469,8 @@
   animation: none;
 }
 .spore-shell .world-detail .world-orbit {
+  z-index: 2;
+  isolation: isolate;
   animation: galaxy-hinge-socket var(--comms-entry-time) both;
 }
 .spore-shell .world-detail-wing {
@@ -450,6 +534,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .spore-shell :is(.world-preview, .world-detail) .comms-screen-static {
+    animation: none !important;
+    transition: none !important;
+  }
   .spore-shell .world-detail *,
   .spore-shell .preview-motion *,
   .spore-shell .preview-motion *::after,

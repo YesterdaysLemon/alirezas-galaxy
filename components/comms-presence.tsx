@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Destination } from '@/data/worlds';
 import { WorldComms, WorldPreview } from './world-comms';
 import { uiDuration } from '@/lib/ui-motion';
+import { watchCommsAssets } from '@/lib/comms-readiness';
 
 type Entry = { world: Destination; serial: number; leaving: boolean };
 type Props = {
@@ -73,6 +74,11 @@ function PresenceItem({
   onFinished: () => void;
 }) {
   const root = useRef<HTMLElement | null>(null);
+  const [contentReady, setContentReady] = useState(false);
+  useLayoutEffect(() => {
+    if (!root.current) return;
+    return watchCommsAssets(root.current, () => setContentReady(true));
+  }, []);
   const finish = useRef(onFinished);
   useLayoutEffect(() => {
     finish.current = onFinished;
@@ -139,6 +145,7 @@ function PresenceItem({
       world={entry.world}
       previewRef={root as RefObject<HTMLButtonElement | null>}
       hint={hint ?? false}
+      contentReady={contentReady}
       leaving={entry.leaving}
       onInspect={onAction}
     />
@@ -146,6 +153,7 @@ function PresenceItem({
     <WorldComms
       world={entry.world}
       detailRef={root}
+      contentReady={contentReady}
       leaving={entry.leaving}
       onClose={onAction}
     />
