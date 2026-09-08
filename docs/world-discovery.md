@@ -23,7 +23,8 @@ The refresher probes four URLs at once, with ten-second timeouts and no redirect
 An unhealthy new project stays unpublished unless explicitly `showPending`.
 Previously healthy projects survive seven days of failure or source disappearance;
 then they leave the rendered catalog and return on recovery. A never-healthy
-explicit preview remains a preview. The sleeping Oyster landing page stays sleeping.
+explicit preview remains a preview. Oyster House is explicitly denied after the
+agent runtime was retired and its host repurposed as a private CI runner.
 State records the first failure, not every poll, so unchanged runs create no commits.
 Source errors and invalid schemas abort without replacing the last-known-good files.
 An eighteen-world cap plus actual placement/unit/build checks blocks overflow.
