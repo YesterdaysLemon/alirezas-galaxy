@@ -1,6 +1,10 @@
 // Authored introductions, not generated chat or live connection status.
 // Source links are opt-in and refer only to verified public repositories.
 export const worldComms: Record<string, { intro: string; source?: string }> = {
+  valet: {
+    intro: 'Agents need access, not keys. Meet an authorization representative for AI agents.',
+    source: 'https://github.com/YesterdaysLemon/valet',
+  },
   portfolio: {
     intro:
       'Hi, I’m Alireza. Here’s the work, the experiments, and a little about me.',

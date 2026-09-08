@@ -1,0 +1,77 @@
+{
+  "portfolio": {
+    "url": "https://portfolio.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "celegans-lab": {
+    "url": "https://worm.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "proof-bonsai": {
+    "url": "https://proof-bonsai.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "aquarium": {
+    "url": "https://fish.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "bird-of-the-day": {
+    "url": "https://birds.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "android-hell": {
+    "url": "https://androidhell.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "conspiracy": {
+    "url": "https://conspiracy.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "codex-continuity": {
+    "url": "https://continuity.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "sponsor-my-microduck": {
+    "url": "https://sponsormymicroduck.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "agar-protocol": {
+    "url": "https://agar.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "deploy-manager": {
+    "url": "https://deploy.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "oyster-house": {
+    "url": "https://agent.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "valet": {
+    "url": "https://valet.alirezaafshan.com",
+    "everHealthy": false,
+    "failedSince": "2026-09-08T06:29:17.371Z"
+  },
+  "animator": {
+    "url": "https://animator.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  },
+  "herald": {
+    "url": "https://herald.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
+  }
+}
