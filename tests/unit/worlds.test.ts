@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { webring } from '@/data/webring';
+import registry from '@/data/world-registry.json';
 import {
   destinations,
   MIN_WORLD_SPACING,
@@ -24,7 +25,9 @@ const requiredWorlds = [
 
 describe('world catalog', () => {
   it('keeps every confirmed world mapped exactly once', () => {
-    expect(destinations.map(({ id }) => id)).toEqual(requiredWorlds);
+    expect(registry.projects.map(({ id }) => id)).toEqual(expect.arrayContaining(requiredWorlds));
+    expect(new Set(destinations.map(({ id }) => id)).size).toBe(destinations.length);
+    expect(destinations.length).toBeLessThanOrEqual(18);
     expect(new Set(destinations.map(({ url }) => url)).size).toBe(
       destinations.length,
     );

@@ -73,7 +73,9 @@ public repository links. Unlisted projects use their catalog description;
 projects without a source URL show only the open-world reply. The console UI
 lives in `components/world-comms.tsx` and `app/world-comms.css`.
 
-Destinations live in `data/worlds.ts`. Add one catalog object for a new website;
+Destinations are refreshed daily from the public project registry and explicit
+Deploy Manager public URLs; see [daily discovery](docs/world-discovery.md).
+Add authored metadata in `data/world-registry.json`. `data/worlds.ts` places each website;
 its orbit, spiral arm, color, and marker size are generated deterministically
 when omitted, and any of those values can still be art-directed per world. The
 first slice uses the public GitHub avatar as its portrait texture. Before the

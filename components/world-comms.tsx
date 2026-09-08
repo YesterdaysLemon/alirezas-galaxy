@@ -128,7 +128,9 @@ export function WorldComms({
         <div className="world-detail-wing">
           <span className="comms-title-mount" aria-hidden="true" />
           <h2 title={world.name}>{world.name}</h2>
-          <span className="world-kind">{world.kind}</span>
+          <span className="world-kind">
+            {world.kind}{world.status === 'preview' ? ' · preview' : ''}
+          </span>
           <p>{message?.intro ?? world.description}</p>
           <span className="world-address">
             {new URL(world.url).hostname.replace(/^www\./, '')}
@@ -153,7 +155,7 @@ export function WorldComms({
           <span aria-hidden="true" className="comms-response-arrow">
             ▸
           </span>
-          <span>open world</span>
+          <span>{world.status === 'preview' ? 'preview world' : 'open world'}</span>
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
         {message?.source && (

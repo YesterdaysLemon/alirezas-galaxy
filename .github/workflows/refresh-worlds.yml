@@ -1,0 +1,42 @@
+name: Refresh public worlds
+on:
+  schedule:
+    - cron: '23 10 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: refresh-public-worlds
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/refresh-worlds.mjs
+      - run: npm run test:unit
+      - run: npm run build
+      - name: Commit validated catalog and request release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- data/worlds.generated.json data/world-discovery-state.json; then exit 0; fi
+          catalog_changed=false
+          if ! git diff --quiet -- data/worlds.generated.json; then catalog_changed=true; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/worlds.generated.json data/world-discovery-state.json
+          git commit -m 'Refresh public galaxy worlds'
+          git push origin HEAD:main
+          # GITHUB_TOKEN pushes do not trigger push workflows. Dispatch explicitly.
+          if [ "$catalog_changed" = true ]; then gh workflow run container.yml --ref main; fi
