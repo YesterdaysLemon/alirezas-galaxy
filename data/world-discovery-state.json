@@ -61,8 +61,8 @@
   },
   "valet": {
     "url": "https://valet.alirezaafshan.com",
-    "everHealthy": false,
-    "failedSince": "2026-09-08T06:29:17.371Z"
+    "everHealthy": true,
+    "failedSince": null
   },
   "animator": {
     "url": "https://animator.alirezaafshan.com",

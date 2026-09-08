@@ -168,7 +168,7 @@
     "description": "Agents need access, not keys. An authorization representative for AI agents.",
     "relationship": "owned",
     "hosting": "first-party",
-    "status": "preview",
+    "status": "live",
     "glyph": "V"
   },
   {
