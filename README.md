@@ -116,3 +116,6 @@ own development server.
 ## License
 
 MIT
+
+Third-party game footage and its poster image are not covered by this project's
+MIT license. See [Grox asset sources and rights notes](docs/art/grox-game-footage.md).

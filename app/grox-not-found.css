@@ -1,0 +1,484 @@
+/* Reference: the original Spore space-stage comms screen. Portrait + speech
+   above one full-width reply tray; magenta empire tab and amber lettering. */
+.grox-sector {
+  position: fixed;
+  inset: 0;
+  background: #020308;
+}
+.grox-sector
+  [data-grox-encounter]
+  > :not([data-galaxy-stage]):not(.spore-vignette) {
+  display: none;
+}
+.grox-sector [data-grox-encounter] {
+  pointer-events: none;
+}
+.grox-approach-status,
+.grox-no-script {
+  position: absolute;
+  z-index: 4;
+  bottom: 9%;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
+  color: #efc474;
+  text-align: center;
+  font-size: 1rem;
+  text-shadow: 0 2px 4px #000;
+}
+.grox-approach-status strong {
+  display: block;
+  margin: 0 0 4px;
+  font-weight: 800;
+}
+.grox-approach-status span {
+  display: block;
+}
+.grox-approach-status button {
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 4px 18px;
+  border: 1px solid #8facb4;
+  border-radius: 20px;
+  background: #0b2b3be0;
+  color: #f6c55d;
+  cursor: pointer;
+}
+.grox-no-script {
+  padding: 20px;
+  background: #082332;
+}
+.grox-no-script a {
+  text-decoration: underline;
+}
+.grox-dialog {
+  --grox-amber: #ffbd28;
+  --grox-metal: #91a4a4;
+  position: fixed;
+  inset: 0;
+  width: min(1160px, calc(100% - 56px));
+  max-width: none;
+  max-height: calc(100dvh - 28px);
+  margin: auto;
+  padding: 9px;
+  overflow: auto;
+  border: 0;
+  color: var(--grox-amber);
+  background: transparent;
+  font-family: 'Trebuchet MS', Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.45;
+  overscroll-behavior: contain;
+}
+.grox-dialog::backdrop {
+  background: #02061252;
+}
+.grox-console {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.292fr) minmax(0, 0.708fr);
+  grid-template-rows: 32px auto auto;
+  column-gap: 10px;
+  filter: drop-shadow(0 10px 15px #0009);
+}
+.grox-dialog[open] .grox-console {
+  animation: grox-open 300ms cubic-bezier(0.15, 1, 0.3, 1) both;
+}
+.grox-empire-tab {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 88%;
+  margin-left: 6%;
+  padding: 0 26px;
+  border: 3px solid #abb6b4;
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(
+    #795371,
+    #70315f 32%,
+    #420a35 48%,
+    #350124 75%,
+    #52063d
+  );
+  box-shadow:
+    0 -1px 0 1px #333e45,
+    inset 0 2px #d3d4cd55;
+}
+.grox-empire-tab h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #ffffe9;
+  font-size: 1rem;
+  font-weight: 800;
+  text-shadow: 0 2px #120014;
+}
+.grox-empire-icon {
+  font-size: 1.15rem;
+}
+.grox-mood {
+  flex: 0 0 auto;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.grox-portrait-frame,
+.grox-message-frame,
+.grox-reply-frame {
+  position: relative;
+  padding: 8px;
+  border: 2px solid #5c7075;
+  background: linear-gradient(
+    112deg,
+    #b0bab2,
+    #657c80 2%,
+    #344750 5%,
+    #6b858a 49%,
+    #2c414b 96%,
+    #9aa9a5 99%
+  );
+  box-shadow:
+    0 0 0 1px #112129,
+    inset 0 2px #c3d0bf,
+    inset 0 -3px #132933;
+}
+.grox-portrait-frame {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 4px;
+  border-radius: 12px;
+}
+.grox-portrait-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 262 / 331;
+  overflow: hidden;
+  border: 2px solid #86b0bc;
+  border-radius: 7px;
+  background: #0a2734;
+  box-shadow: inset 0 0 7px #000;
+  isolation: isolate;
+}
+.grox-portrait-screen img,
+.grox-portrait-screen video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0a2734;
+}
+.grox-portrait-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: #91b5c1;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.grox-message-frame {
+  grid-column: 2;
+  grid-row: 2;
+  border-radius: 23px 13px 17px 10px;
+}
+.grox-message-screen,
+.grox-reply-screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid #769ca4;
+  border-radius: 19px;
+  background: repeating-linear-gradient(0deg, #061b22 0 1px, #0b252d 1px 3px);
+  box-shadow:
+    inset 0 2px 9px #000d,
+    0 0 0 1px #162e3a;
+}
+.grox-message-screen {
+  min-height: 320px;
+  padding: 20px 22px 48px;
+}
+.grox-message {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px #000;
+}
+.grox-message h2,
+.grox-message p {
+  margin: 0 0 18px;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.grox-message p:last-child {
+  margin-bottom: 0;
+}
+.grox-error-code {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  left: 22px;
+  color: #9dbdc1;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.grox-reply-frame {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 8px 0 0 4px;
+  border-radius: 15px 12px 19px 12px;
+}
+.grox-reply-screen {
+  min-height: 215px;
+  padding: 12px 18px 10px;
+  display: flex;
+  flex-direction: column;
+}
+.grox-replies {
+  display: grid;
+  gap: 7px;
+}
+.grox-reply,
+.grox-goodbye {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  padding: 4px 12px;
+  border: 2px solid #357e9b;
+  border-radius: 7px;
+  background: repeating-linear-gradient(0deg, #064259 0 1px, #0b364b 1px 3px);
+  box-shadow:
+    inset 0 1px 3px #83d5db77,
+    0 0 0 1px #041620;
+  color: var(--grox-amber);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.4;
+  text-shadow: 0 1px #061014;
+  cursor: pointer;
+}
+.grox-reply:first-child,
+.grox-reply:hover {
+  border-color: #a9ae65;
+  background: repeating-linear-gradient(0deg, #3a5231 0 1px, #304a30 1px 3px);
+  box-shadow:
+    inset 0 1px 3px #e8f19b66,
+    0 0 0 1px #071c22;
+}
+.grox-reply[aria-disabled='true'] {
+  cursor: default;
+  color: #c4b780;
+  border-color: #597674;
+  background: #17343a;
+}
+.grox-reply-footer {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
+  padding: 30px 7% 0;
+}
+.grox-goodbye {
+  display: grid;
+  min-width: 150px;
+  min-height: 34px;
+  border-color: #b58419;
+  border-radius: 10px;
+  background: repeating-linear-gradient(0deg, #6a4c0b 0 1px, #48390f 1px 3px);
+  box-shadow:
+    inset 0 1px 4px #eed55088,
+    0 0 0 1px #09222a;
+}
+.grox-goodbye:hover {
+  filter: brightness(1.2);
+}
+.grox-reply:focus-visible,
+.grox-goodbye:focus-visible,
+.grox-approach-status button:focus-visible {
+  outline: 3px solid #fff4ac;
+  outline-offset: 3px;
+}
+.grox-fasteners {
+  position: absolute;
+  z-index: 3;
+  inset: -4px;
+  pointer-events: none;
+}
+.grox-fasteners i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #9eafac;
+  border-radius: 50%;
+  background: linear-gradient(
+    130deg,
+    #d9dfce,
+    #5c6d6c 35%,
+    #1b2c32 42% 54%,
+    #abb4ab 62%,
+    #385052
+  );
+  box-shadow:
+    0 0 0 1px #2d3d45,
+    inset 0 1px #e6f1d6;
+}
+.grox-fasteners i:nth-child(1) {
+  top: 0;
+  left: 0;
+}
+.grox-fasteners i:nth-child(2) {
+  top: 0;
+  right: 0;
+}
+.grox-fasteners i:nth-child(3) {
+  bottom: 0;
+  left: 0;
+}
+.grox-fasteners i:nth-child(4) {
+  bottom: 0;
+  right: 0;
+}
+.grox-static {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, #8cb7c320 0 1px, #05132770 1px 3px),
+    repeating-linear-gradient(93deg, #c2dee360 0 1px, transparent 1px 5px);
+  transition: opacity 180ms ease;
+}
+.grox-dialog[data-ready='false'] .grox-static {
+  opacity: 0.6;
+  animation: grox-static 170ms steps(2, end) infinite;
+}
+@keyframes grox-open {
+  from {
+    opacity: 0;
+    transform: scale(0.83);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes grox-static {
+  from {
+    background-position:
+      0 0,
+      0 0;
+  }
+  to {
+    background-position:
+      3px 5px,
+      -7px 11px;
+  }
+}
+@media (max-width: 700px) {
+  .grox-dialog {
+    width: calc(100% - 12px);
+    padding: 6px;
+    max-height: calc(100dvh - 12px);
+  }
+  .grox-console {
+    grid-template-columns: minmax(0, 0.34fr) minmax(0, 0.66fr);
+    grid-template-rows: 32px auto auto;
+    gap: 0 7px;
+  }
+  .grox-empire-tab {
+    width: 97%;
+    margin-left: 1%;
+    padding: 0 10px;
+  }
+  .grox-empire-tab h1 {
+    font-size: 0.875rem;
+  }
+  .grox-portrait-frame {
+    align-self: start;
+  }
+  .grox-portrait-screen {
+    height: auto;
+  }
+  .grox-message-frame {
+    padding: 5px;
+  }
+  .grox-message-screen {
+    min-height: 270px;
+    padding: 16px 12px 48px;
+  }
+  .grox-message h2,
+  .grox-message p {
+    font-size: 1rem;
+    margin-bottom: 13px;
+  }
+  .grox-error-code {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .grox-reply-screen {
+    min-height: 180px;
+    padding: 10px;
+  }
+  .grox-reply,
+  .grox-goodbye {
+    min-height: 44px;
+  }
+  .grox-reply-footer {
+    padding: 20px 0 0;
+  }
+  .grox-fasteners i {
+    width: 10px;
+    height: 10px;
+  }
+}
+@media (max-width: 400px) {
+  .grox-console {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 32px auto auto auto;
+  }
+  .grox-empire-tab {
+    grid-column: 1;
+    width: 90%;
+    margin-left: 5%;
+  }
+  .grox-portrait-frame {
+    grid-column: 1;
+    grid-row: 2;
+    width: 145px;
+    margin: 7px auto 12px;
+  }
+  .grox-message-frame {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .grox-message-screen {
+    min-height: 0;
+  }
+  .grox-reply-frame {
+    grid-row: 4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grox-dialog[open] .grox-console,
+  .grox-dialog .grox-static {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -10,6 +10,11 @@ import { UI_MOTION_SPEED, uiDuration } from '@/lib/ui-motion';
 import { syncCommsIdentity } from '@/lib/comms-readiness';
 import { followCard, type CardMotion } from '@/lib/card-motion';
 import { DistantGalaxyParallax } from '@/lib/distant-galaxy-parallax';
+import {
+  groxApproachFrame,
+  groxRetreatFrame,
+  GROX_STAR_POSITION,
+} from '@/lib/grox-encounter';
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
@@ -420,7 +425,25 @@ function randomNonzeroOffset(itemCount: number) {
   return 1 + Math.floor(Math.random() * (itemCount - 1));
 }
 
-export function GalaxyIndex() {
+export function GalaxyIndex({
+  groxEncounter = false,
+  groxLeaving = false,
+  onGroxArrival,
+  onGroxReturn,
+}: {
+  groxEncounter?: boolean;
+  groxLeaving?: boolean;
+  onGroxArrival?: () => void;
+  onGroxReturn?: () => void;
+} = {}) {
+  const groxArrivalRef = useRef(onGroxArrival);
+  const groxReturnRef = useRef(onGroxReturn);
+  const groxLeaveRef = useRef<() => boolean>(() => false);
+  const [groxReturned, setGroxReturned] = useState(false);
+  useEffect(() => {
+    groxArrivalRef.current = onGroxArrival;
+    groxReturnRef.current = onGroxReturn;
+  }, [onGroxArrival, onGroxReturn]);
   const stageRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
@@ -947,7 +970,9 @@ export function GalaxyIndex() {
     }
 
     const portraitPreloadTimer = window.setTimeout(
-      loadPortraitTextures,
+      () => {
+        if (!groxActive) loadPortraitTextures();
+      },
       isCompact ? 2600 : 1700,
     );
 
@@ -992,6 +1017,51 @@ export function GalaxyIndex() {
     let isVisible = true;
     let disposed = false;
     let previousTime = 0;
+    let groxElapsed = 0;
+    let groxArrived = false;
+    let groxActive = groxEncounter;
+    let groxRetreating = false;
+    let groxRetreatElapsed = 0;
+    let groxRetreatFrom = 1;
+    const previousCoreExposure = coreExposureRef.current;
+    const groxWorldPosition = new THREE.Vector3();
+    const groxCameraStart = camera.position.clone();
+    const groxCameraEnd = new THREE.Vector3();
+    const groxCameraOffset = new THREE.Vector3(-0.2, 3.5, 9.3);
+    const groxLookStart = cameraLookTarget.clone();
+    const groxBeacon = groxEncounter
+      ? new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: starlightTexture,
+            color: 0xff2118,
+            transparent: true,
+            toneMapped: false,
+            blending: THREE.AdditiveBlending,
+            depthTest: false,
+            depthWrite: false,
+          }),
+        )
+      : null;
+    if (groxBeacon) {
+      groxBeacon.position.set(...GROX_STAR_POSITION);
+      groxBeacon.scale.setScalar(1.1);
+      groxBeacon.renderOrder = 12;
+      galaxyScenes.home.galaxy.add(groxBeacon);
+      focusRotationRef.current = null;
+      ambientMotionRef.current = false;
+      coreExposureRef.current = 0.55;
+    }
+    groxLeaveRef.current = () => {
+      if (!groxActive) return false;
+      if (!groxRetreating) {
+        groxRetreatFrom = groxApproachFrame(groxElapsed, reduceMotion).progress;
+        groxRetreating = true;
+        groxRetreatElapsed = 0;
+        previousTime = 0;
+        if (!animationFrame) animationFrame = requestAnimationFrame(animate);
+      }
+      return true;
+    };
 
     travelRef.current = (id, inspect = false, updateHistory = true) => {
       if (!galaxies[id].worlds.length) return;
@@ -1044,14 +1114,16 @@ export function GalaxyIndex() {
         );
     };
 
-    const onHistory = () =>
-      travelRef.current(
-        window.location.hash === '#webring' ? 'webring' : 'home',
-        false,
-        false,
-      );
+    const onHistory = () => {
+      if (!groxActive)
+        travelRef.current(
+          window.location.hash === '#webring' ? 'webring' : 'home',
+          false,
+          false,
+        );
+    };
     window.addEventListener('popstate', onHistory);
-    if (window.location.hash === '#webring')
+    if (!groxEncounter && window.location.hash === '#webring')
       travelRef.current('webring', false, false);
 
     portraitBurstTarget.dataset.portraitBursts = '0';
@@ -1297,6 +1369,8 @@ export function GalaxyIndex() {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       distantParallax.resize(width, height, defaultCameraDistance, rightInset);
+      if (groxEncounter && groxArrived && !animationFrame)
+        animationFrame = requestAnimationFrame(animate);
     });
     resizeObserver.observe(stage);
 
@@ -1346,7 +1420,7 @@ export function GalaxyIndex() {
         }
       }
 
-      if (!isDragging) {
+      if (!isDragging && !groxActive) {
         const focusRotation = focusRotationRef.current;
         if (focusRotation !== null && Math.abs(angularVelocity) < 0.02) {
           const rotationDelta = Math.atan2(
@@ -1495,6 +1569,43 @@ export function GalaxyIndex() {
             wave.visible = marker.visible;
           });
         });
+      }
+      if (groxBeacon && groxActive) {
+        if (groxRetreating) groxRetreatElapsed += elapsedMs;
+        else groxElapsed += elapsedMs;
+        const approach = groxApproachFrame(groxElapsed, reduceMotion);
+        const retreat = groxRetreatFrame(
+          groxRetreatElapsed,
+          groxRetreatFrom,
+          reduceMotion,
+        );
+        const progress = groxRetreating ? retreat.progress : approach.progress;
+        galaxyScenes.home.galaxy.updateWorldMatrix(true, false);
+        groxBeacon.getWorldPosition(groxWorldPosition);
+        // Lift the red target above the center of the approaching view.
+        groxCameraEnd.copy(groxWorldPosition).add(groxCameraOffset);
+        camera.position.lerpVectors(groxCameraStart, groxCameraEnd, progress);
+        cameraLookTarget.lerpVectors(
+          groxLookStart,
+          groxWorldPosition,
+          progress,
+        );
+        cameraLookTarget.y -= progress * 1.45;
+        camera.lookAt(cameraLookTarget);
+        portraitBurstTarget.dataset.groxApproach = progress.toFixed(3);
+        if (groxRetreating && retreat.returned) {
+          groxActive = false;
+          groxBeacon.visible = false;
+          cameraDistance = defaultCameraDistance;
+          ambientMotionRef.current = true;
+          coreExposureRef.current = previousCoreExposure;
+          setGroxReturned(true);
+          groxReturnRef.current?.();
+          loadPortraitTextures();
+        } else if (!groxRetreating && approach.arrived && !groxArrived) {
+          groxArrived = true;
+          groxArrivalRef.current?.();
+        }
       }
       const portal = ringPortalRef.current;
       if (portal) {
@@ -1829,7 +1940,10 @@ export function GalaxyIndex() {
       }
 
       renderer.render(scene, camera);
-      animationFrame = requestAnimationFrame(animate);
+      // Once parked at the Grox star, only the small portrait video needs to
+      // animate. Resize/visibility observers can request a fresh background.
+      if (!groxActive || !groxArrived || groxRetreating)
+        animationFrame = requestAnimationFrame(animate);
     }
 
     animationFrame = requestAnimationFrame(animate);
@@ -1851,12 +1965,14 @@ export function GalaxyIndex() {
       resetGalaxyRef.current = () => undefined;
       spinGalaxyRef.current = () => undefined;
       hoverGalaxyRef.current = () => undefined;
+      groxLeaveRef.current = () => false;
       portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
       portraitTextures.forEach((texture) => texture.dispose());
       glowTexture?.dispose();
       markerTexture?.dispose();
       starlightTexture?.dispose();
       signalWaveTexture?.dispose();
+      groxBeacon?.material.dispose();
       backdropGeometry.dispose();
       backdropMaterial.dispose();
       farGalaxyGeometry.dispose();
@@ -1878,7 +1994,29 @@ export function GalaxyIndex() {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [groxEncounter]);
+
+  useEffect(() => {
+    if (groxLeaving && !groxLeaveRef.current()) {
+      // No WebGL renderer: reveal the regular home surface without waiting.
+      setGroxReturned(true);
+      groxReturnRef.current?.();
+    }
+  }, [groxLeaving]);
+
+  if (groxEncounter && !groxReturned)
+    return (
+      <main
+        id="galaxy"
+        className="spore-shell relative overflow-hidden"
+        data-grox-encounter="true"
+        aria-hidden="true"
+        inert
+      >
+        <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
+        <div className="spore-vignette absolute inset-0" />
+      </main>
+    );
 
   return (
     <main
