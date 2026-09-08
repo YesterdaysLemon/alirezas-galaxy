@@ -1,7 +1,8 @@
 {
   "version": 1,
   "deniedIds": [
-    "galaxy-menu"
+    "galaxy-menu",
+    "oyster-house"
   ],
   "projects": [
     {
@@ -152,18 +153,6 @@
       "status": "live",
       "iconSrc": "https://deploy.alirezaafshan.com/favicon.svg",
       "glyph": "↟"
-    },
-    {
-      "id": "oyster-house",
-      "name": "Oyster House",
-      "kind": "Agent house · sleeping",
-      "url": "https://agent.alirezaafshan.com",
-      "description": "The agents are sleeping. A quiet public landing page while the runtime is offline.",
-      "relationship": "owned",
-      "hosting": "first-party",
-      "status": "sleeping",
-      "iconSrc": "https://agent.alirezaafshan.com/favicon.svg",
-      "glyph": "☾"
     },
     {
       "id": "valet",

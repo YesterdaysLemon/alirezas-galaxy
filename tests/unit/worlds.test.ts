@@ -20,7 +20,6 @@ const requiredWorlds = [
   'sponsor-my-microduck',
   'agar-protocol',
   'deploy-manager',
-  'oyster-house',
 ];
 
 describe('world catalog', () => {
@@ -80,11 +79,9 @@ describe('world catalog', () => {
     expect(destinations.some(({ id }) => id === 'application-builder')).toBe(false);
   });
 
-  it('does not describe the sleeping Oyster runtime as live', () => {
-    expect(destinations.find(({ id }) => id === 'oyster-house')).toMatchObject({
-      status: 'sleeping',
-      kind: 'Agent house · sleeping',
-    });
+  it('keeps the retired Oyster runtime out of the public catalog', () => {
+    expect(registry.deniedIds).toContain('oyster-house');
+    expect(destinations.some(({ id }) => id === 'oyster-house')).toBe(false);
   });
 
   it('uses the current published brand icons', () => {

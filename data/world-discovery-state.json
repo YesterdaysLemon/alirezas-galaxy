@@ -54,11 +54,6 @@
     "everHealthy": true,
     "failedSince": null
   },
-  "oyster-house": {
-    "url": "https://agent.alirezaafshan.com",
-    "everHealthy": true,
-    "failedSince": null
-  },
   "valet": {
     "url": "https://valet.alirezaafshan.com",
     "everHealthy": true,
