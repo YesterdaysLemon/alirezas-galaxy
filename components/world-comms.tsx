@@ -155,7 +155,7 @@ export function WorldComms({
           <span aria-hidden="true" className="comms-response-arrow">
             ▸
           </span>
-          <span>open world</span>
+          <span>{world.status === 'preview' ? 'preview world' : 'open world'}</span>
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
         {message?.source && (
