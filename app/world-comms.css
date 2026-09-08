@@ -13,7 +13,7 @@
   font-family: 'Trebuchet MS', Arial, sans-serif;
   pointer-events: none;
   will-change: transform;
-  transition: opacity 110ms ease;
+  transition: opacity calc(110ms / var(--ui-motion-speed, 1)) ease;
 }
 
 .world-preview {
@@ -230,7 +230,7 @@
   height: auto;
   /* Reserve the entire title assembly above the dialog, not inside it. */
   padding-top: 36px;
-  animation: comms-in 180ms ease-out both;
+  animation: comms-in calc(180ms / var(--ui-motion-speed, 1)) ease-out both;
 }
 @keyframes comms-in {
   from {

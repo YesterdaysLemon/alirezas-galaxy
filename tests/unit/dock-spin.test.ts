@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { DockSpin } from '../../lib/dock-spin';
+import { DockHover, DockSpin } from '../../lib/dock-spin';
 
 describe('galaxy dock flywheel', () => {
-  it('mirrors hover and press, then rejoins the live angle with no held offset', () => {
+  it('mirrors full click kicks, then rejoins the live angle with no held offset', () => {
     const hover = new DockSpin();
     const press = new DockSpin();
     hover.kick(1);
@@ -61,5 +61,63 @@ describe('galaxy dock flywheel', () => {
       "galaxyId === 'webring' ? '/spiral-galaxy-3.svg' : '/spiral-galaxy.svg'",
     );
     expect(css).not.toContain('transform: rotate(150deg)');
+  });
+});
+
+describe('kick-and-coast dock hover', () => {
+  it('starts with a hard third-turn, then slows forward into the live angle', () => {
+    const hover = new DockHover();
+    expect(hover.step(1)).toBe(0);
+    hover.nudge(1);
+    const kick = hover.step(0.1);
+    expect(kick).toBeCloseTo((2 * Math.PI) / 3);
+    let previous = kick;
+    let previousDelta = kick;
+    for (let frame = 0; frame < 14; frame++) {
+      const next = hover.step(0.1);
+      const delta = next - previous;
+      expect(delta).toBeGreaterThan(0);
+      expect(delta).toBeLessThan(previousDelta);
+      previous = next;
+      previousDelta = delta;
+    }
+    expect(previous).toBeCloseTo(2 * Math.PI, 2);
+    expect(hover.step(0.11)).toBe(0);
+    expect(hover.step(5)).toBe(0);
+  });
+
+  it('stays bounded and continuous when retriggered or handed to a click', () => {
+    const hover = new DockHover();
+    hover.nudge(1);
+    hover.step(0.45);
+    const pose = hover.angle;
+    hover.nudge(-1);
+    expect(hover.step(0)).toBe(pose);
+    for (let frame = 0; frame < 90; frame++) {
+      const previous = hover.angle;
+      const next = hover.step(1 / 120);
+      expect(next).toBeLessThanOrEqual(previous);
+      expect(Math.abs(next)).toBeLessThanOrEqual(2 * Math.PI);
+    }
+    const click = new DockSpin();
+    click.angle += hover.angle;
+    hover.reset();
+    const handedPose = click.angle;
+    click.kick(-1);
+    expect(click.angle).toBe(handedPose);
+    expect(hover.angle).toBe(0);
+    expect(click.step(5)).toBe(0);
+  });
+
+  it('is frame-rate independent and respects reduced motion', () => {
+    const a = new DockHover();
+    const b = new DockHover();
+    a.nudge(-1);
+    b.nudge(-1);
+    a.step(0.5);
+    for (let frame = 0; frame < 60; frame++) b.step(1 / 120);
+    expect(a.angle).toBeCloseTo(b.angle, 10);
+    expect(a.step(0.1, true)).toBe(0);
+    expect(a.step(0.1)).toBe(0);
   });
 });

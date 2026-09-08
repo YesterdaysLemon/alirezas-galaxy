@@ -4,11 +4,35 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { WorldPreview, WorldComms } from '../../components/world-comms';
 import { destinations } from '../../data/worlds';
+import { UI_MOTION_SPEED, uiDuration } from '../../lib/ui-motion';
 
 const motionCss = await readFile('app/galaxy-motion.css', 'utf8');
 const galaxySource = await readFile('components/galaxy-index.tsx', 'utf8');
 
 describe('selected galaxy motion integration', () => {
+  it('shares a 1.65x UI rate across opening, hover, exit and ripple timing', async () => {
+    expect(UI_MOTION_SPEED).toBe(1.65);
+    expect(uiDuration(1100)).toBeCloseTo(666.667);
+    expect(uiDuration(400)).toBeCloseTo(242.424);
+    expect(uiDuration(110)).toBeCloseTo(66.667);
+    expect(motionCss).toContain(
+      '--comms-entry-time: calc(1100ms / var(--ui-motion-speed, 1))',
+    );
+    expect(galaxySource).toContain("'--ui-motion-speed': UI_MOTION_SPEED");
+    expect(galaxySource).toContain('duration: uiDuration(620)');
+    const presence = await readFile('components/comms-presence.tsx', 'utf8');
+    expect(presence).toContain('duration: reduced ? 1 : uiDuration(400)');
+    expect(presence).toContain('delay: reduced ? 0 : uiDuration(delay)');
+    const hoverHandler = galaxySource.slice(
+      galaxySource.indexOf('hoverGalaxyRef.current = () => {'),
+      galaxySource.indexOf('spinGalaxyRef.current = () => {'),
+    );
+    expect(hoverHandler).toContain('dockHover.nudge(');
+    expect(hoverHandler).not.toContain('dockSpin.kick(');
+    expect(galaxySource).toContain(
+      'if (!reduceMotion) dockSpin.kick(-direction)',
+    );
+  });
   it('mounts the preview screw on its folding plate, not the stationary wrapper', async () => {
     const chromeCss = await readFile('app/world-comms.css', 'utf8');
     expect(chromeCss).toContain('.world-preview-address::after');

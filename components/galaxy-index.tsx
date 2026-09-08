@@ -2,10 +2,11 @@
 
 /* oxlint-disable next/no-img-element -- Keep the local SVG unmodified in Vinext. */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { CommsPresence } from './comms-presence';
 import { DockHousing } from './dock-housing';
-import { DockSpin } from '@/lib/dock-spin';
+import { DockHover, DockSpin } from '@/lib/dock-spin';
+import { UI_MOTION_SPEED, uiDuration } from '@/lib/ui-motion';
 import { followCard, type CardMotion } from '@/lib/card-motion';
 import { DistantGalaxyParallax } from '@/lib/distant-galaxy-parallax';
 import * as THREE from 'three';
@@ -980,6 +981,7 @@ export function GalaxyIndex() {
     let dragDistance = 0;
     let angularVelocity = 0;
     const dockSpin = new DockSpin();
+    const dockHover = new DockHover();
     let tiltVelocity = 0;
     let fastSpinTravel = 0;
     let portraitBurstCount = 0;
@@ -1011,6 +1013,7 @@ export function GalaxyIndex() {
       fastSpinTravel = 0;
       dockSpinPresses = 0;
       dockSpin.reset();
+      dockHover.reset();
       pointer.set(4, 4);
       hoveredIndex = -1;
       travelStart = travelProgress;
@@ -1055,13 +1058,16 @@ export function GalaxyIndex() {
     hoverGalaxyRef.current = () => {
       if (travellingRef.current || expandedRef.current || reduceMotion) return;
       // CSS screen rotation has the opposite sign to the scene's Y rotation.
-      dockSpin.kick(angularVelocity < -0.002 ? -1 : 1);
+      dockHover.nudge(angularVelocity < -0.002 ? -1 : 1);
     };
 
     spinGalaxyRef.current = () => {
       if (travellingRef.current) return;
       focusRotationRef.current = null;
       const direction = angularVelocity < -0.002 ? -1 : 1;
+      // Hand the current hover pose to the unchanged click flywheel without a snap.
+      dockSpin.angle += dockHover.angle;
+      dockHover.reset();
       if (!reduceMotion) dockSpin.kick(-direction);
       dockSpinPresses += 1;
       const stagedMagnitude = Math.min(0.16, dockSpinPresses * 0.022);
@@ -1370,7 +1376,9 @@ export function GalaxyIndex() {
       }
 
       if (dockGalaxyIconRef.current) {
-        const dockPhase = dockSpin.step(elapsedMs / 1000, reduceMotion);
+        const dockPhase =
+          dockSpin.step(elapsedMs / 1000, reduceMotion) +
+          dockHover.step(elapsedMs / 1000, reduceMotion);
         dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
       }
 
@@ -1867,6 +1875,7 @@ export function GalaxyIndex() {
     <main
       id="galaxy"
       className="spore-shell relative overflow-hidden"
+      style={{ '--ui-motion-speed': UI_MOTION_SPEED } as CSSProperties}
       data-galaxy={galaxyId}
       data-travelling={travelling}
       data-arms={galaxies[galaxyId].arms}
@@ -1884,7 +1893,7 @@ export function GalaxyIndex() {
             { opacity: 0.7, transform: 'translate(-50%, -50%) scale(0.1)' },
             { opacity: 0, transform: 'translate(-50%, -50%) scale(4)' },
           ],
-          { duration: 620, easing: 'ease-out' },
+          { duration: uiDuration(620), easing: 'ease-out' },
         );
       }}
     >

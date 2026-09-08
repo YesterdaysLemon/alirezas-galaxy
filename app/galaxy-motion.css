@@ -2,7 +2,7 @@
    The renderer owns root transforms. Animate only nested artwork. */
 .spore-shell {
   --comms-motion-spring: cubic-bezier(0.2, 0.9, 0.25, 1.25);
-  --comms-entry-time: 1100ms;
+  --comms-entry-time: calc(1100ms / var(--ui-motion-speed, 1));
 }
 .spore-shell .preview-motion {
   display: flex;
@@ -21,10 +21,12 @@
 }
 .spore-shell .world-preview-screen {
   perspective: 500px;
-  transition: transform 360ms var(--comms-motion-spring) 45ms;
+  transition: transform calc(360ms / var(--ui-motion-speed, 1))
+    var(--comms-motion-spring) calc(45ms / var(--ui-motion-speed, 1));
 }
 .spore-shell .world-preview-orbit {
-  transition: transform 280ms var(--comms-motion-spring);
+  transition: transform calc(280ms / var(--ui-motion-speed, 1))
+    var(--comms-motion-spring);
 }
 .spore-shell .world-preview:is(:hover, :focus-visible) .world-preview-screen {
   transform: translateX(7px);
@@ -240,10 +242,11 @@
     transparent
   );
   transition:
-    color 240ms 70ms,
-    filter 240ms,
-    box-shadow 320ms,
-    text-shadow 320ms;
+    color calc(240ms / var(--ui-motion-speed, 1))
+      calc(70ms / var(--ui-motion-speed, 1)),
+    filter calc(240ms / var(--ui-motion-speed, 1)),
+    box-shadow calc(320ms / var(--ui-motion-speed, 1)),
+    text-shadow calc(320ms / var(--ui-motion-speed, 1));
 }
 .spore-shell .spore-menu-item:is(:hover, :focus-visible) {
   width: 100%;
@@ -255,7 +258,7 @@
   border-radius: inherit;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 320ms ease-out;
+  transition: transform calc(320ms / var(--ui-motion-speed, 1)) ease-out;
   background:
     radial-gradient(
       ellipse at 22% 43%,
@@ -276,7 +279,8 @@
 .menu-motion-label {
   position: relative;
   pointer-events: none;
-  transition: transform 320ms ease-out 90ms;
+  transition: transform calc(320ms / var(--ui-motion-speed, 1)) ease-out
+    calc(90ms / var(--ui-motion-speed, 1));
 }
 .menu-motion-ripple {
   position: absolute;
@@ -315,8 +319,8 @@
   --reply-charge: #eeffc9;
   --reply-glow: #b5e66366;
   transition:
-    box-shadow 360ms,
-    filter 240ms;
+    box-shadow calc(360ms / var(--ui-motion-speed, 1)),
+    filter calc(240ms / var(--ui-motion-speed, 1));
 }
 .spore-shell .world-source {
   --reply-charge: #d1f1ff;
@@ -334,7 +338,8 @@
   pointer-events: none;
 }
 .spore-shell .world-close-symbol {
-  transition: transform 300ms var(--comms-motion-spring);
+  transition: transform calc(300ms / var(--ui-motion-speed, 1))
+    var(--comms-motion-spring);
 }
 .spore-shell .world-close:is(:hover, :focus-visible) .world-close-symbol {
   transform: rotate(90deg) scale(1.06);
@@ -358,8 +363,8 @@
   pointer-events: none;
   transform: rotate(0);
   transition:
-    transform 950ms ease-out,
-    opacity 380ms ease-out;
+    transform calc(950ms / var(--ui-motion-speed, 1)) ease-out,
+    opacity calc(380ms / var(--ui-motion-speed, 1)) ease-out;
 }
 .spore-shell .galaxy-signal:hover .galaxy-signal-orbit,
 .spore-shell .webring-portal:focus-visible .galaxy-signal-orbit {
@@ -408,7 +413,7 @@
   animation: galaxy-fastener-seat var(--comms-entry-time) both;
 }
 .spore-shell .world-close {
-  transition: filter 280ms;
+  transition: filter calc(280ms / var(--ui-motion-speed, 1));
 }
 .spore-shell [data-phase='leaving'],
 .spore-shell [data-phase='leaving'] * {
@@ -422,7 +427,7 @@
 }
 .spore-shell .dock-orb > :is(svg, .dock-flywheel) {
   grid-area: 1 / 1;
-  transition: opacity 320ms ease;
+  transition: opacity calc(320ms / var(--ui-motion-speed, 1)) ease;
 }
 .spore-shell .dock-orb[data-action='spin'] > svg,
 .spore-shell .dock-orb[data-action='next'] > .dock-flywheel {
@@ -439,9 +444,9 @@
 }
 .spore-shell :is(.dock-orb, .dock-tuner, .dock-message, .sprawl-mark) {
   transition:
-    filter 280ms,
-    color 280ms,
-    box-shadow 280ms;
+    filter calc(280ms / var(--ui-motion-speed, 1)),
+    color calc(280ms / var(--ui-motion-speed, 1)),
+    box-shadow calc(280ms / var(--ui-motion-speed, 1));
 }
 
 @media (prefers-reduced-motion: reduce) {

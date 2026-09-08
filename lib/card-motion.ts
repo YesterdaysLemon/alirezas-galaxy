@@ -1,7 +1,9 @@
+import { uiDuration } from './ui-motion';
+
 export type CardMotion = { x: number; y: number; holdUntil: number };
 
 export const CARD_RELEASE_GRACE_MS = 180;
-const FOLLOW_TIME_MS = 170;
+const FOLLOW_TIME_MS = uiDuration(170);
 
 /** Frame-rate-independent following, with immediate hover capture. */
 export function followCard(

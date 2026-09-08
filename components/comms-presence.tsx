@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Destination } from '@/data/worlds';
 import { WorldComms, WorldPreview } from './world-comms';
+import { uiDuration } from '@/lib/ui-motion';
 
 type Entry = { world: Destination; serial: number; leaving: boolean };
 type Props = {
@@ -114,8 +115,8 @@ function PresenceItem({
             { transform, opacity: 0 },
           ],
           {
-            duration: reduced ? 1 : 400,
-            delay: reduced ? 0 : delay,
+            duration: reduced ? 1 : uiDuration(400),
+            delay: reduced ? 0 : uiDuration(delay),
             easing: 'cubic-bezier(.3,0,.2,1)',
             fill: 'both',
           },
