@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Quality"
+  short_description: "Build interfaces with Alireza's design priorities"
+  default_prompt: "Use $frontend-quality to build or refine this interface, preserve its intended visual language, and verify the main interaction in a browser."

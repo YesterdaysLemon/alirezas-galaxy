@@ -21,6 +21,8 @@ import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
 import { destinations } from '@/data/worlds';
 import { webring } from '@/data/webring';
 import { galaxies, type GalaxyId } from '@/data/galaxies';
+import { SolarSystemScene, type SolarPhase } from '@/lib/solar-system-scene';
+import { SolarSystemHud } from './solar-system-hud';
 
 const pointsVertexShader = /* glsl */ `
   uniform float uPixelRatio;
@@ -445,6 +447,18 @@ export function GalaxyIndex({
     groxReturnRef.current = onGroxReturn;
   }, [onGroxArrival, onGroxReturn]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const solarRef = useRef<SolarSystemScene | null>(null);
+  const enterSolarRef = useRef<(history?: boolean) => void>(() => undefined);
+  const solarGatewayRef = useRef<HTMLButtonElement>(null);
+  const [solarReady, setSolarReady] = useState(false);
+  const [solarPhase, setSolarPhase] = useState<SolarPhase>('galaxy');
+  const [solarSelected, setSolarSelected] = useState<number | null>(null);
+  const solarActive = solarPhase !== 'galaxy';
+  const leaveSolar = () => {
+    solarRef.current?.exit();
+    if (window.location.hash === '#system/patterns-and-life')
+      window.history.replaceState(null, '', '#galaxy');
+  };
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
   const ringPortalRef = useRef<HTMLButtonElement>(null);
@@ -553,6 +567,26 @@ export function GalaxyIndex({
 
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
+      const solar = solarRef.current;
+      if (solar?.active) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          if (solar.selected !== null && !solar.navigating) solar.select(null);
+          else leaveSolar();
+        } else if (
+          (event.key === 'ArrowRight' || event.key === 'ArrowLeft') &&
+          !solar.navigating
+        ) {
+          event.preventDefault();
+          solar.select(
+            ((solar.selected ?? -1) +
+              (event.key === 'ArrowRight' ? 1 : 5) +
+              6) %
+              6,
+          );
+        }
+        return;
+      }
       if (event.key !== 'Escape') return;
       if (expandedRef.current) collapseDestination();
       else if (galaxyIdRef.current === 'webring') travelRef.current('home');
@@ -560,6 +594,14 @@ export function GalaxyIndex({
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
   }, []);
+
+  useEffect(() => {
+    if (solarPhase !== 'system' && solarPhase !== 'galaxy') return;
+    if (solarPhase === 'system')
+      stageRef.current?.parentElement
+        ?.querySelector<HTMLButtonElement>('.solar-back')
+        ?.focus({ preventScroll: true });
+  }, [solarPhase]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1063,7 +1105,36 @@ export function GalaxyIndex({
       return true;
     };
 
+    const solar = new SolarSystemScene(
+      scene,
+      camera,
+      renderer.domElement,
+      stage,
+      (phase, selected) => {
+        setSolarPhase(phase);
+        setSolarSelected(selected);
+        if (phase === 'galaxy')
+          requestAnimationFrame(() => {
+            solarGatewayRef.current?.focus({ preventScroll: true });
+            if (window.location.hash === '#webring')
+              travelRef.current('webring', false, false);
+          });
+      },
+    );
+    solarRef.current = solar;
+    const solarReadyFrame = requestAnimationFrame(() => setSolarReady(true));
+    enterSolarRef.current = (updateHistory = true) => {
+      if (travellingRef.current || groxActive || galaxyIdRef.current !== 'home')
+        return;
+      const entryStar = new THREE.Vector3();
+      galaxyScenes.home.nodes[1].marker.getWorldPosition(entryStar);
+      solar.enter(entryStar);
+      if (updateHistory && window.location.hash !== '#system/patterns-and-life')
+        window.history.pushState(null, '', '#system/patterns-and-life');
+    };
+
     travelRef.current = (id, inspect = false, updateHistory = true) => {
+      if (solar.active) return;
       if (!galaxies[id].worlds.length) return;
       if (id === galaxyIdRef.current) {
         if (inspect && travellingRef.current) inspectOnArrival = true;
@@ -1115,6 +1186,14 @@ export function GalaxyIndex({
     };
 
     const onHistory = () => {
+      if (window.location.hash === '#system/patterns-and-life') {
+        enterSolarRef.current(false);
+        return;
+      }
+      if (solar.active) {
+        solar.exit();
+        return;
+      }
       if (!groxActive)
         travelRef.current(
           window.location.hash === '#webring' ? 'webring' : 'home',
@@ -1125,6 +1204,8 @@ export function GalaxyIndex({
     window.addEventListener('popstate', onHistory);
     if (!groxEncounter && window.location.hash === '#webring')
       travelRef.current('webring', false, false);
+    if (!groxEncounter && window.location.hash === '#system/patterns-and-life')
+      enterSolarRef.current(false);
 
     portraitBurstTarget.dataset.portraitBursts = '0';
 
@@ -1196,6 +1277,10 @@ export function GalaxyIndex({
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerDown(event);
+        return;
+      }
       if (travellingRef.current || event.button !== 0) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (pointers.size === 2) {
@@ -1221,6 +1306,10 @@ export function GalaxyIndex({
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerMove(event);
+        return;
+      }
       updatePointer(event);
       if (pointers.has(event.pointerId))
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -1264,6 +1353,10 @@ export function GalaxyIndex({
     };
 
     const endPointer = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerUp(event);
+        return;
+      }
       const wasPinching = pointers.size >= 2;
       pointers.delete(event.pointerId);
       if (wasPinching) {
@@ -1297,6 +1390,7 @@ export function GalaxyIndex({
     };
 
     const onPointerLeave = () => {
+      if (solar.active) return;
       if (!isDragging) {
         pointer.set(4, 4);
         renderer.domElement.style.cursor = 'grab';
@@ -1309,6 +1403,10 @@ export function GalaxyIndex({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      if (solar.active) {
+        solar.wheel(event.deltaY);
+        return;
+      }
       if (travellingRef.current) return;
       cameraModeRef.current = 'manual';
       cameraDistance = THREE.MathUtils.clamp(
@@ -1368,6 +1466,7 @@ export function GalaxyIndex({
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      solar.resize();
       distantParallax.resize(width, height, defaultCameraDistance, rightInset);
       if (groxEncounter && groxArrived && !animationFrame)
         animationFrame = requestAnimationFrame(animate);
@@ -1407,6 +1506,13 @@ export function GalaxyIndex({
       const delta = elapsedMs / 16.667;
       previousTime = time;
       frame += 1;
+
+      if (solar.active) {
+        solar.update(elapsedMs, reduceMotion);
+        renderer.render(scene, camera);
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
 
       if (travellingRef.current) {
         travelElapsed += elapsedMs;
@@ -1644,7 +1750,7 @@ export function GalaxyIndex({
         );
         chromeRects = Array.from(
           sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .solar-gateway, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
           ),
           (element) => element.getBoundingClientRect(),
         );
@@ -1950,6 +2056,10 @@ export function GalaxyIndex({
 
     return () => {
       disposed = true;
+      solar.dispose();
+      cancelAnimationFrame(solarReadyFrame);
+      solarRef.current = null;
+      enterSolarRef.current = () => undefined;
       if (animationFrame) cancelAnimationFrame(animationFrame);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       reducedMotionQuery.removeEventListener('change', onReducedMotionChange);
@@ -2025,6 +2135,7 @@ export function GalaxyIndex({
       style={{ '--ui-motion-speed': UI_MOTION_SPEED } as CSSProperties}
       data-galaxy={galaxyId}
       data-travelling={travelling}
+      data-solar-active={solarActive}
       data-arms={galaxies[galaxyId].arms}
       onPointerOver={(event) => {
         const menu = (event.target as Element).closest('.spore-menu-item');
@@ -2046,6 +2157,33 @@ export function GalaxyIndex({
     >
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
+      <div aria-hidden="true" className="solar-warp" />
+      <button
+        ref={solarGatewayRef}
+        type="button"
+        className="solar-gateway"
+        disabled={!solarReady || travelling || galaxyId !== 'home'}
+        onClick={() => enterSolarRef.current()}
+        aria-label="Enter Patterns and Life solar system"
+      >
+        <span className="solar-gateway-star" aria-hidden="true" />
+        <span>
+          <small>Explore a solar system</small>
+          <strong>
+            Patterns & Life <span aria-hidden="true">›</span>
+          </strong>
+        </span>
+      </button>
+      {solarActive && (
+        <SolarSystemHud
+          phase={solarPhase}
+          selected={solarSelected}
+          onSelect={(index) => solarRef.current?.select(index)}
+          onExit={leaveSolar}
+          onPause={(paused) => solarRef.current?.setPaused(paused)}
+          onZoom={(factor) => solarRef.current?.zoom(factor)}
+        />
+      )}
 
       <button
         ref={ringPortalRef}
@@ -2161,14 +2299,14 @@ export function GalaxyIndex({
 
       <CommsPresence
         kind="preview"
-        world={!travelling ? floatingPreview : null}
+        world={!travelling && !solarActive ? floatingPreview : null}
         anchorRef={previewRef}
         hint={expanded}
         onAction={() => expandDestination(floatingPreviewIndex!)}
       />
       <CommsPresence
         kind="detail"
-        world={expanded ? active : null}
+        world={expanded && !solarActive ? active : null}
         anchorRef={detailRef}
         onAction={collapseDestination}
       />
@@ -2329,7 +2467,7 @@ export function GalaxyIndex({
         ))}
       </nav>
 
-      <p className="sr-only" aria-live="polite">
+      <p className="sr-only" aria-live="polite" hidden={solarActive}>
         {expanded
           ? `Selected world: ${active.name}. ${active.description}`
           : `Previewing world: ${preview.name}.`}

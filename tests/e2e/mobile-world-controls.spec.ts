@@ -3,15 +3,22 @@ import { destinations } from '../../data/worlds';
 import { webring } from '../../data/webring';
 
 async function settleDetail(page: import('@playwright/test').Page) {
-  await page
-    .locator('.world-detail:not([data-phase="leaving"])')
-    .evaluate(async (element) => {
-      await Promise.all(
-        element
-          .getAnimations({ subtree: true })
-          .map((animation) => animation.finished),
-      );
-    });
+  await expect
+    .poll(() =>
+      page
+        .locator('.world-detail:not([data-phase="leaving"])')
+        .evaluate(
+          (element) =>
+            element
+              .getAnimations({ subtree: true })
+              .filter(
+                (animation) =>
+                  animation.playState === 'running' &&
+                  animation.effect?.getTiming().iterations !== Infinity,
+              ).length,
+        ),
+    )
+    .toBe(0);
 }
 
 test.use({

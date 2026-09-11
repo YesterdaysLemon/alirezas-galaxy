@@ -1,0 +1,25 @@
+# Managed by al-stack. Keep extended prose in AGENTS.md.
+"schema" = 1
+
+["project"]
+"id" = "233cc4c8-603c-4030-9f1e-d46156e1f15e"
+"name" = "website-overhaul"
+"status" = "experimental"
+"profile" = "web"
+"purpose" = "Alireza's Galaxy: a tactile Three.js index with explorable project solar systems"
+
+["stack"]
+"version" = "0.1.0"
+"revision" = "11eac15f6a8a0dc76f06ef97c7c3a27c7f668e0a"
+
+["commands"]
+"dev" = "npm run dev"
+"check" = "npm run lint && npm run test:unit && npm run build"
+
+[["skills"]]
+"name" = "frontend-quality"
+"source" = "al-stack:frontend-quality"
+"source_revision" = "fe8772364be7b61b57bb99495c69f12739378f21"
+"source_digest" = "ca144ab4588498e2e1e046b1fc0653fcd5ae810a5dd2724754d69acfc05d97f7"
+"installed_digest" = "ca144ab4588498e2e1e046b1fc0653fcd5ae810a5dd2724754d69acfc05d97f7"
+"local_override" = false

@@ -88,13 +88,24 @@ for (const viewport of [
     ).toBeVisible();
     const close = page.getByRole('button', { name: 'Close world details' });
     await expect(close).toBeVisible();
-    await page.locator('.world-detail').evaluate(async (element) => {
-      await Promise.all(
-        element
-          .getAnimations({ subtree: true })
-          .map((animation) => animation.finished),
-      );
-    });
+    // Hover/readiness can replace an entrance animation. Wait for the current
+    // finite animations; awaiting a cancelled animation rejects with AbortError.
+    await expect
+      .poll(() =>
+        page
+          .locator('.world-detail')
+          .evaluate(
+            (element) =>
+              element
+                .getAnimations({ subtree: true })
+                .filter(
+                  (animation) =>
+                    animation.playState === 'running' &&
+                    animation.effect?.getTiming().iterations !== Infinity,
+                ).length,
+          ),
+      )
+      .toBe(0);
     const closeBox = (await close.boundingBox())!;
     await page.mouse.move(
       closeBox.x + closeBox.width / 2,
