@@ -187,6 +187,19 @@
       "hosting": "first-party",
       "status": "live",
       "glyph": "♜"
+    },
+    {
+      "id": "dodeca",
+      "name": "Dodeca & Point",
+      "kind": "Living 3D experiment",
+      "url": "https://dodeca.alirezaafshan.com",
+      "description": "Twelve competing drives and one holistic decision wander a strange, abundant world.",
+      "relationship": "owned",
+      "hosting": "first-party",
+      "status": "live",
+      "iconSrc": "https://dodeca.alirezaafshan.com/icon.svg",
+      "glyph": "◈",
+      "color": 16026482
     }
   ]
 }

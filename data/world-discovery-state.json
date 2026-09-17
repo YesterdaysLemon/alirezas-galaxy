@@ -68,5 +68,10 @@
     "url": "https://herald.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null
+  },
+  "dodeca": {
+    "url": "https://dodeca.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null
   }
 }
