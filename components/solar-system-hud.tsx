@@ -12,7 +12,7 @@ import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
 import { worldCatalog, type CatalogWorld } from '../data/worlds';
 import { worldComms } from '../data/world-comms';
 import { PanelFasteners, WorldPreview } from './world-comms';
-import type { SolarPhase } from '../lib/solar-system-scene';
+import type { SolarPhase } from '../lib/solar/scene';
 import { drawPlanetMark } from '../lib/planet-marks';
 
 const projectsById: Record<string, CatalogWorld | undefined> =

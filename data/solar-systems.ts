@@ -593,11 +593,19 @@ export function parseSystemRoute(
   }
 }
 
+/** A world's orbital angle after `time` seconds of system time. */
+export function orbitAngle(
+  planet: Pick<PlanetRecipe, 'orbit' | 'phase'>,
+  time: number,
+) {
+  return planet.phase + (time * 0.028) / Math.sqrt(planet.orbit);
+}
+
 export function planetPosition(
   planet: Pick<PlanetRecipe, 'orbit' | 'phase'>,
   time = 0,
 ) {
-  const angle = planet.phase + (time * 0.028) / Math.sqrt(planet.orbit);
+  const angle = orbitAngle(planet, time);
   return {
     x: Math.cos(angle) * planet.orbit,
     y: 0,

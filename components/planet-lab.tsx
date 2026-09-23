@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { solarSystems, type PlanetRecipe } from '@/data/solar-systems';
 import { surfaceTuning } from '@/lib/planet-textures';
 import { PlanetPreparation } from '@/lib/planet-preparation';
-import { createWorldBody } from '@/lib/solar-system-resources';
+import { createWorldBody } from '@/lib/solar/bodies';
 import { drawPlanetMark } from '@/lib/planet-marks';
 
 type Terrain = PlanetRecipe['terrain'];

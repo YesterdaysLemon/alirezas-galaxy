@@ -27,7 +27,7 @@ import {
   systemHref,
   parseSystemRoute,
 } from '@/data/solar-systems';
-import { SolarSystemScene, type SolarPhase } from '@/lib/solar-system-scene';
+import { SolarSystemScene, type SolarPhase } from '@/lib/solar/scene';
 import { SolarSystemHud } from './solar-system-hud';
 
 const projectOrbits = solarSystems.flatMap((system) =>
