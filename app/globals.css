@@ -49,6 +49,9 @@ button {
   --safe-left: env(safe-area-inset-left, 0px);
   height: 100svh;
   height: 100dvh;
+  /* Clip rather than hide: chrome that slides off-screen must never let
+     focus or scrollIntoView scroll the whole shell. */
+  overflow: clip;
   color: white;
   background: #020308;
   isolation: isolate;

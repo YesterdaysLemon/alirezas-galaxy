@@ -1,6 +1,7 @@
 /* Inside a star system the HUD changes mode, as Spore's space stage does:
-   the canopy retracts to a compact corner, the dock steps aside, and a
-   scanner console runs along the bottom. Original art; no game assets. */
+   the galaxy's canopy and dock step aside, and the ship's own HUD hugs the
+   bottom edge, leaving the top of the screen to space. Original art; no game
+   assets. */
 .spore-shell[data-solar-active='true']
   > :is(.webring-portal, .world-detail, .world-preview, .galaxy-location) {
   visibility: hidden !important;
@@ -24,27 +25,30 @@
   pointer-events: none;
 }
 .spore-shell[data-solar-active='true'] > .spore-corner {
-  transform: scale(0.7);
+  visibility: hidden;
+  opacity: 0;
+  transform: translate(-12%, -18%) scale(0.92);
   transform-origin: 0 0;
-  transition-delay: 0s;
+  pointer-events: none;
 }
 .spore-shell:not([data-solar-active='true']) > :is(.spore-dock, .spore-corner) {
   transition-delay: 0s;
 }
-.spore-menu-item > .menu-icon-galaxy {
-  fill: none;
-}
 
 .solar-hud {
-  --ss-glass: rgba(6, 16, 26, 0.9);
-  --ss-glass-hi: rgba(20, 44, 62, 0.92);
-  --ss-rim: #7f9bb0;
-  --ss-rim-hi: #cfe4ee;
+  --ss-glass: rgba(6, 18, 32, 0.92);
+  --ss-glass-hi: rgba(22, 52, 84, 0.94);
+  --ss-metal: linear-gradient(#a9b6bf, #6b7881 38%, #3c464e 62%, #58646d);
+  --ss-metal-edge: #1a2127;
+  --ss-rim-hi: #dfe9ef;
   --ss-cyan: #6fe6ff;
   --ss-lime: #b7f58e;
   --ss-amber: #ffe16a;
-  --ss-text: #e8f6ff;
-  --ss-muted: #93b6c6;
+  --ss-gold: #e0bd52;
+  --ss-text: #eef8ff;
+  --ss-muted: #9fbccb;
+  --scope: 140px;
+  --helm-gap: 5px;
   position: absolute;
   inset: 0;
   z-index: 11;
@@ -66,100 +70,19 @@
   cursor: default;
   opacity: 0.5;
 }
-
-/* ---------- Star nameplate ---------- */
-.solar-nameplate {
-  position: absolute;
-  top: max(10px, env(safe-area-inset-top));
-  left: 50%;
-  display: grid;
-  justify-items: center;
-  max-width: min(520px, calc(100% - 320px));
-  padding: 5px 26px 7px;
-  border: 1px solid #5f7d92;
-  border-top-color: var(--ss-rim-hi);
-  border-radius: 6px 6px 22px 22px;
-  background: linear-gradient(var(--ss-glass-hi), var(--ss-glass));
-  box-shadow:
-    inset 0 1px #ffffff26,
-    0 0 0 1px #02080f,
-    0 4px 14px #0008;
-  transform: translateX(-50%);
-  text-align: center;
+.solar-hud svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
 }
-.solar-nameplate span {
-  color: var(--ss-cyan);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-shadow: 0 0 6px #6fe6ff55;
-  white-space: nowrap;
-}
-.solar-nameplate h1 {
-  margin: 1px 0 0;
-  overflow: hidden;
-  max-width: 100%;
-  color: var(--ss-text);
-  font-size: 19px;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-shadow: 0 1px 2px #000;
+.solar-hud svg .is-filled {
+  fill: currentColor;
+  stroke: none;
 }
 
-/* ---------- In-scene world labels ---------- */
-.solar-world-label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  visibility: hidden;
-  width: 1px;
-  height: 1px;
-  border: 0;
-  padding: 0;
-  overflow: visible;
-  background: none;
-  pointer-events: none !important;
-}
-.solar-world-label i {
-  position: absolute;
-  width: 44px;
-  height: 44px;
-  top: -22px;
-  left: -22px;
-  border-radius: 50%;
-  pointer-events: auto;
-}
-.solar-world-label span {
-  position: absolute;
-  top: 24px;
-  left: 0;
-  transform: translateX(-50%);
-  max-width: 150px;
-  width: max-content;
-  padding: 3px 9px 4px;
-  color: #b7f58e;
-  font-size: 11px;
-  font-weight: 900;
-  line-height: 1.15;
-  text-align: center;
-  overflow-wrap: anywhere;
-  pointer-events: none;
-  background: linear-gradient(#244552e6, #0b2431e6 55%, #12383ce6);
-  border: 1px solid #adcfcb88;
-  border-radius: 9px;
-  box-shadow: 0 2px 5px #0009;
-  text-shadow: 0 1px 1px #000;
-  opacity: 0.82;
-  transition: opacity calc(120ms / var(--ui-motion-speed, 1));
-}
-.solar-world-label[data-attention='true'] span {
-  opacity: 0;
-}
-
+/* ---------- The hover card and planet comms (galaxy casing) ---------- */
 /* The scene positions this measurable outer box, never the original card. */
 .solar-world-preview {
   position: absolute;
@@ -188,14 +111,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.solar-hud[data-view='planet'] .solar-world-labels,
-.solar-hud[data-navigating='true'] .solar-world-labels {
-  display: none;
-}
 
-/* ---------- Planet comms: the galaxy's detail casing, docked on the right ---------- */
 .spore-shell .solar-comms {
-  top: 50%;
+  top: 46%;
   right: max(18px, var(--safe-right));
   left: auto;
   width: min(470px, 40vw);
@@ -234,32 +152,199 @@
   filter: none !important;
 }
 
-/* ---------- Scanner console: radar scope + tabbed deck ---------- */
+/* ---------- Console: rail, helm (left) and worlds deck (right) ---------- */
 .solar-console {
-  --scope: 150px;
   position: absolute;
-  left: max(12px, var(--safe-left));
-  bottom: max(10px, var(--safe-bottom));
-  display: flex;
-  align-items: flex-end;
-  width: min(880px, calc(100% - 24px));
+  inset: auto 0 0;
+  height: 0;
   pointer-events: none;
-  animation: solar-console-in calc(300ms / var(--ui-motion-speed, 1))
+}
+.solar-rail {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(13px + var(--safe-bottom));
+  border-top: 1px solid #c9d6de66;
+  background: var(--ss-metal);
+  box-shadow:
+    0 -1px 0 var(--ss-metal-edge),
+    0 -6px 18px #0008;
+}
+.solar-rail::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 14px;
+  left: calc(var(--scope) + 40px);
+  height: 6px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(20% - 1px),
+      #0a1c2e calc(20% - 1px) 20%
+    ),
+    linear-gradient(#153f66, #2468a0 55%, #103455);
+  box-shadow: inset 0 1px 1px #0009;
+}
+
+.solar-helm {
+  position: absolute;
+  z-index: 2;
+  left: max(10px, var(--safe-left));
+  bottom: calc(4px + var(--safe-bottom));
+  display: grid;
+  justify-items: start;
+  gap: var(--helm-gap);
+}
+
+/* The system tab sits on the radar's rim, as Spore's system name does. */
+.solar-nametab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: var(--scope);
+  max-width: min(360px, calc(100vw - 24px));
+  height: 36px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--ss-metal-edge);
+  border-radius: 18px;
+  background:
+    linear-gradient(var(--ss-glass-hi), var(--ss-glass) 60%) padding-box,
+    var(--ss-metal) border-box;
+  box-shadow:
+    inset 0 0 0 2px #7f8d9766,
+    inset 0 1px #ffffff2a,
+    0 3px 10px #0009;
+  pointer-events: auto;
+  animation: solar-rise calc(280ms / var(--ui-motion-speed, 1))
     cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
-@keyframes solar-console-in {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
+.solar-nametab-star {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 40%,
+    #fff 0 14%,
+    var(--star-color) 42%,
+    color-mix(in srgb, var(--star-color) 25%, transparent) 70%,
+    transparent 74%
+  );
+  filter: drop-shadow(0 0 4px var(--star-color));
 }
+.solar-nametab-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.05;
+}
+.solar-nametab h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ss-text);
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #000;
+}
+.solar-nametab-text > span {
+  overflow: hidden;
+  color: var(--ss-cyan);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Glossy round buttons: the galaxy map, pause, and the menu spiral. */
+.solar-round,
+.solar-spiral,
+.solar-zoom button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ss-metal-edge);
+  border-radius: 50%;
+  color: var(--ss-text);
+  background:
+    radial-gradient(ellipse at 38% 22%, #ffffff55, transparent 46%) padding-box,
+    radial-gradient(circle at 50% 70%, #2a74b0, #103a63 62%, #0a2542)
+      padding-box,
+    var(--ss-metal) border-box;
+  box-shadow:
+    inset 0 0 0 2px #93a2ad88,
+    0 2px 5px #000a;
+  transition:
+    filter calc(140ms / var(--ui-motion-speed, 1)) ease,
+    transform calc(140ms / var(--ui-motion-speed, 1)) ease;
+}
+.solar-round {
+  width: 30px;
+  height: 30px;
+}
+.solar-round svg,
+.solar-zoom svg {
+  width: 16px;
+  height: 16px;
+}
+.solar-spiral {
+  width: 46px;
+  height: 46px;
+  color: #d7f6ff;
+  background:
+    radial-gradient(ellipse at 38% 22%, #ffffff66, transparent 46%) padding-box,
+    radial-gradient(circle at 50% 70%, #3a9ad8, #135089 60%, #0a2a4c)
+      padding-box,
+    var(--ss-metal) border-box;
+}
+.solar-spiral svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 3px #6fe6ff99);
+}
+.solar-spiral[aria-expanded='true'] {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-cyan),
+    0 0 12px #6fe6ff88;
+}
+.solar-round[aria-pressed='true'] {
+  color: var(--ss-amber);
+  box-shadow:
+    inset 0 0 0 2px var(--ss-amber),
+    0 2px 5px #000a;
+}
+.solar-hud
+  :is(.solar-round, .solar-spiral, .solar-zoom button):is(
+    :hover,
+    :focus-visible
+  ):not(:disabled) {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+  outline: none;
+}
+.solar-hud :is(.solar-round, .solar-spiral, .solar-zoom button):focus-visible {
+  box-shadow:
+    inset 0 0 0 2px #f2faff,
+    0 0 0 2px #02080f,
+    0 0 10px #6fe6ff88;
+}
+
+/* ---------- Radar: kept from the earlier console, now the helm's minimap ---------- */
 .solar-scope {
   position: relative;
-  z-index: 2;
-  flex: 0 0 var(--scope);
   width: var(--scope);
   height: var(--scope);
   pointer-events: auto;
+  animation: solar-rise calc(300ms / var(--ui-motion-speed, 1))
+    cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
 .solar-scope canvas {
   position: absolute;
@@ -301,72 +386,170 @@
     0 0 0 1px #02080f,
     0 5px 16px #000a;
 }
-.solar-deck {
-  position: relative;
-  display: grid;
-  flex: 1;
-  grid-template-columns: minmax(120px, 190px) minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  height: 92px;
-  margin: 0 0 16px -40px;
-  padding: 8px 14px 8px 52px;
-  border: 1px solid #5f7d92;
-  border-top-color: var(--ss-rim-hi);
-  border-radius: 0 26px 26px 0;
-  background: linear-gradient(var(--ss-glass-hi), var(--ss-glass) 55%);
-  box-shadow:
-    inset 0 1px #ffffff22,
-    inset 0 -2px 0 #0a1a26,
-    0 0 0 1px #02080f,
-    0 6px 18px #0009;
-  pointer-events: auto;
-}
-.solar-tabs {
+/* A gold zoom rocker rides the radar's rim. */
+.solar-zoom {
   position: absolute;
-  bottom: calc(100% - 1px);
-  left: 58px;
-  display: flex;
+  top: 6px;
+  right: -12px;
+  display: grid;
   gap: 3px;
+  padding: 3px;
+  border-radius: 18px;
+  background: linear-gradient(#f1d67a, #b8912e 50%, #7d6120);
+  box-shadow:
+    0 0 0 1px #3b2c08,
+    0 3px 8px #000a;
 }
-.solar-tabs button {
-  min-width: 64px;
+.solar-zoom button {
+  width: 26px;
   height: 26px;
-  padding: 0 14px;
-  border: 1px solid #5f7d92;
-  border-bottom: 0;
-  border-radius: 11px 11px 0 0;
-  color: var(--ss-muted);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  background: linear-gradient(#10263a, #0a1a28);
 }
-.solar-tabs button[aria-selected='true'] {
+
+.solar-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+/* ---------- Ship menu: random world and the star systems ---------- */
+.solar-menu {
+  position: absolute;
+  bottom: 0;
+  left: calc(100% + 14px);
+  display: grid;
+  gap: 6px;
+  width: min(270px, calc(100vw - var(--scope) - 48px));
+  max-height: min(62vh, 440px);
+  padding: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ss-metal-edge);
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--ss-glass-hi), var(--ss-glass) 40%) padding-box,
+    var(--ss-metal) border-box;
+  box-shadow:
+    inset 0 0 0 2px #7f8d9766,
+    0 8px 24px #000b;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  animation: solar-rise calc(180ms / var(--ui-motion-speed, 1))
+    cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.solar-menu h2 {
+  margin: 4px 4px 0;
   color: var(--ss-cyan);
-  border-top-color: var(--ss-rim-hi);
-  background: linear-gradient(#1d4058, var(--ss-glass-hi));
-  text-shadow: 0 0 8px #6fe6ff88;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
-.solar-tabs button:is(:hover, :focus-visible) {
+.solar-menu nav {
+  display: grid;
+  gap: 5px;
+}
+.solar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 14px 0 10px;
+  border: 1px solid #3c5c70;
+  border-radius: 19px;
   color: var(--ss-text);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  background: linear-gradient(#1a4368, #0c2440);
+}
+.solar-menu-item svg {
+  width: 18px;
+  height: 18px;
+  fill: #8fdcff;
+  stroke: none;
+}
+.solar-star-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 4px 14px 4px 8px;
+  border: 1px solid #3c5c70;
+  border-radius: 23px;
+  text-align: left;
+  background: linear-gradient(#10283b, #081624);
+}
+.solar-star-slot i {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 40%,
+    #fff 0 12%,
+    var(--star-color) 36%,
+    color-mix(in srgb, var(--star-color) 25%, transparent) 68%,
+    transparent 72%
+  );
+}
+.solar-star-slot span {
+  display: grid;
+  min-width: 0;
+}
+.solar-star-slot strong {
+  overflow: hidden;
+  color: var(--ss-text);
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.solar-star-slot small {
+  color: var(--ss-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.solar-hud :is(.solar-menu-item, .solar-star-slot):is(:hover, :focus-visible) {
+  border-color: var(--ss-cyan);
   outline: none;
 }
-.solar-tabs button:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--ss-cyan);
+.solar-star-slot[aria-current='true'] {
+  border-color: var(--ss-amber);
+  cursor: default;
+}
+
+/* ---------- Worlds deck: readout tab, sockets tray, portrait card ---------- */
+.solar-deck {
+  position: absolute;
+  right: max(10px, var(--safe-right));
+  bottom: calc(4px + var(--safe-bottom));
+  display: grid;
+  justify-items: end;
+  max-width: calc(100vw - var(--scope) - 44px);
+  animation: solar-rise calc(300ms / var(--ui-motion-speed, 1))
+    cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
 .solar-readout {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 100%;
   min-width: 0;
-  padding-right: 12px;
-  border-right: 1px solid #2b4659;
+  margin-right: 100px;
+  padding: 5px 14px 6px;
+  border: 1px solid var(--ss-metal-edge);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(var(--ss-glass-hi), var(--ss-glass));
+  box-shadow: inset 0 1px #ffffff26;
+  pointer-events: auto;
 }
 .solar-readout strong {
   overflow: hidden;
   color: var(--ss-text);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -381,9 +564,8 @@
 }
 .solar-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
   gap: 4px;
-  margin-top: 3px;
 }
 .solar-chips i {
   padding: 1px 7px 2px;
@@ -393,6 +575,7 @@
   font-size: 10px;
   font-style: normal;
   font-weight: 700;
+  white-space: nowrap;
   background: #0b2030;
 }
 .solar-chips i[data-tone='lime'] {
@@ -406,30 +589,43 @@
 .solar-chips i[data-tone='dim'] {
   color: var(--ss-muted);
 }
-.solar-slots {
+.solar-tray {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
   min-width: 0;
-  height: 100%;
+}
+.solar-slots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 10px;
   overflow-x: auto;
   overflow-y: hidden;
+  border: 1px solid var(--ss-metal-edge);
+  border-radius: 30px 8px 8px 30px;
+  background:
+    linear-gradient(#1b2830, #0e161c) padding-box,
+    var(--ss-metal) border-box;
+  box-shadow:
+    inset 0 0 0 2px #7f8d9766,
+    inset 0 2px 6px #000c,
+    0 3px 10px #0009;
+  pointer-events: auto;
   scrollbar-width: none;
 }
 .solar-slots::-webkit-scrollbar {
   display: none;
 }
-.solar-slots > :is(nav, div) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 100%;
-  padding: 0 2px;
-}
 .solar-socket {
   position: relative;
   display: grid;
-  flex: 0 0 60px;
+  flex: 0 0 50px;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   padding: 0;
   border: 2px solid #8fa9ba;
   border-radius: 50%;
@@ -445,8 +641,8 @@
     box-shadow calc(150ms / var(--ui-motion-speed, 1)) ease;
 }
 .solar-socket .solar-mini-planet {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
 }
 .solar-socket:is(:hover, :focus-visible),
 .solar-socket[data-attention='true'] {
@@ -465,99 +661,6 @@
     0 0 0 1px #3c2d06,
     0 0 12px #ffe16a88;
 }
-.solar-star-slot {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 9px;
-  height: 56px;
-  padding: 0 16px 0 10px;
-  border: 1px solid #3c5c70;
-  border-radius: 28px;
-  text-align: left;
-  background: linear-gradient(#10283b, #081624);
-}
-.solar-star-slot i {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 42% 40%,
-    #fff 0 12%,
-    var(--star-color) 36%,
-    color-mix(in srgb, var(--star-color) 25%, transparent) 68%,
-    transparent 72%
-  );
-}
-.solar-star-slot span {
-  display: grid;
-}
-.solar-star-slot strong {
-  color: var(--ss-text);
-  font-size: 13px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-.solar-star-slot small {
-  color: var(--ss-muted);
-  font-size: 10px;
-  white-space: nowrap;
-}
-.solar-star-slot:is(:hover, :focus-visible) {
-  border-color: var(--ss-cyan);
-  outline: none;
-}
-.solar-star-slot[aria-current='true'] {
-  border-color: var(--ss-amber);
-  cursor: default;
-}
-.solar-knob {
-  display: grid;
-  flex: 0 0 auto;
-  justify-items: center;
-  gap: 3px;
-  min-width: 52px;
-  padding: 0;
-  border: 0;
-  background: none;
-}
-.solar-knob svg {
-  width: 40px;
-  height: 40px;
-  padding: 10px;
-  border: 2px solid #8fa9ba;
-  border-radius: 50%;
-  fill: none;
-  stroke: var(--ss-text);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.2;
-  background:
-    radial-gradient(ellipse at 36% 20%, #ffffff30, transparent 44%),
-    linear-gradient(#264a63, #0c1f2e);
-  box-shadow: 0 0 0 1px #02080f;
-}
-.solar-knob svg .is-filled {
-  fill: var(--ss-text);
-  stroke: none;
-}
-.solar-knob span {
-  color: var(--ss-muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-.solar-knob[aria-pressed='true'] svg {
-  border-color: var(--ss-amber);
-}
-.solar-knob:is(:hover, :focus-visible) svg {
-  border-color: var(--ss-cyan);
-  box-shadow:
-    0 0 0 1px #02080f,
-    0 0 10px #6fe6ff77;
-}
-.solar-knob:focus-visible {
-  outline: none;
-}
 .solar-hud :is(.solar-socket, .solar-star-slot):focus-visible::after {
   content: '';
   position: absolute;
@@ -565,8 +668,26 @@
   border: 2px solid #f2faff;
   border-radius: inherit;
 }
-.solar-star-slot {
-  position: relative;
+/* The corner portrait: whatever the scout is looking at. */
+.solar-card {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--ss-metal-edge);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 40%, #173a57, #06111d 72%) padding-box,
+    var(--ss-metal) border-box;
+  box-shadow:
+    inset 0 0 0 3px #7f8d9788,
+    inset 0 0 14px #000c,
+    0 3px 10px #0009;
+}
+.solar-card .solar-mini-planet {
+  width: 72px;
+  height: 72px;
 }
 
 .solar-mini-planet {
@@ -582,81 +703,110 @@
   height: 100%;
 }
 
+@keyframes solar-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
 /* ---------- Narrow portrait ---------- */
 @media (max-width: 720px) and (max-aspect-ratio: 1/1) {
-  .spore-shell[data-solar-active='true'] > .spore-corner {
-    transform: scale(0.8);
+  .solar-hud {
+    --scope: 100px;
+    --helm-gap: 4px;
   }
-  .solar-nameplate {
-    top: auto;
-    bottom: calc(max(10px, var(--safe-bottom)) + 124px);
-    max-width: calc(100% - 24px);
+  .solar-nametab {
+    max-width: calc(100vw - 24px);
   }
-  .solar-console {
-    --scope: 108px;
+  .solar-zoom {
+    right: -10px;
   }
-  .solar-deck {
-    grid-template-columns: minmax(0, 1fr);
-    height: 78px;
-    margin: 0 0 10px -30px;
-    padding: 6px 10px 6px 36px;
+  .solar-zoom button {
+    width: 24px;
+    height: 24px;
   }
-  .solar-readout {
+  .solar-readout,
+  .solar-card {
     display: none;
   }
-  .solar-tabs {
-    left: 40px;
+  .solar-deck {
+    max-width: calc(100vw - var(--scope) - 40px);
   }
-  .solar-tabs button {
-    min-width: 0;
-    height: 30px;
-    padding: 0 11px;
+  .solar-slots {
+    padding: 5px 8px;
   }
   .solar-socket {
-    flex-basis: 54px;
-    width: 54px;
-    height: 54px;
+    flex-basis: 46px;
+    width: 46px;
+    height: 46px;
   }
   .solar-socket .solar-mini-planet {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
+  }
+  .solar-menu {
+    left: 0;
+    bottom: calc(100% + 8px);
+    width: min(290px, calc(100vw - 24px));
+    max-height: min(56vh, 420px);
   }
   .spore-shell .solar-comms {
     top: auto;
     right: 10px;
-    bottom: calc(max(10px, var(--safe-bottom)) + 124px);
+    bottom: calc(var(--safe-bottom) + 210px);
     left: 10px;
     width: auto;
     transform: none;
-  }
-  .solar-hud[data-view='planet'] .solar-nameplate {
-    display: none;
   }
 }
 
 /* ---------- Short landscape ---------- */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
-  .solar-nameplate {
+  .solar-hud {
+    --scope: 92px;
+    --helm-gap: 3px;
+  }
+  .solar-nametab {
+    height: 30px;
+  }
+  .solar-nametab h1 {
+    font-size: 12px;
+  }
+  .solar-spiral {
+    width: 38px;
+    height: 38px;
+  }
+  .solar-spiral svg {
+    width: 22px;
+    height: 22px;
+  }
+  .solar-zoom button {
+    width: 22px;
+    height: 22px;
+  }
+  .solar-readout {
     display: none;
   }
-  .solar-console {
-    --scope: 104px;
-    width: min(760px, calc(100% - 24px));
-  }
-  .solar-deck {
-    height: 74px;
-    margin: 0 0 8px -30px;
-    padding: 5px 10px 5px 38px;
-    grid-template-columns: minmax(96px, 150px) minmax(0, 1fr);
-  }
   .solar-socket {
-    flex-basis: 52px;
-    width: 52px;
-    height: 52px;
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
   }
   .solar-socket .solar-mini-planet {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
+  }
+  .solar-card {
+    width: 70px;
+    height: 70px;
+  }
+  .solar-card .solar-mini-planet {
+    width: 56px;
+    height: 56px;
+  }
+  .solar-menu {
+    max-height: calc(100dvh - 24px);
   }
   .spore-shell .solar-comms {
     --comms-portrait-width: 64px;
@@ -678,7 +828,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .solar-hud *,
-  .solar-console,
   .spore-shell > :is(.spore-dock, .spore-corner) {
     animation: none !important;
     transition: none !important;

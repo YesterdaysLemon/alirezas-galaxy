@@ -69,6 +69,11 @@ const pointsFragmentShader = /* glsl */ `
   }
 `;
 
+/** A per-frame ease `rate` at 60fps, scaled to `frames` of 60fps time. */
+function frameEase(rate: number, frames: number) {
+  return 1 - Math.pow(1 - rate, frames);
+}
+
 function seededRandom(seed = 9173) {
   let value = seed >>> 0;
   return () => {
@@ -391,7 +396,7 @@ function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
   });
 }
 
-type MenuIconName = 'random' | 'about' | 'github' | 'galaxy';
+type MenuIconName = 'random' | 'about' | 'github';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
   if (name === 'random') {
@@ -403,20 +408,6 @@ function MenuIcon({ name }: { name: MenuIconName }) {
         viewBox="0 0 24 24"
       >
         <path d="M12 2.8c2.2 0 3.1 3.1 3.8 5.2 2.1-.8 5.2-1.2 5.9.9.7 2.1-2 3.8-3.8 5.2 1.5 1.7 3.2 4.4 1.4 5.8-1.8 1.3-4.2-.8-6.1-2-1.2 1.9-3.1 4.5-5 3.3-1.9-1.2-.4-4.2.3-6.3-2.2-.5-5.4-1.4-5.2-3.6.2-2.2 3.5-2.5 5.7-2.5.2-2.3.7-6 3-6Z" />
-      </svg>
-    );
-  }
-
-  if (name === 'galaxy') {
-    return (
-      <svg
-        className="menu-icon menu-icon-galaxy"
-        data-icon="return-to-galaxy"
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-      >
-        <path d="M12 12c0-1.7 2.4-2.1 3.3-.6 1.3 2.1-1 4.6-3.6 4.3-3.6-.4-4.9-4.9-2.6-7.6 3-3.4 8.8-2.2 10 2.3" />
-        <path d="M4.2 14.6c1.3 3.6 5.7 5.7 9.6 4.4" />
       </svg>
     );
   }
@@ -1266,6 +1257,15 @@ export function GalaxyIndex({
       );
       const galaxyCenter = new THREE.Vector3();
       galaxyScenes.home.galaxy.getWorldPosition(galaxyCenter);
+      if (!solar.active) {
+        // Every way in (random world, a link, history) closes an open galaxy
+        // detail, as a family star's own entry does; it must not reopen later.
+        expandedPreviewIndexRef.current = null;
+        expandedRef.current = false;
+        cameraModeRef.current = 'default';
+        setExpandedPreviewIndex(null);
+        setExpanded(false);
+      }
       setSolarSystem(system);
       setSolarPaused(false);
       applyingSolarRoute = !updateHistory;
@@ -1460,10 +1460,11 @@ export function GalaxyIndex({
         const distance = Math.hypot(first.x - second.x, first.y - second.y);
         if (pinchDistance > 0 && distance > 0) {
           cameraModeRef.current = 'manual';
+          // The wheel's own limits, so switching input never jumps the view.
           cameraDistance = THREE.MathUtils.clamp(
             (cameraDistance * pinchDistance) / distance,
-            15.5,
-            36,
+            expandedRef.current ? 15.5 : 18,
+            expandedRef.current ? 24 : 31,
           );
         }
         pinchDistance = distance;
@@ -1558,7 +1559,10 @@ export function GalaxyIndex({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       if (solar.active) {
-        solar.wheel(event.deltaY);
+        solar.wheel(event.deltaY, event.clientX, event.clientY, {
+          pinch: event.ctrlKey,
+          lines: event.deltaMode === WheelEvent.DOM_DELTA_LINE,
+        });
         return;
       }
       if (travellingRef.current) return;
@@ -1599,11 +1603,17 @@ export function GalaxyIndex({
     renderer.domElement.addEventListener('pointercancel', endPointer);
     renderer.domElement.addEventListener('pointerleave', onPointerLeave);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
-    // Hover previews sit over their stars; scrolling on one still steers the scene.
+    // Hover previews sit over their stars; scrolling on one still steers the
+    // scene. In a system the whole HUD does: no dead spots, and a trackpad
+    // pinch over the console zooms the system rather than the page.
     const onPreviewWheel = (event: WheelEvent) => {
       if (
         event.target instanceof Element &&
-        event.target.closest('.world-preview, [data-solar-preview]')
+        event.target.closest(
+          solar.active
+            ? '.world-preview, .solar-hud'
+            : '.world-preview, [data-solar-preview]',
+        )
       )
         onWheel(event);
     };
@@ -1865,15 +1875,20 @@ export function GalaxyIndex({
           ? expandedCameraDistance
           : defaultCameraDistance;
         cameraDistance +=
-          (desiredCameraDistance - cameraDistance) * 0.065 * delta;
+          (desiredCameraDistance - cameraDistance) * frameEase(0.065, delta);
       }
       const flightDolly = reduceMotion
         ? 0
         : Math.sin(travelProgress * Math.PI) * 3;
+      // Position and aim share one frame-rate-independent rate, so the view
+      // moves as one piece instead of sliding first and turning to catch up.
+      const cameraEase = frameEase(0.055, delta);
       camera.position.y +=
-        ((cameraDistance - flightDolly) * 0.37 - camera.position.y) * 0.055;
+        ((cameraDistance - flightDolly) * 0.37 - camera.position.y) *
+        cameraEase;
       camera.position.z +=
-        ((cameraDistance - flightDolly) * 0.93 - camera.position.z) * 0.055;
+        ((cameraDistance - flightDolly) * 0.93 - camera.position.z) *
+        cameraEase;
       if (ambientMotionRef.current) {
         const ambientMotionScale = reduceMotion ? 0.55 : 1;
         backdrop.rotation.y -= 0.00006 * ambientMotionScale * delta;
@@ -1905,9 +1920,9 @@ export function GalaxyIndex({
       const desiredLookZ = travellingRef.current
         ? 0
         : cameraFollowPosition.z * 0.025;
-      cameraLookTarget.x += (desiredLookX - cameraLookTarget.x) * 0.028 * delta;
-      cameraLookTarget.y += (desiredLookY - cameraLookTarget.y) * 0.028 * delta;
-      cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * 0.028 * delta;
+      cameraLookTarget.x += (desiredLookX - cameraLookTarget.x) * cameraEase;
+      cameraLookTarget.y += (desiredLookY - cameraLookTarget.y) * cameraEase;
+      cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * cameraEase;
       camera.lookAt(cameraLookTarget);
 
       const { portalX, portalY } = layoutGalaxies(delta);
@@ -2416,6 +2431,8 @@ export function GalaxyIndex({
           }}
           onSelect={(index) => solarRef.current?.select(index)}
           onExit={leaveSolar}
+          onRandom={expandRandomDestination}
+          randomDisabled={travelling || solarNavigating}
           onScopePick={(x, y) => solarRef.current?.pickScope(x, y) ?? null}
           onPause={(paused) => {
             setSolarPaused(paused);
@@ -2515,22 +2532,8 @@ export function GalaxyIndex({
               {galaxyId === 'home' ? 'random world' : 'random neighbor'}
             </span>
           </button>
-          {solarActive ? (
-            <>
-              <button
-                type="button"
-                className="spore-menu-item solar-back"
-                aria-label="Return to the galaxy"
-                disabled={solarPhase === 'leaving'}
-                onClick={leaveSolar}
-              >
-                <span className="menu-motion-light" aria-hidden="true" />
-                <span className="menu-motion-ripple" aria-hidden="true" />
-                <MenuIcon name="galaxy" />
-                <span className="menu-motion-label">galaxy</span>
-              </button>
-            </>
-          ) : (
+          {/* The canopy sits out a system visit; the ship's own HUD takes over. */}
+          {!solarActive && (
             <>
               <button
                 type="button"
@@ -2583,40 +2586,28 @@ export function GalaxyIndex({
           <button
             type="button"
             aria-label={
-              solarActive
-                ? `Next world: ${solarSystem.planets[solarSelected === null ? 0 : (solarSelected + 1) % solarSystem.planets.length].name}`
-                : expanded
-                  ? currentWorlds.length > 1
-                    ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
-                    : 'Only world in this galaxy'
-                  : 'Spin the galaxy faster'
+              expanded
+                ? currentWorlds.length > 1
+                  ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
+                  : 'Only world in this galaxy'
+                : 'Spin the galaxy faster'
             }
             title={
-              solarActive
-                ? 'Go to the next world'
-                : expanded
-                  ? currentWorlds.length > 1
-                    ? 'Go to the next world'
-                    : 'Only world in this galaxy'
-                  : 'Spin the galaxy faster'
+              expanded
+                ? currentWorlds.length > 1
+                  ? 'Go to the next world'
+                  : 'Only world in this galaxy'
+                : 'Spin the galaxy faster'
             }
-            data-action={expanded || solarActive ? 'next' : 'spin'}
+            // The dock sits out a system visit; its icon holds still as it leaves.
+            data-action={expanded ? 'next' : 'spin'}
             disabled={
               travelling ||
               solarNavigating ||
-              (expanded && !solarActive && currentWorlds.length < 2)
+              (expanded && currentWorlds.length < 2)
             }
             className="dock-orb"
             onClick={() => {
-              const solar = solarRef.current;
-              if (solar?.active) {
-                const count = solar.system?.planets.length ?? 0;
-                if (count)
-                  solar.select(
-                    solar.selected === null ? 0 : (solar.selected + 1) % count,
-                  );
-                return;
-              }
               advanceOrSpin();
             }}
             onPointerEnter={(event) => {

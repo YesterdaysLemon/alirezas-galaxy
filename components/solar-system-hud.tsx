@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent,
 } from 'react';
 import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
 import { worldCatalog, type CatalogWorld } from '../data/worlds';
@@ -241,12 +240,11 @@ function PlanetComms({
   );
 }
 
-type DeckTab = 'worlds' | 'stars' | 'flight';
-const deckTabs: { id: DeckTab; label: string }[] = [
-  { id: 'worlds', label: 'worlds' },
-  { id: 'stars', label: 'stars' },
-  { id: 'flight', label: 'flight' },
-];
+const inhabited = (system: SolarSystem) =>
+  system.planets.filter((body) => body.url).length;
+
+const GALAXY_ICON =
+  'M12 12c0-1.7 2.4-2.1 3.3-.6 1.3 2.1-1 4.6-3.6 4.3-3.6-.4-4.9-4.9-2.6-7.6 3-3.4 8.8-2.2 10 2.3';
 
 function Readout({
   system,
@@ -301,6 +299,7 @@ export function SolarSystemHud({
   selected,
   hovered,
   paused,
+  randomDisabled,
   onSelect,
   onHover,
   onSystemIntent,
@@ -308,6 +307,7 @@ export function SolarSystemHud({
   onPause,
   onZoom,
   onExit,
+  onRandom,
   onScopePick,
 }: {
   system: SolarSystem;
@@ -316,6 +316,7 @@ export function SolarSystemHud({
   selected: number | null;
   hovered: number | null;
   paused: boolean;
+  randomDisabled: boolean;
   onSelect: (index: number | null) => void;
   onHover: (index: number | null) => void;
   onSystemIntent: (id: string) => void;
@@ -323,11 +324,14 @@ export function SolarSystemHud({
   onPause: (paused: boolean) => void;
   onZoom: (factor: number) => void;
   onExit: () => void;
+  onRandom: () => void;
   onScopePick: (clientX: number, clientY: number) => number | null;
 }) {
-  const [tab, setTab] = useState<DeckTab>('worlds');
-  const tabsId = useId();
-  const slots = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const helm = useRef<HTMLDivElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const slots = useRef<HTMLElement>(null);
   const scope = useRef<HTMLCanvasElement>(null);
   const navigating = phase === 'entering' || phase === 'leaving';
   const planet = selected === null ? null : system.planets[selected];
@@ -371,10 +375,39 @@ export function SolarSystemHud({
       return;
     onHover(null);
   };
+  // The menu never outlives a flight in or out.
+  const showMenu = menuOpen && !navigating;
+  const closeMenu = () => setMenuOpen(false);
 
   useEffect(() => {
     if (navigating && hovered !== null) onHover(null);
   }, [navigating, hovered, onHover]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    // A pointer anywhere outside the helm closes the ship menu.
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        !(event.target instanceof Node) ||
+        !helm.current?.contains(event.target)
+      )
+        setMenuOpen(false);
+    };
+    // Escape closes only the menu: marking it handled keeps the scene's own
+    // Escape (planet, then galaxy) from also firing.
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      setMenuOpen(false);
+      menuButton.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [showMenu]);
 
   useEffect(() => {
     // Crisp radar at the device's pixel density.
@@ -387,7 +420,7 @@ export function SolarSystemHud({
 
   useEffect(() => {
     const active = slots.current?.querySelector<HTMLButtonElement>(
-      '[aria-pressed="true"], [aria-current="true"]',
+      '[aria-pressed="true"]',
     );
     if (!active || !slots.current) return;
     const strip = slots.current;
@@ -396,24 +429,12 @@ export function SolarSystemHud({
     else if (left + active.offsetWidth > strip.scrollLeft + strip.clientWidth) {
       strip.scrollLeft = left + active.offsetWidth - strip.clientWidth;
     }
-  }, [system.id, selected, tab]);
+  }, [system.id, selected]);
 
-  const moveTab = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    event.stopPropagation();
-    const at = deckTabs.findIndex((entry) => entry.id === tab);
-    const to =
-      deckTabs[
-        (at + (event.key === 'ArrowRight' ? 1 : -1) + deckTabs.length) %
-          deckTabs.length
-      ];
-    setTab(to.id);
-    document.getElementById(`${tabsId}-${to.id}`)?.focus();
-  };
-  const count = system.planets.length;
-  const next = selected === null ? 0 : (selected + 1) % count;
-
+  // Laid out after Spore's space-stage HUD: everything hugs the bottom edge.
+  // Left, the helm: system tab and galaxy button over the radar, zoom rocker
+  // on its rim, and the menu spiral and pause on the rail. Right, the worlds
+  // tray and a portrait of whatever the scout is looking at.
   return (
     <section
       className="solar-hud"
@@ -423,47 +444,6 @@ export function SolarSystemHud({
       data-phase={phase}
       style={{ '--star-color': system.star.color } as CSSProperties}
     >
-      <header className="solar-nameplate">
-        <span>
-          {phase === 'entering'
-            ? `approaching ${system.starName}`
-            : phase === 'leaving'
-              ? 'returning to the galaxy'
-              : `${system.starName} · ${system.star.classification}`}
-        </span>
-        <h1>{system.name}</h1>
-      </header>
-
-      <div
-        className="solar-world-labels"
-        aria-hidden={navigating || selected !== null}
-      >
-        {system.planets.map((body, index) => (
-          <button
-            type="button"
-            key={`${system.id}/${body.id}`}
-            data-planet-label={body.id}
-            data-solar-hover={index}
-            data-attention={hovered === index || undefined}
-            className="solar-world-label"
-            tabIndex={-1}
-            style={planetStyle(body)}
-            onPointerEnter={(event) => {
-              if (event.pointerType !== 'touch') onHover(index);
-            }}
-            onPointerLeave={(event) => leavePreview(event.relatedTarget)}
-            onFocus={() => onHover(index)}
-            onBlur={(event) => leavePreview(event.relatedTarget)}
-            onClick={() => approach(index)}
-            aria-label={`Approach ${body.name}`}
-            disabled={navigating || selected !== null}
-          >
-            <i aria-hidden="true" />
-            <span>{body.shortName || body.name}</span>
-          </button>
-        ))}
-      </div>
-
       {previewWorld && hovered !== null && (
         <div
           key={`${system.id}/${previewWorld.id}`}
@@ -497,198 +477,223 @@ export function SolarSystemHud({
         />
       )}
 
-      {!navigating && (
-        <div className="solar-console">
-          <div className="solar-scope">
-            <canvas
-              ref={scope}
-              data-solar-scope
-              data-solar-hover
-              width={148}
-              height={148}
-              aria-hidden="true"
-              onPointerMove={(event) => {
-                if (event.pointerType === 'touch') return;
-                const index = onScopePick(event.clientX, event.clientY);
-                if (index !== null) onHover(index);
-              }}
-              onPointerLeave={(event) => leavePreview(event.relatedTarget)}
-              onClick={(event) => {
-                const index = onScopePick(event.clientX, event.clientY);
-                if (index !== null) approach(index);
-              }}
-            />
-            <span className="solar-scope-bezel" aria-hidden="true" />
+      <footer className="solar-console">
+        <span className="solar-rail" aria-hidden="true" />
+        <div className="solar-helm" ref={helm}>
+          <div className="solar-nametab">
+            <i className="solar-nametab-star" aria-hidden="true" />
+            <span className="solar-nametab-text">
+              <h1>{system.name}</h1>
+              <span>
+                {phase === 'entering'
+                  ? `approaching ${system.starName}`
+                  : phase === 'leaving'
+                    ? 'returning to the galaxy'
+                    : `${system.starName} · ${system.star.classification}`}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="solar-round solar-galaxy-button"
+              aria-label="Return to the galaxy"
+              title="Galaxy map"
+              disabled={phase === 'leaving'}
+              onClick={onExit}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={GALAXY_ICON} />
+              </svg>
+            </button>
           </div>
-          <div className="solar-deck">
-            <div className="solar-tabs" role="tablist" aria-label="Console">
-              {deckTabs.map((entry) => (
+
+          {!navigating && (
+            <div className="solar-scope">
+              <canvas
+                ref={scope}
+                data-solar-scope
+                data-solar-hover
+                width={148}
+                height={148}
+                aria-hidden="true"
+                onPointerMove={(event) => {
+                  if (event.pointerType === 'touch') return;
+                  const index = onScopePick(event.clientX, event.clientY);
+                  if (index !== null) onHover(index);
+                }}
+                onPointerLeave={(event) => leavePreview(event.relatedTarget)}
+                onClick={(event) => {
+                  const index = onScopePick(event.clientX, event.clientY);
+                  if (index !== null) approach(index);
+                }}
+              />
+              <span className="solar-scope-bezel" aria-hidden="true" />
+              <div className="solar-zoom">
                 <button
                   type="button"
-                  role="tab"
-                  key={entry.id}
-                  id={`${tabsId}-${entry.id}`}
-                  aria-selected={tab === entry.id}
-                  aria-controls={`${tabsId}-panel`}
-                  tabIndex={tab === entry.id ? 0 : -1}
-                  onClick={() => setTab(entry.id)}
-                  onKeyDown={moveTab}
+                  aria-label="Zoom in"
+                  title="Closer"
+                  onClick={() => onZoom(0.78)}
                 >
-                  {entry.label}
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 6v12M6 12h12" />
+                  </svg>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  aria-label="Zoom out"
+                  title="Wider"
+                  onClick={() => onZoom(1.28)}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 12h12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <Readout system={system} planet={focus} />
-            <div
-              ref={slots}
-              id={`${tabsId}-panel`}
-              role="tabpanel"
-              aria-labelledby={`${tabsId}-${tab}`}
-              className="solar-slots"
-              data-tab={tab}
+          )}
+
+          <div className="solar-bar">
+            <button
+              ref={menuButton}
+              type="button"
+              className="solar-spiral"
+              aria-label="Ship menu"
+              aria-expanded={showMenu}
+              aria-controls={menuId}
+              disabled={navigating}
+              onClick={() => setMenuOpen((open) => !open)}
             >
-              {tab === 'worlds' && (
-                <nav aria-label="Planets">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={GALAXY_ICON} />
+                <path d="M4.2 14.6c1.3 3.6 5.7 5.7 9.6 4.4" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="solar-round"
+              onClick={() => onPause(!paused)}
+              aria-pressed={paused}
+              aria-label={
+                paused ? 'Resume orbital motion' : 'Pause orbital motion'
+              }
+              title={paused ? 'Resume' : 'Hold orbits'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {paused ? (
+                  <path className="is-filled" d="M8 6.5v11l9-5.5Z" />
+                ) : (
+                  <path d="M9 7v10M15 7v10" />
+                )}
+              </svg>
+            </button>
+          </div>
+
+          {showMenu && (
+            <div className="solar-menu" id={menuId}>
+              <button
+                type="button"
+                className="solar-menu-item"
+                disabled={randomDisabled}
+                onClick={() => {
+                  closeMenu();
+                  onRandom();
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2.8c2.2 0 3.1 3.1 3.8 5.2 2.1-.8 5.2-1.2 5.9.9.7 2.1-2 3.8-3.8 5.2 1.5 1.7 3.2 4.4 1.4 5.8-1.8 1.3-4.2-.8-6.1-2-1.2 1.9-3.1 4.5-5 3.3-1.9-1.2-.4-4.2.3-6.3-2.2-.5-5.4-1.4-5.2-3.6.2-2.2 3.5-2.5 5.7-2.5.2-2.3.7-6 3-6Z" />
+                </svg>
+                random world
+              </button>
+              <h2>star systems</h2>
+              <nav aria-label="Solar systems">
+                {systems.map((entry) => (
                   <button
                     type="button"
-                    className="solar-socket solar-sun-button"
-                    onClick={() => approach(null)}
-                    aria-pressed={selected === null}
-                    aria-label="System overview"
-                    title={`${system.starName} · system overview`}
-                  >
-                    <SolarPlanetMark color={system.star.color} size={52} />
-                  </button>
-                  {system.planets.map((body, index) => (
-                    <button
-                      type="button"
-                      key={`${system.id}/${body.id}`}
-                      className="solar-socket"
-                      data-solar-hover={index}
-                      data-attention={hovered === index || undefined}
-                      onPointerEnter={(event) => {
-                        if (event.pointerType !== 'touch') onHover(index);
-                      }}
-                      onPointerLeave={(event) =>
-                        leavePreview(event.relatedTarget)
-                      }
-                      onFocus={() => onHover(index)}
-                      onBlur={(event) => leavePreview(event.relatedTarget)}
-                      onClick={() => approach(index)}
-                      aria-label={`Explore ${body.name}`}
-                      aria-pressed={selected === index}
-                      style={planetStyle(body)}
-                    >
-                      <SolarPlanetMark planet={body} size={52} />
-                    </button>
-                  ))}
-                </nav>
-              )}
-              {tab === 'stars' && (
-                <nav aria-label="Solar systems">
-                  {systems.map((entry) => (
-                    <button
-                      type="button"
-                      key={entry.id}
-                      className="solar-star-slot"
-                      aria-label={`Enter ${entry.name}`}
-                      aria-current={entry.id === system.id ? 'true' : undefined}
-                      style={
-                        { '--star-color': entry.star.color } as CSSProperties
-                      }
-                      onPointerEnter={(event) => {
-                        if (event.pointerType !== 'touch')
-                          onSystemIntent(entry.id);
-                      }}
-                      onFocus={() => onSystemIntent(entry.id)}
-                      onClick={() => {
-                        if (entry.id !== system.id) onSystemChange(entry.id);
-                      }}
-                    >
-                      <i aria-hidden="true" />
-                      <span>
-                        <strong>{entry.name}</strong>
-                        <small>
-                          {entry.starName} ·{' '}
-                          {entry.planets.filter((body) => body.url).length}{' '}
-                          worlds
-                        </small>
-                      </span>
-                    </button>
-                  ))}
-                </nav>
-              )}
-              {tab === 'flight' && (
-                <div className="solar-flight">
-                  <button
-                    type="button"
-                    className="solar-knob"
-                    onClick={() => onZoom(0.85)}
-                    aria-label="Zoom in"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 6v12M6 12h12" />
-                    </svg>
-                    <span>closer</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="solar-knob"
-                    onClick={() => onZoom(1.18)}
-                    aria-label="Zoom out"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M6 12h12" />
-                    </svg>
-                    <span>wider</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="solar-knob"
-                    onClick={() => onPause(!paused)}
-                    aria-pressed={paused}
-                    aria-label={
-                      paused ? 'Resume orbital motion' : 'Pause orbital motion'
+                    key={entry.id}
+                    className="solar-star-slot"
+                    aria-label={`Enter ${entry.name}`}
+                    aria-current={entry.id === system.id ? 'true' : undefined}
+                    style={
+                      { '--star-color': entry.star.color } as CSSProperties
                     }
+                    onPointerEnter={(event) => {
+                      if (event.pointerType !== 'touch')
+                        onSystemIntent(entry.id);
+                    }}
+                    onFocus={() => onSystemIntent(entry.id)}
+                    onClick={() => {
+                      closeMenu();
+                      if (entry.id !== system.id) onSystemChange(entry.id);
+                    }}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      {paused ? (
-                        <path className="is-filled" d="M8 6.5v11l9-5.5Z" />
-                      ) : (
-                        <path d="M9 7v10M15 7v10" />
-                      )}
-                    </svg>
-                    <span>{paused ? 'resume' : 'hold'}</span>
+                    <i aria-hidden="true" />
+                    <span>
+                      <strong>{entry.name}</strong>
+                      <small>
+                        {entry.starName} ·{' '}
+                        {inhabited(entry) === 1
+                          ? '1 world'
+                          : `${inhabited(entry)} worlds`}
+                      </small>
+                    </span>
                   </button>
+                ))}
+              </nav>
+            </div>
+          )}
+        </div>
+
+        {!navigating && (
+          <div className="solar-deck">
+            <Readout system={system} planet={focus} />
+            <div className="solar-tray">
+              <nav ref={slots} className="solar-slots" aria-label="Planets">
+                <button
+                  type="button"
+                  className="solar-socket solar-sun-button"
+                  onClick={() => approach(null)}
+                  aria-pressed={selected === null}
+                  aria-label="System overview"
+                  title={`${system.starName} · system overview`}
+                >
+                  <SolarPlanetMark color={system.star.color} size={52} />
+                </button>
+                {system.planets.map((body, index) => (
                   <button
                     type="button"
-                    className="solar-knob"
-                    onClick={() => approach(next)}
-                    aria-label={`Next world: ${system.planets[next].name}`}
+                    key={`${system.id}/${body.id}`}
+                    className="solar-socket"
+                    data-solar-hover={index}
+                    data-attention={hovered === index || undefined}
+                    onPointerEnter={(event) => {
+                      if (event.pointerType !== 'touch') onHover(index);
+                    }}
+                    onPointerLeave={(event) =>
+                      leavePreview(event.relatedTarget)
+                    }
+                    onFocus={() => onHover(index)}
+                    onBlur={(event) => leavePreview(event.relatedTarget)}
+                    onClick={() => approach(index)}
+                    aria-label={`Explore ${body.name}`}
+                    aria-pressed={selected === index}
+                    style={planetStyle(body)}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path className="is-filled" d="M6 6.5v11l8-5.5Z" />
-                      <path d="M17 7v10" />
-                    </svg>
-                    <span>next</span>
+                    <SolarPlanetMark planet={body} size={52} />
                   </button>
-                  <button
-                    type="button"
-                    className="solar-knob"
-                    onClick={onExit}
-                    aria-label="Leave for the galaxy"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 12c0-1.7 2.4-2.1 3.3-.6 1.3 2.1-1 4.6-3.6 4.3-3.6-.4-4.9-4.9-2.6-7.6 3-3.4 8.8-2.2 10 2.3" />
-                    </svg>
-                    <span>galaxy</span>
-                  </button>
-                </div>
-              )}
+                ))}
+              </nav>
+              <div className="solar-card" aria-hidden="true">
+                <SolarPlanetMark
+                  key={focus?.id ?? 'star'}
+                  planet={focus ?? undefined}
+                  color={system.star.color}
+                  size={96}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </footer>
       <output className="solar-status sr-only">
         {navigating
           ? phase === 'entering'

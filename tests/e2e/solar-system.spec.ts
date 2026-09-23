@@ -141,28 +141,30 @@ test('planet hover cards identify a world without navigating and remain clickabl
   await expect(
     page.getByRole('button', { name: 'Explore Plato', exact: true }),
   ).toBeEnabled();
-  await page.mouse.move(page.viewportSize()!.width - 20, 120);
-  const hotspot = (await page
-    .locator('[data-planet-label="plato"] i')
-    .boundingBox())!;
-  await page.mouse.move(
-    hotspot.x + hotspot.width / 2,
-    hotspot.y + hotspot.height / 2,
-  );
+  // Worlds carry no standing labels; the card records where its world is.
+  const worldPoint = async () => {
+    await page
+      .getByRole('button', { name: 'Explore Plato', exact: true })
+      .hover();
+    const preview = page.locator('[data-solar-preview]');
+    await expect(preview).toHaveAttribute('data-anchor', /^\d+ \d+$/);
+    const [x, y] = (await preview.getAttribute('data-anchor'))!
+      .split(' ')
+      .map(Number);
+    const canvas = (await page
+      .locator('canvas[data-galaxy-canvas]')
+      .boundingBox())!;
+    return { x: canvas.x + x, y: canvas.y + y };
+  };
+  const from = await worldPoint();
+  await page.mouse.move(from.x, from.y);
   const card = page.locator('[data-solar-preview]').getByRole('button');
   await expect(card).toBeVisible();
   await expect(card).toContainText('plato.alirezaafshan.com');
   await expect(page).toHaveURL(/#system\/patterns-and-life$/);
-  const planetBounds = (await page
-    .locator('[data-planet-label="plato"] i')
-    .boundingBox())!;
   const previewBounds = (await page
     .locator('[data-solar-preview]')
     .boundingBox())!;
-  const from = {
-    x: planetBounds.x + planetBounds.width / 2,
-    y: planetBounds.y + planetBounds.height / 2,
-  };
   const to = {
     x: Math.max(
       previewBounds.x + 2,
@@ -192,9 +194,8 @@ test('planet hover cards identify a world without navigating and remain clickabl
   ).toHaveAttribute('href', 'https://plato.alirezaafshan.com');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 667, height: 375 });
-  await page
-    .locator('canvas[data-galaxy-canvas]')
-    .hover({ position: { x: 255, y: 135 } });
+  const landscapeWorld = await worldPoint();
+  await page.mouse.move(landscapeWorld.x, landscapeWorld.y);
   await expect(card).toBeVisible();
   const landscapeCard = (await card.boundingBox())!;
   const inspector = (await page
@@ -260,27 +261,78 @@ test('scrolling dives into a family star and back out to the galaxy', async ({
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await expect(page).toHaveURL(/#system\/patterns-and-life$/);
   await page.mouse.move(640, 300);
-  for (let step = 0; step < 14; step++) await page.mouse.wheel(0, 120);
+  for (let step = 0; step < 6; step++) await page.mouse.wheel(0, 120);
+  // Momentum that reaches the widest view stops there; scrolling on once the
+  // view has settled leaves for the galaxy.
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await page.waitForTimeout(500);
+  for (let step = 0; step < 6; step++) await page.mouse.wheel(0, 120);
   await expect(stage).toHaveAttribute('data-solar-phase', 'galaxy');
   await expect(page).toHaveURL(/#galaxy$/);
 });
 
-test('the scanner console switches between worlds, stars and flight', async ({
+test('the ship HUD keeps the top clear and runs the menu, zoom and pause', async ({
   page,
 }) => {
   await page.goto('/#system/patterns-and-life');
+  const stage = page.locator('[data-galaxy-stage]');
   await expect(
     page.getByRole('button', { name: 'Explore Plato', exact: true }),
   ).toBeEnabled();
-  await page.getByRole('tab', { name: 'stars' }).click();
+  // The galaxy canopy steps aside; nothing of the HUD sits in the top half.
+  await expect(page.locator('.spore-corner')).toBeHidden();
+  const viewport = page.viewportSize()!;
+  for (const part of ['.solar-helm', '.solar-deck']) {
+    const bounds = (await page.locator(part).boundingBox())!;
+    expect(bounds.y).toBeGreaterThan(viewport.height / 2);
+  }
+  const menu = page.getByRole('button', { name: 'Ship menu' });
+  await menu.click();
   await expect(
     page.getByRole('button', { name: 'Enter Curiosity & Play' }),
   ).toBeVisible();
-  await page.getByRole('tab', { name: 'flight' }).click();
+  await page.getByRole('button', { name: 'random world' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('button', { name: 'Enter Curiosity & Play' }),
+  ).toBeHidden();
+  await expect(menu).toBeFocused();
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page.getByRole('button', { name: 'Pause orbital motion' }).click();
   await expect(
     page.getByRole('button', { name: 'Resume orbital motion' }),
   ).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('tab', { name: 'flight' }).press('ArrowLeft');
-  await expect(page.getByRole('tab', { name: 'stars' })).toBeFocused();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+});
+
+test('zooming glides onto the world under the pointer and back out', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/#system/patterns-and-life');
+  const stage = page.locator('[data-galaxy-stage]');
+  await page
+    .getByRole('button', { name: 'Explore Plato', exact: true })
+    .hover();
+  const preview = page.locator('[data-solar-preview]');
+  await expect(preview).toHaveAttribute('data-anchor', /^\d+ \d+$/);
+  const [x, y] = (await preview.getAttribute('data-anchor'))!
+    .split(' ')
+    .map(Number);
+  const canvas = (await page
+    .locator('canvas[data-galaxy-canvas]')
+    .boundingBox())!;
+  await page.mouse.move(canvas.x + x, canvas.y + y);
+  // Hovering holds the orbits, so the world stays under the pointer.
+  for (let step = 0; step < 16; step++) {
+    await page.mouse.wheel(0, -120);
+    if ((await stage.getAttribute('data-solar-phase')) === 'planet') break;
+  }
+  await expect(stage).toHaveAttribute('data-solar-phase', 'planet');
+  await expect(page).toHaveURL(/#system\/patterns-and-life\/plato$/);
+  // Back out: past its close-up the world releases to the system view.
+  for (let step = 0; step < 8; step++) await page.mouse.wheel(0, 120);
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
 });

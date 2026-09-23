@@ -28,29 +28,30 @@ export class SolarShip {
   constructor() {
     this.root.name = 'Scout saucer';
     // Lacquered toy finishes: a clear coat over pearl, enamel blue and tinted
-    // glass. They read best with the reflections set by setEnvironment().
+    // glass. The star is the key light, so the far side falls into shade like
+    // the worlds around it; reflections (setEnvironment) only add gloss.
     const hull = new THREE.MeshPhysicalMaterial({
-      color: 0xe3ebf2,
+      color: 0xd3dce5,
       metalness: 0.2,
-      roughness: 0.32,
+      roughness: 0.34,
       clearcoat: 1,
-      clearcoatRoughness: 0.1,
-      emissive: 0x1b2a3c,
+      clearcoatRoughness: 0.16,
+      emissive: 0x04080d,
     });
     const trim = new THREE.MeshPhysicalMaterial({
       color: 0x2f7fd0,
       metalness: 0.3,
       roughness: 0.28,
       clearcoat: 1,
-      clearcoatRoughness: 0.08,
-      emissive: 0x0b2440,
+      clearcoatRoughness: 0.12,
+      emissive: 0x020a14,
     });
     const glass = new THREE.MeshPhysicalMaterial({
       color: 0x5fd8ff,
       metalness: 0,
       roughness: 0.06,
       clearcoat: 1,
-      emissive: 0x16708e,
+      emissive: 0x0d4a5e,
       transparent: true,
       opacity: 0.72,
     });
@@ -162,11 +163,15 @@ export class SolarShip {
     this.root.add(this.beam);
   }
 
-  /** Image-based reflections for the lacquer; lights alone leave it flat. */
+  /**
+   * Image-based reflections for the lacquer's gloss. Kept low: a studio room
+   * lights every side evenly, which made the saucer glow apart from the
+   * star-lit worlds.
+   */
   setEnvironment(texture: THREE.Texture) {
     for (const material of this.finishes) {
       material.envMap = texture;
-      material.envMapIntensity = material.transparent ? 0.7 : 1.15;
+      material.envMapIntensity = material.transparent ? 0.45 : 0.28;
       material.needsUpdate = true;
     }
   }

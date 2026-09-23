@@ -78,8 +78,8 @@ is hidden or offscreen.
 
 Solar terrain is prepared in a worker with a cooperative fallback. A bounded
 active/recent-plus-intent cache and incremental GPU warming keep preparation out
-of the camera flight. Inside a system the HUD switches to a
-space-stage-style scanner console that mounts after arrival; cached software-drawn
+of the camera flight. Inside a system the HUD switches to a space-stage-style
+ship HUD along the bottom edge (radar helm, menu spiral, worlds tray); cached software-drawn
 planet portraits avoid extra WebGL contexts. Tune generated worlds locally at
 `/planet-lab`. See [`docs/SOLAR-SYSTEMS.md`](docs/SOLAR-SYSTEMS.md) for the
 rendering contracts.

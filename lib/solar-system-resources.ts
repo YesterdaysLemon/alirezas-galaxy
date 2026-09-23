@@ -549,24 +549,22 @@ export class SolarSystemResources {
           tint: { value: new THREE.Color(recipe.atmosphere) },
           radius: { value: recipe.orbit },
           planetAngle: { value: recipe.phase },
-          gap: {
-            value: Math.min(
-              0.9,
-              ((recipe.rings ? ringOuter : recipe.radius) * 1.9) / recipe.orbit,
-            ),
-          },
           focus: { value: 1 },
         },
         vertexShader: `varying vec2 p; void main(){p=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `varying vec2 p; uniform vec3 tint; uniform float radius; uniform float planetAngle; uniform float gap; uniform float focus;
+        // As in Spore's space stage, only a short comet trail follows each
+        // world: brightest where it meets the world, gone a quarter-turn behind,
+        // and nothing ahead. A soft glow around a thin core, tapering with it.
+        fragmentShader: `varying vec2 p; uniform vec3 tint; uniform float radius; uniform float planetAngle; uniform float focus;
           void main(){
-            float r=length(p); float px=abs(r-radius)/max(fwidth(r),1e-5);
-            float line=1.-smoothstep(.55,1.6,px);
             float behind=mod(planetAngle-atan(-p.y,p.x),6.2831853);
-            float near=min(behind,6.2831853-behind);
-            float parted=smoothstep(gap,gap*1.8,near);
-            float wake=.3+.7*exp(-behind*.85);
-            gl_FragColor=vec4(tint*1.35,line*parted*wake*.85*focus);
+            float trail=pow(1.-clamp(behind/1.7,0.,1.),1.8);
+            if(trail<=0.)discard;
+            float r=length(p); float px=abs(r-radius)/max(fwidth(r),1e-5);
+            float width=.45+.55*trail;
+            float core=1.-smoothstep(.5*width,1.5*width,px);
+            float glow=exp(-px*px/(9.*width*width))*.45;
+            gl_FragColor=vec4(tint*1.4,(core+glow)*trail*focus);
           }`,
         side: THREE.DoubleSide,
         transparent: true,

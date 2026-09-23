@@ -29,7 +29,15 @@ export const GALAXY_UNIT = 0.0011;
 const ENTRY_SECONDS = 2.4;
 const SWITCH_SECONDS = 3;
 const LEAVE_SECONDS = 1.8;
+/** Log-distance per wheel pixel: roughly a dozen notches from world to overview. */
+const WHEEL_ZOOM = 0.002;
+/** Beyond this multiple of a world's close-up distance the view is the system again. */
+const RELEASE_WORLD = 2.4;
+/** Zooming in over a world within this multiple of its close-up distance lands on it. */
+const CAPTURE_WORLD = 2.1;
 const smooth = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+const wrapAngle = (angle: number) =>
+  Math.atan2(Math.sin(angle), Math.cos(angle));
 
 function flightDust() {
   return new THREE.Mesh(
@@ -96,15 +104,32 @@ export class SolarSystemScene {
   onExitRequest: (() => void) | null = null;
   private overscroll = 0;
   private overscrollAt = 0;
+  /** When the visible view first reached its widest; momentum there never exits. */
+  private widestAt = 0;
   private shipHeading = 0;
   private shipEnvironment: THREE.Texture | null = null;
   private scopeSweep = 0;
   private localTime = 0;
   private visualTime = 0;
   private handedOff = false;
+  // Goal pose: yaw/pitch/distance about a focus. The camera eases these as
+  // spherical coordinates, so it always swings around its subject rather than
+  // cutting across the system.
   private yaw = -0.32;
   private pitch = 0.62;
   private distance = 61;
+  /** The overview's point of interest on the orbital plane; zoom steers it. */
+  private focus = new THREE.Vector3();
+  private viewYaw = -0.32;
+  private viewPitch = 0.62;
+  private viewDistance = 61;
+  /** A flight between subjects rises by its remaining length, then settles. */
+  private flying = false;
+  private viewLift = 0;
+  /** Distance scale at the last layout, so a resize keeps the reader's zoom. */
+  private zoomBase = 1;
+  private raycaster = new THREE.Raycaster();
+  private orbitalPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private target = new THREE.Vector3();
   private desiredPosition = new THREE.Vector3();
   private desiredTarget = new THREE.Vector3();
@@ -120,7 +145,6 @@ export class SolarSystemScene {
   private flightAmbient = new THREE.HemisphereLight(0x899bc5, 0x171122, 0.62);
   private flightLight = new THREE.PointLight(0xffdfac, 3.8, 0, 0);
   private hovered: number | null = null;
-  private labels: (HTMLElement | null)[] = [];
   private labelsDirty = true;
   private layoutDirty = true;
   private labelObserver: MutationObserver;
@@ -330,7 +354,10 @@ export class SolarSystemScene {
     this.ship.root.visible = false;
     this.yaw = -0.32;
     this.pitch = this.camera.aspect < 1 ? 0.9 : 0.62;
-    this.distance = this.overviewDistance();
+    this.distance = this.zoomBase = this.overviewDistance();
+    this.focus.set(0, 0, 0);
+    this.flying = false;
+    this.widestAt = 0;
     this.handedOff = false;
     this.transitionFrom.copy(this.camera.position);
     this.transitionQuaternion.copy(this.camera.quaternion);
@@ -399,6 +426,14 @@ export class SolarSystemScene {
     this.saved?.visibility.forEach(([child]) => {
       child.visible = false;
     });
+    // Continue easing from wherever the flight actually left the camera.
+    this.scratchDirection.subVectors(this.camera.position, this.target);
+    this.viewDistance = Math.max(1e-3, this.scratchDirection.length());
+    this.viewYaw = Math.atan2(this.scratchDirection.x, this.scratchDirection.z);
+    this.viewPitch = Math.asin(
+      THREE.MathUtils.clamp(this.scratchDirection.y / this.viewDistance, -1, 1),
+    );
+    this.viewLift = 0;
     this.handedOff = true;
   }
 
@@ -468,41 +503,63 @@ export class SolarSystemScene {
     if (!this.active || this.navigating) return;
     if (index !== null && !this.bodies[index]) return;
     this.setHover(null);
+    this.flying = index !== this.selected;
     this.selected = index;
-    this.yaw =
-      index === null
-        ? -0.32
-        : Math.atan2(
-            -this.bodies[index].root.position.x,
-            -this.bodies[index].root.position.z,
-          ) + 0.55;
-    // Up close, a world's own orbit runs edge-on through it: hide that one.
+    this.highlightOrbits();
+    if (index === null) {
+      // Back out to the whole system from the current heading; no spin.
+      this.focus.set(0, 0, 0);
+      this.pitch = this.overviewPitch();
+      this.distance = this.zoomBase = this.overviewDistance();
+    } else {
+      this.yaw =
+        Math.atan2(
+          -this.bodies[index].root.position.x,
+          -this.bodies[index].root.position.z,
+        ) + 0.55;
+      this.pitch = 0.3;
+      this.distance = this.zoomBase = this.focusDistance(
+        this.bodies[index].recipe,
+      );
+      this.clearStar(this.bodies[index].root.position);
+      // Take the turn that is nearest the current view, never the long way.
+      this.yaw = this.viewYaw + wrapAngle(this.yaw - this.viewYaw);
+    }
+    this.report(index === null ? 'system' : 'planet');
+  }
+
+  /** Up close, a world's own orbit runs edge-on through it: hide that one. */
+  private highlightOrbits() {
+    const index = this.selected;
     this.orbitMaterials.forEach((material, orbit) => {
       material.uniforms.focus.value =
         index === null ? 1 : orbit === index ? 0 : 0.3;
     });
-    this.pitch = index === null ? (this.camera.aspect < 1 ? 0.9 : 0.62) : 0.3;
-    this.distance =
-      index === null
-        ? this.overviewDistance()
-        : this.focusDistance(this.bodies[index].recipe);
-    if (index !== null) this.clearStar(this.bodies[index].root.position);
-    this.report(index === null ? 'system' : 'planet');
+  }
+
+  private overviewPitch() {
+    return this.camera.aspect < 1 ? 0.9 : 0.62;
   }
 
   /**
    * The close-up looks from the sunlit side, but an inner world sits so near
-   * its star that the star would fill the frame, or swallow the camera. Rise
-   * and swing (in that order) until the whole star sits outside the view.
+   * its star that the star would fill the frame, or swallow the camera. Of the
+   * poses that keep the whole star (and its inner glow) outside the view, take
+   * the one nearest the current view so neighboring worlds need small turns.
    */
   private clearStar(planet: THREE.Vector3) {
-    const radius = this.system?.star.radius ?? 3.8;
+    const radius = (this.system?.star.radius ?? 3.8) * 1.6;
     const base = Math.atan2(-planet.x, -planet.z);
     const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
     const halfWide = Math.atan(Math.tan(halfFov) * this.camera.aspect);
+    // The frame's corners reach farther than either half-angle alone.
+    const halfCorner = Math.atan(
+      Math.hypot(Math.tan(halfFov), Math.tan(halfWide)),
+    );
     let best = { yaw: base + 0.55, pitch: this.pitch, score: -Infinity };
+    let nearest: { yaw: number; pitch: number; turn: number } | null = null;
     for (const pitch of [0.3, 0.55, 0.8, 1.05, 1.25])
-      for (const offset of [0.55, 0.9, 1.3]) {
+      for (const offset of [0.55, 0.9, 1.3, -0.55, -0.9]) {
         const yaw = base + offset;
         const cx = planet.x + Math.sin(yaw) * Math.cos(pitch) * this.distance,
           cy = planet.y + Math.sin(pitch) * this.distance,
@@ -517,18 +574,21 @@ export class SolarSystemScene {
           (vx * -cx + vy * -cy + vz * -cz) / (Math.hypot(vx, vy, vz) * toStar);
         const separation = Math.acos(THREE.MathUtils.clamp(cos, -1, 1));
         const score =
-          separation -
-          Math.asin(Math.min(1, radius / toStar)) -
-          Math.max(halfFov, halfWide);
+          separation - Math.asin(Math.min(1, radius / toStar)) - halfCorner;
         if (score > 0) {
-          this.yaw = yaw;
-          this.pitch = pitch;
-          return;
+          // Favor low, sunward poses; then the smallest turn from the view.
+          const turn =
+            Math.abs(wrapAngle(yaw - this.viewYaw)) +
+            Math.abs(pitch - this.viewPitch) +
+            pitch * 0.5 +
+            (offset < 0 ? 0.4 : 0);
+          if (!nearest || turn < nearest.turn) nearest = { yaw, pitch, turn };
         }
         if (score > best.score) best = { yaw, pitch, score };
       }
-    this.yaw = best.yaw;
-    this.pitch = best.pitch;
+    const pose = nearest ?? best;
+    this.yaw = pose.yaw;
+    this.pitch = pose.pitch;
   }
 
   escape() {
@@ -574,15 +634,22 @@ export class SolarSystemScene {
     );
   }
 
+  /** The distance a layout frames the current subject at: overview or close-up. */
+  private layoutDistance() {
+    return this.selected === null
+      ? this.overviewDistance()
+      : this.focusDistance(this.bodies[this.selected].recipe);
+  }
+
   resize() {
     this.layoutDirty = true;
-    if (this.selected === null) {
-      this.distance = this.overviewDistance();
-      this.pitch = this.camera.aspect < 1 ? 0.9 : 0.62;
-    } else {
-      this.distance = this.focusDistance(this.bodies[this.selected].recipe);
-      this.clearStar(this.bodies[this.selected].root.position);
-    }
+    if (!this.active) return;
+    // Keep the reader's own zoom and heading; only the framing scale changes.
+    const base = this.layoutDistance();
+    const scale = base / Math.max(1e-6, this.zoomBase);
+    this.distance *= scale;
+    if (!this.navigating) this.viewDistance *= scale;
+    this.zoomBase = base;
   }
 
   update(milliseconds: number, reduceMotion: boolean) {
@@ -830,10 +897,11 @@ export class SolarSystemScene {
     } else {
       // Park beside the star on the camera's right, never across its disc.
       const star = this.system.star.radius;
+      const yaw = this.viewYaw;
       this.shipTarget.set(
-        Math.cos(this.yaw) * star * 3.2 + Math.sin(this.yaw) * star * 1.4,
+        Math.cos(yaw) * star * 3.2 + Math.sin(yaw) * star * 1.4,
         star * 1.5,
-        -Math.sin(this.yaw) * star * 3.2 + Math.cos(this.yaw) * star * 1.4,
+        -Math.sin(yaw) * star * 3.2 + Math.cos(yaw) * star * 1.4,
       );
     }
     this.ship.update(dt, this.shipTarget, beam, size, reduceMotion, animate);
@@ -842,44 +910,86 @@ export class SolarSystemScene {
   private moveCamera(dt: number, reduceMotion: boolean) {
     const body = this.selected === null ? null : this.bodies[this.selected];
     if (body) this.desiredTarget.copy(body.root.position);
-    else this.desiredTarget.set(0, 0, 0);
+    else this.desiredTarget.copy(this.focus);
     if (body) {
       const short =
         this.canvas.clientWidth > this.canvas.clientHeight &&
         this.canvas.clientHeight <= 520;
       const portrait = this.canvas.clientWidth <= 720 && !short;
       const halfHeight =
-        this.distance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+        this.viewDistance *
+        Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
       // Shift in camera-plane coordinates, so framing survives dragging around a world.
       // Frame the world left of center; its comms casing docks on the right.
       const horizontal = portrait ? 0 : short ? 0.26 : 0.24;
+      // Only the corners of the bottom edge carry HUD now, so a short
+      // landscape needs just a small lift to clear the helm.
       const vertical = portrait
         ? -Math.min(0.62, 288 / this.canvas.clientHeight)
         : short
-          ? -0.28
+          ? -0.1
           : -0.02;
       this.desiredTarget.x +=
-        Math.cos(this.yaw) * horizontal * halfHeight * this.camera.aspect;
+        Math.cos(this.viewYaw) * horizontal * halfHeight * this.camera.aspect;
       this.desiredTarget.z -=
-        Math.sin(this.yaw) * horizontal * halfHeight * this.camera.aspect;
-      this.desiredTarget.y += Math.cos(this.pitch) * vertical * halfHeight;
+        Math.sin(this.viewYaw) * horizontal * halfHeight * this.camera.aspect;
+      this.desiredTarget.y += Math.cos(this.viewPitch) * vertical * halfHeight;
       this.desiredTarget.x -=
-        Math.sin(this.yaw) * Math.sin(this.pitch) * vertical * halfHeight;
+        Math.sin(this.viewYaw) *
+        Math.sin(this.viewPitch) *
+        vertical *
+        halfHeight;
       this.desiredTarget.z -=
-        Math.cos(this.yaw) * Math.sin(this.pitch) * vertical * halfHeight;
+        Math.cos(this.viewYaw) *
+        Math.sin(this.viewPitch) *
+        vertical *
+        halfHeight;
     }
+    // Ease heading, tilt and log-distance about an eased subject. Unlike
+    // easing the camera's position, this can never cut through the system.
+    const blend = reduceMotion ? 1 : 1 - Math.exp(-dt * 4.2);
+    this.viewYaw += wrapAngle(this.yaw - this.viewYaw) * blend;
+    this.viewPitch += (this.pitch - this.viewPitch) * blend;
+    this.viewDistance = Math.exp(
+      THREE.MathUtils.lerp(
+        Math.log(this.viewDistance),
+        Math.log(this.distance),
+        blend,
+      ),
+    );
+    // Leaving by zoom counts only from when the widest view is actually shown.
+    if (
+      this.selected === null &&
+      this.viewDistance >= this.overviewDistance() * 1.85 * 0.97
+    )
+      this.widestAt ||= performance.now();
+    else this.widestAt = 0;
+    this.target.lerp(this.desiredTarget, blend);
+    // A flight between subjects rises with the ground it still has to cover,
+    // looking down over the system instead of skimming through it.
+    const remaining = this.target.distanceTo(this.desiredTarget);
+    if (this.flying && remaining < this.viewDistance * 0.01)
+      this.flying = false;
+    this.viewLift +=
+      ((this.flying ? remaining * 0.55 : 0) - this.viewLift) * blend;
     this.desiredPosition
       .set(
-        Math.sin(this.yaw) * Math.cos(this.pitch),
-        Math.sin(this.pitch),
-        Math.cos(this.yaw) * Math.cos(this.pitch),
+        Math.sin(this.viewYaw) * Math.cos(this.viewPitch),
+        Math.sin(this.viewPitch),
+        Math.cos(this.viewYaw) * Math.cos(this.viewPitch),
       )
-      .multiplyScalar(this.distance)
-      .add(this.desiredTarget);
-    const blend = reduceMotion ? 1 : 1 - Math.exp(-dt * 4.2);
-    this.camera.position.lerp(this.desiredPosition, blend);
-    this.target.lerp(this.desiredTarget, blend);
+      .multiplyScalar(this.viewDistance + this.viewLift)
+      .add(this.target);
+    this.camera.position.copy(this.desiredPosition);
     this.camera.lookAt(this.target);
+    if (this.handedOff) {
+      // Near clipping follows the zoom, so close worlds and moons never clip.
+      const near = THREE.MathUtils.clamp(this.viewDistance * 0.01, 0.01, 4);
+      if (Math.abs(near - this.camera.near) > this.camera.near * 0.05) {
+        this.camera.near = near;
+        this.camera.updateProjectionMatrix();
+      }
+    }
   }
 
   setHover(index: number | null) {
@@ -901,24 +1011,14 @@ export class SolarSystemScene {
     this.canvasTop = rect.top;
     this.safeTop = 8;
     this.safeBottom = rect.height - 8;
-    const heading = this.host.querySelector<HTMLElement>('.solar-nameplate');
-    const console = this.host.querySelector<HTMLElement>('.solar-console');
-    const headingBounds = heading?.getBoundingClientRect();
-    if (
-      heading &&
-      headingBounds &&
-      headingBounds.top < rect.top + rect.height / 2
-    ) {
-      this.safeTop = Math.max(8, headingBounds.bottom - rect.top + 8);
-      this.resizeObserver.observe(heading);
-    }
-    if (console) {
-      // The console docks at the bottom; measure it wherever it sits.
-      const tray = console.getBoundingClientRect();
-      if (tray.top < rect.top + rect.height / 2)
-        this.safeTop = Math.max(this.safeTop, tray.bottom - rect.top + 8);
-      else this.safeBottom = Math.min(this.safeBottom, tray.top - rect.top - 8);
-      this.resizeObserver.observe(console);
+    // The HUD's helm and worlds tray dock along the bottom edge.
+    for (const part of this.host.querySelectorAll<HTMLElement>(
+      '.solar-helm, .solar-deck',
+    )) {
+      const tray = part.getBoundingClientRect();
+      if (!tray.height) continue;
+      this.safeBottom = Math.min(this.safeBottom, tray.top - rect.top - 8);
+      this.resizeObserver.observe(part);
     }
     const inspector = this.host.querySelector<HTMLElement>('.solar-comms');
     this.inspectorBounds = inspector?.getBoundingClientRect() ?? null;
@@ -949,11 +1049,6 @@ export class SolarSystemScene {
     if (this.labelsDirty) {
       this.resizeObserver.disconnect();
       this.resizeObserver.observe(this.canvas);
-      this.labels = this.bodies.map((body) =>
-        this.host.querySelector<HTMLElement>(
-          `[data-planet-label="${body.recipe.id}"]`,
-        ),
-      );
       this.scope = this.host.querySelector<HTMLCanvasElement>(
         'canvas[data-solar-scope]',
       );
@@ -964,80 +1059,75 @@ export class SolarSystemScene {
       this.layoutDirty = true;
     }
     if (this.layoutDirty) this.measureChrome();
-    for (let index = 0; index < this.bodies.length; index++) {
-      const body = this.bodies[index],
-        label = this.labels[index];
-      body.root.getWorldPosition(this.projected).project(this.camera);
-      const x = ((this.projected.x + 1) * width) / 2,
-        y = ((1 - this.projected.y) * height) / 2;
-      const inView =
-        this.projected.z >= -1 &&
-        this.projected.z < 1 &&
-        x > 0 &&
-        x < width &&
-        y > 0 &&
-        y < height;
-      if (label) {
-        const visible =
-          !this.navigating &&
-          (this.selected === null || this.selected === index) &&
-          inView &&
-          x > 45 &&
-          x < width - 45 &&
-          y > 90 &&
-          y < height - (width < 720 ? 200 : 170);
-        label.style.visibility = visible ? 'visible' : 'hidden';
-        label.style.transform = `translate(${x}px, ${y}px)`;
-        label.dataset.selected = String(this.selected === index);
-      }
-      if (this.hovered !== index) continue;
-      if (!inView || this.navigating) {
-        this.setHover(null);
-        continue;
-      }
-      if (!this.preview || Number(this.preview.dataset.planetIndex) !== index)
-        continue;
-      this.hoverAnchorX = x;
-      this.hoverAnchorY = y;
-      const radius =
-        (body.recipe.radius * height) /
-        (2 *
-          Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) *
-          this.camera.position.distanceTo(body.root.position));
-      const right = x + radius + 16;
-      const preferredX =
-        right + this.previewWidth < width - 8
-          ? right
-          : x - radius - 16 - this.previewWidth;
-      this.previewX = THREE.MathUtils.clamp(
-        preferredX,
-        8,
-        Math.max(8, width - this.previewWidth - 8),
-      );
-      this.previewY = THREE.MathUtils.clamp(
-        y - this.previewHeight * 0.45,
-        this.safeTop,
-        Math.max(this.safeTop, this.safeBottom - this.previewHeight),
-      );
-      // The short-landscape inspector floats beside, rather than inside, the
-      // footer's measured box. Keep the transmission clear of that second panel.
-      const inspector = this.inspectorBounds;
-      if (
-        inspector &&
-        this.previewX + this.canvasLeft < inspector.right + 8 &&
-        this.previewX + this.canvasLeft + this.previewWidth >
-          inspector.left - 8 &&
-        this.previewY + this.canvasTop < inspector.bottom + 8 &&
-        this.previewY + this.canvasTop + this.previewHeight > inspector.top - 8
-      ) {
-        const above = inspector.top - this.canvasTop - 8 - this.previewHeight;
-        const left = inspector.left - this.canvasLeft - 8 - this.previewWidth;
-        if (above >= this.safeTop) this.previewY = above;
-        else if (left >= 8) this.previewX = left;
-      }
-      this.preview.style.transform = `translate(${this.previewX + this.previewOffsetX}px, ${this.previewY + this.previewOffsetY}px)`;
-      this.preview.style.visibility = 'visible';
+    // As in Spore, worlds carry no standing labels: a name appears on hover.
+    if (this.hovered !== null && this.bodies[this.hovered])
+      this.placePreview(this.hovered, width, height);
+  }
+
+  /** Attach the hover card beside its world, clear of the HUD. */
+  private placePreview(index: number, width: number, height: number) {
+    const body = this.bodies[index];
+    body.root.getWorldPosition(this.projected).project(this.camera);
+    const x = ((this.projected.x + 1) * width) / 2,
+      y = ((1 - this.projected.y) * height) / 2;
+    const inView =
+      this.projected.z >= -1 &&
+      this.projected.z < 1 &&
+      x > 0 &&
+      x < width &&
+      y > 0 &&
+      y < height;
+    if (!inView || this.navigating) {
+      this.setHover(null);
+      return;
     }
+    if (!this.preview || Number(this.preview.dataset.planetIndex) !== index)
+      return;
+    this.hoverAnchorX = x;
+    this.hoverAnchorY = y;
+    // Where the card's world sits on the canvas; with no standing labels this
+    // is the one DOM record of a world's screen position.
+    const anchor = `${Math.round(x)} ${Math.round(y)}`;
+    if (this.preview.dataset.anchor !== anchor)
+      this.preview.dataset.anchor = anchor;
+    const radius =
+      (body.recipe.radius * height) /
+      (2 *
+        Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) *
+        this.camera.position.distanceTo(body.root.position));
+    const right = x + radius + 16;
+    const preferredX =
+      right + this.previewWidth < width - 8
+        ? right
+        : x - radius - 16 - this.previewWidth;
+    this.previewX = THREE.MathUtils.clamp(
+      preferredX,
+      8,
+      Math.max(8, width - this.previewWidth - 8),
+    );
+    this.previewY = THREE.MathUtils.clamp(
+      y - this.previewHeight * 0.45,
+      this.safeTop,
+      Math.max(this.safeTop, this.safeBottom - this.previewHeight),
+    );
+    // The short-landscape inspector floats beside, rather than inside, the
+    // footer's measured box. Keep the transmission clear of that second panel.
+    const inspector = this.inspectorBounds;
+    if (
+      inspector &&
+      this.previewX + this.canvasLeft < inspector.right + 8 &&
+      this.previewX + this.canvasLeft + this.previewWidth >
+        inspector.left - 8 &&
+      this.previewY + this.canvasTop < inspector.bottom + 8 &&
+      this.previewY + this.canvasTop + this.previewHeight > inspector.top - 8
+    ) {
+      const above = inspector.top - this.canvasTop - 8 - this.previewHeight;
+      const left = inspector.left - this.canvasLeft - 8 - this.previewWidth;
+      if (above >= this.safeTop) this.previewY = above;
+      else if (left >= 8) this.previewX = left;
+    }
+    this.preview.style.transform = `translate(${this.previewX + this.previewOffsetX}px, ${this.previewY + this.previewOffsetY}px)`;
+    this.preview.style.visibility = 'visible';
   }
 
   private inPreviewBridge(clientX: number, clientY: number) {
@@ -1118,11 +1208,13 @@ export class SolarSystemScene {
     if (other) {
       const before = Math.hypot(previous.x - other.x, previous.y - other.y),
         after = Math.hypot(event.clientX - other.x, event.clientY - other.y);
-      if (after > 0) {
-        if (before > after && this.atWidest())
-          this.pushOut((before - after) * 3);
-        else this.zoom(before / after);
-      }
+      if (after > 0)
+        this.zoom(
+          before / after,
+          (event.clientX + other.x) / 2,
+          (event.clientY + other.y) / 2,
+          (before - after) * 3,
+        );
       this.dragged = Infinity;
     } else {
       this.yaw -= dx * 0.006;
@@ -1146,9 +1238,14 @@ export class SolarSystemScene {
     this.canvas.style.cursor = 'grab';
   }
 
-  /** Zooming out past the widest overview leaves for the galaxy, as in Spore. */
+  /**
+   * Zooming out past the widest overview leaves for the galaxy, as in Spore.
+   * Only once the view has visibly settled there: momentum that carried the
+   * reader to the edge never also carries them out of the system.
+   */
   private pushOut(amount: number) {
     const now = performance.now();
+    if (!this.widestAt || now - this.widestAt < 350) return;
     if (now - this.overscrollAt > 450) this.overscroll = 0;
     this.overscrollAt = now;
     this.overscroll += amount;
@@ -1157,45 +1254,117 @@ export class SolarSystemScene {
     this.onExitRequest?.();
   }
 
-  private atWidest() {
-    return (
-      this.selected === null &&
-      this.distance >= this.overviewDistance() * 1.85 * 0.995
-    );
-  }
-
-  wheel(delta: number) {
+  /**
+   * One wheel step. Trackpad pinches arrive as ctrl-wheel events with small
+   * deltas; line-mode wheels (Firefox) report lines rather than pixels.
+   */
+  wheel(
+    delta: number,
+    clientX?: number,
+    clientY?: number,
+    options: { pinch?: boolean; lines?: boolean } = {},
+  ) {
     if (this.navigating) return;
-    if (delta > 0 && this.atWidest()) {
-      this.pushOut(Math.min(delta, 120));
-      return;
-    }
-    if (delta < 0) this.overscroll = 0;
-    if (
-      delta > 0 &&
-      this.selected !== null &&
-      this.distance >=
-        this.focusDistance(this.bodies[this.selected].recipe) * 1.7
-    ) {
-      this.select(null);
-      return;
-    }
-    this.zoom(
-      Math.exp(Math.sign(delta) * Math.min(Math.abs(delta), 120) * 0.0015),
-    );
+    let pixels = options.lines ? delta * 16 : delta;
+    if (options.pinch) pixels *= 4;
+    pixels = THREE.MathUtils.clamp(pixels, -120, 120);
+    this.zoom(Math.exp(pixels * WHEEL_ZOOM), clientX, clientY, pixels);
   }
 
-  zoom(factor: number) {
-    if (!this.active || this.navigating) return;
-    const base =
-      this.selected === null
-        ? this.overviewDistance()
-        : this.focusDistance(this.bodies[this.selected].recipe);
-    this.distance = THREE.MathUtils.clamp(
-      this.distance * factor,
-      base * 0.56,
-      base * 1.85,
+  /** The point on the orbital plane under a screen position, if any. */
+  private groundAt(clientX: number, clientY: number, into: THREE.Vector3) {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    this.raycaster.setFromCamera(
+      new THREE.Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      this.camera,
     );
+    return this.raycaster.ray.intersectPlane(this.orbitalPlane, into);
+  }
+
+  /**
+   * Continuous zoom, as in Spore: toward whatever is under the pointer (or
+   * the view's center), down onto a world and back out to the system, then
+   * out to the galaxy. There are no fixed stops between those views.
+   * @param factor goal distance multiplier; below 1 zooms in
+   * @param overscroll outward input beyond the widest view, for leaving
+   */
+  zoom(factor: number, clientX?: number, clientY?: number, overscroll = 0) {
+    if (!this.active || this.navigating || !this.system || factor === 1) return;
+    if (factor < 1) this.overscroll = 0;
+    const next = this.distance * factor;
+    if (this.selected !== null) {
+      const base = this.focusDistance(this.bodies[this.selected].recipe);
+      if (factor <= 1 || next < base * RELEASE_WORLD) {
+        this.distance = Math.max(base * 0.56, next);
+        return;
+      }
+      // Zoomed out past the world: the system takes over from here, still
+      // centered on the world, so the view keeps widening without a jump.
+      this.focus.copy(this.bodies[this.selected].root.position);
+      this.selected = null;
+      this.flying = false;
+      this.highlightOrbits();
+      this.zoomBase = this.overviewDistance();
+      this.report('system');
+    }
+    const overview = this.overviewDistance();
+    const widest = overview * 1.85;
+    if (factor > 1) {
+      if (this.distance >= widest * 0.999) {
+        this.pushOut(Math.max(0, overscroll));
+        return;
+      }
+      const wider = Math.min(next, widest);
+      // Drift back toward the star, arriving exactly as the whole system fits.
+      const span = Math.log(overview) - Math.log(this.distance);
+      const settle =
+        span <= 0
+          ? 1
+          : THREE.MathUtils.clamp(
+              (Math.log(wider) - Math.log(this.distance)) / span,
+              0,
+              1,
+            );
+      this.focus.multiplyScalar(1 - settle);
+      this.distance = wider;
+      this.widestAt = 0;
+      return;
+    }
+    // Zooming in keeps the ground under the pointer where it is on screen.
+    const closest = this.system.star.radius * 3;
+    const closer = Math.max(closest, next);
+    const anchor =
+      clientX === undefined || clientY === undefined
+        ? null
+        : this.groundAt(clientX, clientY, this.scratchDirection);
+    if (anchor) {
+      const scale = closer / this.distance;
+      this.focus.sub(anchor).multiplyScalar(scale).add(anchor);
+      const reach = this.system.extent * 1.05;
+      if (this.focus.length() > reach) this.focus.setLength(reach);
+      this.focus.y = 0;
+    }
+    this.distance = closer;
+    this.widestAt = 0;
+    // Close enough over a world: glide down onto it without a turn.
+    const world =
+      clientX === undefined || clientY === undefined
+        ? null
+        : this.pick(clientX, clientY);
+    if (world === null) return;
+    const base = this.focusDistance(this.bodies[world].recipe);
+    if (closer > base * CAPTURE_WORLD) return;
+    this.setHover(null);
+    this.selected = world;
+    this.flying = false;
+    this.highlightOrbits();
+    this.distance = Math.max(base * 0.56, closer);
+    this.zoomBase = base;
+    this.report('planet');
   }
 
   private pick(clientX: number, clientY: number) {
@@ -1233,8 +1402,8 @@ export class SolarSystemScene {
   private scopePoint(x: number, z: number, radius: number) {
     const distance = Math.hypot(x, z) || 1;
     const k = this.scopeRadius(distance, radius) / distance;
-    const sin = Math.sin(this.yaw),
-      cos = Math.cos(this.yaw);
+    const sin = Math.sin(this.viewYaw),
+      cos = Math.cos(this.viewYaw);
     return {
       x: radius + (x * cos - z * sin) * k,
       y: radius + (x * sin + z * cos) * k,
@@ -1319,8 +1488,8 @@ export class SolarSystemScene {
       const v = this.ship.velocity;
       const speed = Math.hypot(v.x, v.z);
       if (speed > this.ship.size * 0.4) {
-        const sin = Math.sin(this.yaw),
-          cos = Math.cos(this.yaw);
+        const sin = Math.sin(this.viewYaw),
+          cos = Math.cos(this.viewYaw);
         const course = Math.atan2(
           v.x * cos - v.z * sin,
           -(v.x * sin + v.z * cos),
