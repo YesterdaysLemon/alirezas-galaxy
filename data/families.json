@@ -8,7 +8,10 @@
       "starName": "Lumen",
       "color": "#ffe2a0",
       "classification": "Warm gold star",
-      "nebula": ["#244e6a", "#654465"]
+      "nebula": [
+        "#244e6a",
+        "#654465"
+      ]
     },
     {
       "id": "curiosity-and-play",
@@ -17,7 +20,10 @@
       "starName": "Lucida",
       "color": "#b7eaff",
       "classification": "Blue-white star",
-      "nebula": ["#263e79", "#76528b"]
+      "nebula": [
+        "#263e79",
+        "#76528b"
+      ]
     },
     {
       "id": "tools-and-infrastructure",
@@ -26,7 +32,10 @@
       "starName": "Vigil",
       "color": "#ffc68c",
       "classification": "Amber star",
-      "nebula": ["#243f5b", "#665042"]
+      "nebula": [
+        "#243f5b",
+        "#665042"
+      ]
     },
     {
       "id": "ideas-and-inquiry",
@@ -35,7 +44,10 @@
       "starName": "Vesper",
       "color": "#ffd2c2",
       "classification": "Rose-white star",
-      "nebula": ["#3a2c5c", "#6b4454"]
+      "nebula": [
+        "#3a2c5c",
+        "#6b4454"
+      ]
     },
     {
       "id": "frontier",
@@ -44,7 +56,10 @@
       "starName": "Aster",
       "color": "#d6c5ff",
       "classification": "Pale violet star",
-      "nebula": ["#293660", "#58476e"]
+      "nebula": [
+        "#293660",
+        "#58476e"
+      ]
     }
   ],
   "themes": [
@@ -55,7 +70,10 @@
       "starName": "Cantor",
       "color": "#ffb8ea",
       "classification": "Magenta star",
-      "nebula": ["#3c2464", "#7a3f6e"]
+      "nebula": [
+        "#3c2464",
+        "#7a3f6e"
+      ]
     },
     {
       "id": "worlds-and-games",
@@ -64,7 +82,10 @@
       "starName": "Ludus",
       "color": "#c8ffb0",
       "classification": "Green-white star",
-      "nebula": ["#234a3c", "#4f5a2c"]
+      "nebula": [
+        "#234a3c",
+        "#4f5a2c"
+      ]
     },
     {
       "id": "images-and-motion",
@@ -73,7 +94,10 @@
       "starName": "Iris",
       "color": "#b8c4ff",
       "classification": "Periwinkle star",
-      "nebula": ["#26346e", "#5b3f7a"]
+      "nebula": [
+        "#26346e",
+        "#5b3f7a"
+      ]
     },
     {
       "id": "words-and-stories",
@@ -82,7 +106,10 @@
       "starName": "Fable",
       "color": "#ffe9b8",
       "classification": "Cream star",
-      "nebula": ["#4a3a28", "#5c3048"]
+      "nebula": [
+        "#4a3a28",
+        "#5c3048"
+      ]
     },
     {
       "id": "machines-and-minds",
@@ -91,7 +118,10 @@
       "starName": "Axon",
       "color": "#9fe8ff",
       "classification": "Cyan star",
-      "nebula": ["#1f4058", "#34506e"]
+      "nebula": [
+        "#1f4058",
+        "#34506e"
+      ]
     },
     {
       "id": "places-and-maps",
@@ -100,7 +130,10 @@
       "starName": "Atlas",
       "color": "#ffcfa0",
       "classification": "Peach star",
-      "nebula": ["#3e3a22", "#5a3a2c"]
+      "nebula": [
+        "#3e3a22",
+        "#5a3a2c"
+      ]
     },
     {
       "id": "money-and-markets",
@@ -109,7 +142,10 @@
       "starName": "Tally",
       "color": "#e8ffb0",
       "classification": "Lime-white star",
-      "nebula": ["#2c4a28", "#4a4a24"]
+      "nebula": [
+        "#2c4a28",
+        "#4a4a24"
+      ]
     },
     {
       "id": "bodies-and-health",
@@ -118,7 +154,10 @@
       "starName": "Vita",
       "color": "#ffc2c2",
       "classification": "Coral star",
-      "nebula": ["#4a2830", "#5e3a4a"]
+      "nebula": [
+        "#4a2830",
+        "#5e3a4a"
+      ]
     }
   ]
 }

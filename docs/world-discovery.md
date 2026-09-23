@@ -31,7 +31,7 @@ Moving a world later is safe: project IDs are unique, so an old
 `#system/<old-system>/<world>` link resolves to wherever the world now lives.
 A calibration on 2026-09-23 against the thirteen worlds curated that day agreed
 on nine; Jev preferred Curiosity & Play for Openwater, Morphogenesis and Between
-Worlds.
+Worlds (0.83–0.91), and they were moved there before publication.
 
 `data/world-registry.json` is the reviewed public project registry. Its order and
 metadata override discovery and preserve the portfolio as the default homeworld.

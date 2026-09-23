@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { webring } from '@/data/webring';
 import registry from '@/data/world-registry.json';
+import discoveryState from '@/data/world-discovery-state.json';
 import { galaxyDestinations, buildGalaxyDestinations } from '@/data/galaxies';
 import {
   solarSystems,
@@ -16,9 +17,15 @@ import { publicUrl } from '../../scripts/refresh-worlds.mjs';
 describe('public catalog and bounded galaxy', () => {
   it('publishes all registry destinations without substituting family gateways', () => {
     const published = serializeWorlds();
-    expect(published.map(({ id }) => id).sort()).toEqual(
-      registry.projects.map(({ id }) => id).sort(),
-    );
+    const ids = new Set(published.map(({ id }) => id));
+    // Every reviewed project is published; anything else was discovered and
+    // placed by the daily refresh, so it must be on record in discovery state.
+    for (const { id } of registry.projects) expect(ids).toContain(id);
+    for (const id of ids)
+      expect(
+        registry.projects.some((project) => project.id === id) ||
+          Object.hasOwn(discoveryState, id),
+      ).toBe(true);
     expect(new Set(published.map(({ url }) => url)).size).toBe(
       published.length,
     );

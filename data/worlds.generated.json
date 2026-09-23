@@ -235,7 +235,7 @@
     "glyph": "◈",
     "color": 16026482,
     "systemId": "patterns-and-life",
-    "orbitSlot": 9
+    "orbitSlot": 6
   },
   {
     "id": "dmelanogaster",
@@ -264,8 +264,8 @@
     "iconSrc": "https://morphogenesis.alirezaafshan.com/favicon.svg",
     "glyph": "✿",
     "color": 16752592,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 6
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 8
   },
   {
     "id": "openwater",
@@ -279,8 +279,8 @@
     "iconSrc": "https://openwater.alirezaafshan.com/favicon.svg",
     "glyph": "≈",
     "color": 6277119,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 7
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 9
   },
   {
     "id": "between-worlds",
@@ -294,8 +294,8 @@
     "iconSrc": "https://between-worlds.alirezaafshan.com/favicon.svg",
     "glyph": "⬡",
     "color": 9098495,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 8
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 10
   },
   {
     "id": "cube",
@@ -415,5 +415,18 @@
     "color": 16761523,
     "systemId": "ideas-and-inquiry",
     "orbitSlot": 2
+  },
+  {
+    "id": "urep-attendance",
+    "name": "UREP Attendance",
+    "kind": "Public project",
+    "url": "https://attendance.alirezaafshan.com",
+    "description": "Web preview of the UREP student attendance app for PALM reader scans.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 6
   }
 ]

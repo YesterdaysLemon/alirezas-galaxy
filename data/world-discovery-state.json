@@ -109,7 +109,7 @@
     "everHealthy": true,
     "failedSince": null,
     "systemId": "patterns-and-life",
-    "orbitSlot": 9
+    "orbitSlot": 6
   },
   "dmelanogaster": {
     "url": "https://fly.alirezaafshan.com",
@@ -122,22 +122,22 @@
     "url": "https://morphogenesis.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 6
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 8
   },
   "openwater": {
     "url": "https://openwater.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 7
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 9
   },
   "between-worlds": {
     "url": "https://between-worlds.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "patterns-and-life",
-    "orbitSlot": 8
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 10
   },
   "cube": {
     "url": "https://cube.alirezaafshan.com",
@@ -194,5 +194,12 @@
     "failedSince": null,
     "systemId": "ideas-and-inquiry",
     "orbitSlot": 2
+  },
+  "urep-attendance": {
+    "url": "https://attendance.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 6
   }
 }

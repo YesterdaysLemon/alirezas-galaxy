@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "id": "urep-attendance",
+    "classifiedAt": "2026-09-23T22:24:55.829Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "597fcee59d461c39e34a959b48174935455ef778994b6fabcf1b75bc26539d0b",
+    "answers": {
+      "family": {
+        "choice": "tools-and-infrastructure",
+        "confidence": 0.64,
+        "probabilities": {
+          "patterns-and-life": 0,
+          "ideas-and-inquiry": 0,
+          "tools-and-infrastructure": 0.72,
+          "none-of-these": 0.27,
+          "curiosity-and-play": 0.01
+        }
+      },
+      "kind": {
+        "choice": "folds",
+        "confidence": 0.94,
+        "probabilities": {
+          "desert": 0,
+          "culture": 0.03,
+          "garden": 0.01,
+          "ocean": 0,
+          "folds": 0.96,
+          "gas": 0
+        }
+      },
+      "theme": {
+        "choice": "machines-and-minds",
+        "confidence": 0.63,
+        "probabilities": {
+          "money-and-markets": 0,
+          "sound-and-stage": 0,
+          "places-and-maps": 0.07070707070707072,
+          "images-and-motion": 0.010101010101010102,
+          "machines-and-minds": 0.686868686868687,
+          "words-and-stories": 0.020202020202020204,
+          "bodies-and-health": 0.010101010101010102,
+          "worlds-and-games": 0.20202020202020204
+        }
+      }
+    },
+    "decision": {
+      "place": "family",
+      "systemId": "tools-and-infrastructure",
+      "orbitSlot": 6
+    }
+  }
+]

@@ -40,11 +40,11 @@ test('galaxy to system to planet and back keeps one canvas and working project l
   ).toBeVisible();
   // The outermost lane is a real project too; scenic placeholders retired.
   await page
-    .getByRole('button', { name: 'Explore Openwater', exact: true })
+    .getByRole('button', { name: 'Explore Dodeca & Point', exact: true })
     .click();
   await expect(
-    page.getByRole('link', { name: 'Visit Openwater', exact: true }),
-  ).toHaveAttribute('href', 'https://openwater.alirezaafshan.com');
+    page.getByRole('link', { name: 'Visit Dodeca & Point', exact: true }),
+  ).toHaveAttribute('href', 'https://dodeca.alirezaafshan.com');
   await page.keyboard.press('Escape');
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page.keyboard.press('Escape');
