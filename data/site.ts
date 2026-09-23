@@ -6,7 +6,7 @@ export const siteIdentity = {
   owner: 'Alireza Afshan',
   origin: 'https://alirezaafshan.com',
   description:
-    'A tactile orbital index of Alireza Afshan’s websites and experiments.',
+    'Everything I build becomes a planet. Pick a star and dive in.',
   email: 'mail@alirezaafshan.com',
   github: 'https://github.com/YesterdaysLemon',
 } as const;

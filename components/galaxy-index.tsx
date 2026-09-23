@@ -2752,7 +2752,10 @@ export function GalaxyIndex({
       <CatalogContainer>
         <section className="noscript-catalog" aria-label="Website worlds">
           <h1>Alireza&apos;s Galaxy</h1>
-          <p>A small constellation of websites and experiments.</p>
+          <p>
+            Everything I build becomes a planet. Here they all are, no rocket
+            required.
+          </p>
           <ul>
             {worldCatalog.map((destination) => (
               <li key={destination.id}>
