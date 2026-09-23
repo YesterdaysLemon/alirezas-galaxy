@@ -486,7 +486,49 @@ export class SolarSystemScene {
       index === null
         ? this.overviewDistance()
         : this.focusDistance(this.bodies[index].recipe);
+    if (index !== null) this.clearStar(this.bodies[index].root.position);
     this.report(index === null ? 'system' : 'planet');
+  }
+
+  /**
+   * The close-up looks from the sunlit side, but an inner world sits so near
+   * its star that the star would fill the frame, or swallow the camera. Rise
+   * and swing (in that order) until the whole star sits outside the view.
+   */
+  private clearStar(planet: THREE.Vector3) {
+    const radius = this.system?.star.radius ?? 3.8;
+    const base = Math.atan2(-planet.x, -planet.z);
+    const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
+    const halfWide = Math.atan(Math.tan(halfFov) * this.camera.aspect);
+    let best = { yaw: base + 0.55, pitch: this.pitch, score: -Infinity };
+    for (const pitch of [0.3, 0.55, 0.8, 1.05, 1.25])
+      for (const offset of [0.55, 0.9, 1.3]) {
+        const yaw = base + offset;
+        const cx = planet.x + Math.sin(yaw) * Math.cos(pitch) * this.distance,
+          cy = planet.y + Math.sin(pitch) * this.distance,
+          cz = planet.z + Math.cos(yaw) * Math.cos(pitch) * this.distance;
+        const toStar = Math.hypot(cx, cy, cz);
+        if (toStar < radius * 1.3) continue;
+        // Angle between the view axis (toward the world) and the star center.
+        const vx = planet.x - cx,
+          vy = planet.y - cy,
+          vz = planet.z - cz;
+        const cos =
+          (vx * -cx + vy * -cy + vz * -cz) / (Math.hypot(vx, vy, vz) * toStar);
+        const separation = Math.acos(THREE.MathUtils.clamp(cos, -1, 1));
+        const score =
+          separation -
+          Math.asin(Math.min(1, radius / toStar)) -
+          Math.max(halfFov, halfWide);
+        if (score > 0) {
+          this.yaw = yaw;
+          this.pitch = pitch;
+          return;
+        }
+        if (score > best.score) best = { yaw, pitch, score };
+      }
+    this.yaw = best.yaw;
+    this.pitch = best.pitch;
   }
 
   escape() {
@@ -537,8 +579,10 @@ export class SolarSystemScene {
     if (this.selected === null) {
       this.distance = this.overviewDistance();
       this.pitch = this.camera.aspect < 1 ? 0.9 : 0.62;
-    } else
+    } else {
       this.distance = this.focusDistance(this.bodies[this.selected].recipe);
+      this.clearStar(this.bodies[this.selected].root.position);
+    }
   }
 
   update(milliseconds: number, reduceMotion: boolean) {
