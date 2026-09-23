@@ -32,7 +32,7 @@ check.
 UI experiment pages are local-only. `.dockerignore` excludes `app/**/lab`,
 `app/**/labs`, `app/**/*-lab`, matching lab component/data modules, and public
 lab directories or `*-lab.html` pages before the release build discovers routes.
-This keeps `/motion-lab`, `/static-lab`, and `/icon-lab.html` out of the deployed
+This keeps `/motion-lab`, `/static-lab`, `/planet-lab`, and `/icon-lab.html` out of the deployed
 image while preserving them for `npm run dev`. Ordinary destination assets such
 as `celegans-lab.svg` are retained.
 
@@ -78,10 +78,11 @@ is hidden or offscreen.
 
 Solar terrain is prepared in a worker with a cooperative fallback. A bounded
 active/recent-plus-intent cache and incremental GPU warming keep preparation out
-of the camera flight. Original baked metal/glass skins and cached software-drawn
-planet miniatures avoid cold-flight raster stalls. See
-[`docs/SOLAR-SYSTEMS.md`](docs/SOLAR-SYSTEMS.md) for the rendering and regeneration
-contracts.
+of the camera flight. Inside a system the HUD switches to a
+space-stage-style scanner console that mounts after arrival; cached software-drawn
+planet portraits avoid extra WebGL contexts. Tune generated worlds locally at
+`/planet-lab`. See [`docs/SOLAR-SYSTEMS.md`](docs/SOLAR-SYSTEMS.md) for the
+rendering contracts.
 
 ## Personalize it
 

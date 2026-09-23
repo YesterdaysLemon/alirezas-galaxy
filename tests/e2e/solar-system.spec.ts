@@ -237,3 +237,50 @@ test('changing destination during entry keeps the latest route and restores gala
   ).toBeEnabled();
   await expect(page).toHaveURL(/#system\/curiosity-and-play$/);
 });
+
+test('scrolling dives into a family star and back out to the galaxy', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/#galaxy');
+  const stage = page.locator('[data-galaxy-stage]');
+  await expect(page.locator('canvas[data-galaxy-canvas]')).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Website worlds' })
+    .locator('[data-world-id="patterns-and-life"]')
+    .focus();
+  // The hover card's portrait sits on its star; scrolling there still steers.
+  const star = page.locator(
+    '.world-preview[data-world-id="patterns-and-life"] .world-preview-orbit',
+  );
+  await expect(star).toBeVisible();
+  const box = (await star.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let step = 0; step < 5; step++) await page.mouse.wheel(0, -100);
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(page).toHaveURL(/#system\/patterns-and-life$/);
+  await page.mouse.move(640, 300);
+  for (let step = 0; step < 14; step++) await page.mouse.wheel(0, 120);
+  await expect(stage).toHaveAttribute('data-solar-phase', 'galaxy');
+  await expect(page).toHaveURL(/#galaxy$/);
+});
+
+test('the scanner console switches between worlds, stars and flight', async ({
+  page,
+}) => {
+  await page.goto('/#system/patterns-and-life');
+  await expect(
+    page.getByRole('button', { name: 'Explore Plato', exact: true }),
+  ).toBeEnabled();
+  await page.getByRole('tab', { name: 'stars' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Enter Curiosity & Play' }),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'flight' }).click();
+  await page.getByRole('button', { name: 'Pause orbital motion' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Resume orbital motion' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('tab', { name: 'flight' }).press('ArrowLeft');
+  await expect(page.getByRole('tab', { name: 'stars' })).toBeFocused();
+});

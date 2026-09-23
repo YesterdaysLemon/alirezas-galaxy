@@ -1,5 +1,21 @@
 import { worldCatalog, type CatalogWorld, type Destination } from './worlds';
 
+/** Optional artistic controls for a world's generated surface (see the planet lab). */
+export type SurfaceTuning = {
+  /** 0..1 fraction of the surface that is sea, ice leads, or basin. */
+  sea?: number;
+  /** Continental scale: lower is fewer, larger landmasses. */
+  continents?: number;
+  /** Polar cap reach, 0 (none) .. 1 (snowball). */
+  ice?: number;
+  /** Cloud cover 0..1. */
+  clouds?: number;
+  /** Relief exaggeration for geometry and bump. */
+  relief?: number;
+  /** Secondary feature density: dunes, ridges, colonies, storm bands. */
+  detail?: number;
+};
+
 /** Art is fictional; all project-facing metadata comes from the public catalog. */
 export type PlanetRecipe = {
   id: string;
@@ -20,6 +36,7 @@ export type PlanetRecipe = {
   phase: number;
   moons?: number;
   rings?: boolean;
+  surface?: SurfaceTuning;
 };
 
 export type SolarSystem = {
@@ -86,6 +103,7 @@ type TerrainRecipe = Pick<
   | 'phase'
   | 'moons'
   | 'rings'
+  | 'surface'
 >;
 
 // Immutable project IDs are the only lookup key. A rename or domain move cannot

@@ -14,7 +14,7 @@ const worldStyle = (world: Pick<Destination, 'color'>) =>
     '--world-color': `#${world.color.toString(16).padStart(6, '0')}`,
   }) as CSSProperties;
 
-function PanelFasteners() {
+export function PanelFasteners() {
   return (
     <span className="comms-fasteners" aria-hidden="true">
       <i />

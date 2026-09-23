@@ -80,6 +80,44 @@ async function nebulaTexture(seed: number, signal: AbortSignal) {
   return texture;
 }
 
+/** The rendered world: surface, atmosphere rim and cloud shell. Shared with the planet lab. */
+export function createWorldBody(
+  recipe: PlanetRecipe,
+  buffers: PlanetBuffers,
+  starPosition: THREE.Vector3,
+) {
+  const { geometry, textures } = adoptPlanetBuffers(buffers);
+  const material = new THREE.MeshStandardMaterial({
+    map: textures.map,
+    bumpMap: textures.bumpMap,
+    bumpScale:
+      recipe.terrain === 'gas' ? recipe.radius * 0.012 : recipe.radius * 0.075,
+    roughnessMap: textures.roughnessMap,
+    roughness: 1,
+    emissiveMap: textures.emissiveMap,
+    emissive: recipe.terrain === 'culture' ? 0xffffff : 0x000000,
+    emissiveIntensity: 0.45,
+    metalness: 0,
+  });
+  const surface = new THREE.Mesh(geometry, material);
+  surface.rotation.z = recipe.terrain === 'gas' ? 0.18 : 0.08;
+  const atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(recipe.radius * 1.035, 64, 40),
+    atmosphereMaterial(recipe.atmosphere, starPosition),
+  );
+  const clouds = new THREE.Mesh(
+    new THREE.SphereGeometry(recipe.radius * 1.042, 64, 40),
+    new THREE.MeshStandardMaterial({
+      map: textures.cloudMap,
+      transparent: true,
+      opacity: 0.64,
+      depthWrite: false,
+      roughness: 1,
+    }),
+  );
+  return { surface, atmosphere, clouds };
+}
+
 /** A detached, abortable detailed system. No preparation touches the live view. */
 export class SolarSystemResources {
   readonly group = new THREE.Group();
@@ -87,6 +125,11 @@ export class SolarSystemResources {
   readonly controller = new AbortController();
   readonly bodies: SolarBody[] = [];
   readonly orbitMaterials: THREE.ShaderMaterial[] = [];
+  /** Local sky: only meaningful after the unit handoff, so it fades in separately. */
+  readonly sky = new THREE.Group();
+  /** The galactic band, turned so its bright core faces the real galaxy center. */
+  readonly band = new THREE.Group();
+  private readonly skyMaterials: [THREE.Material, number][] = [];
   readonly completion: Promise<void>;
   ready = false;
   sun: THREE.Mesh | null = null;
@@ -190,7 +233,7 @@ export class SolarSystemResources {
         '#include <color_fragment>\ndiffuseColor.a *= 1.0 - smoothstep(0.12, 0.5, length(gl_PointCoord - vec2(0.5)));',
       );
     };
-    this.group.add(new THREE.Points(starGeometry, starMaterial));
+    this.sky.add(new THREE.Points(starGeometry, starMaterial));
     const clouds: THREE.Texture[] = [];
     for (const seed of [system.seed, system.seed + 51]) {
       const texture = await nebulaTexture(seed, signal);
@@ -220,12 +263,29 @@ export class SolarSystemResources {
         skyRadius * (0.55 + random() * 0.4),
         1,
       );
-      this.group.add(sprite);
+      this.sky.add(sprite);
     }
-    for (const recipe of system.planets) {
-      const buffers = await this.preparation.generate(recipe, signal);
+    await preparationTurn(signal);
+    this.addGalacticBand(skyRadius, clouds[0], random);
+    this.sky.add(this.band);
+    this.sky.traverse((object) => {
+      const material = (object as THREE.Mesh).material as
+        | THREE.Material
+        | undefined;
+      if (material) this.skyMaterials.push([material, material.opacity]);
+    });
+    this.sky.visible = false;
+    this.group.add(this.sky);
+    // Request every world at once so the worker pool generates in parallel;
+    // adopt them in orbital order as each arrives.
+    const surfaces = system.planets.map((recipe) =>
+      this.preparation.generate(recipe, signal),
+    );
+    surfaces.forEach((surface) => surface.catch(() => undefined));
+    for (let index = 0; index < system.planets.length; index++) {
+      const buffers = await surfaces[index];
       await preparationTurn(signal);
-      this.addPlanet(recipe, buffers);
+      this.addPlanet(system.planets[index], buffers);
     }
     for (const belt of system.belts) {
       await preparationTurn(signal);
@@ -233,6 +293,133 @@ export class SolarSystemResources {
     }
     await this.warm();
     if (!signal.aborted) this.ready = true;
+  }
+
+  /**
+   * From inside the disc the home galaxy is a luminous band, brightest toward
+   * its core. It continues the view the camera just flew through.
+   */
+  private addGalacticBand(
+    skyRadius: number,
+    cloud: THREE.Texture,
+    random: () => number,
+  ) {
+    const count = 3200;
+    const positions = new Float32Array(count * 3),
+      colors = new Float32Array(count * 3);
+    const core = new THREE.Color(0xffe6c4),
+      rose = new THREE.Color(0xe9a6ff),
+      violet = new THREE.Color(0x7a5cff),
+      blue = new THREE.Color(0x3b5cff),
+      color = new THREE.Color();
+    const gaussian = () =>
+      Math.sqrt(-2 * Math.log(Math.max(1e-6, random()))) *
+      Math.cos(Math.PI * 2 * random());
+    for (let i = 0; i < count; i++) {
+      // Longitude 0 (+x) faces the galactic core; half the stars crowd it.
+      const longitude =
+        random() < 0.45 ? gaussian() * 0.75 : (random() * 2 - 1) * Math.PI;
+      const towardCore = Math.pow(Math.max(0, Math.cos(longitude)), 2);
+      const latitude = gaussian() * (0.05 + towardCore * 0.09);
+      const r = skyRadius * 0.97;
+      positions[i * 3] = Math.cos(longitude) * Math.cos(latitude) * r;
+      positions[i * 3 + 1] = Math.sin(latitude) * r;
+      positions[i * 3 + 2] = Math.sin(longitude) * Math.cos(latitude) * r;
+      color
+        .copy(blue)
+        .lerp(violet, Math.min(1, towardCore * 2 + 0.25))
+        .lerp(rose, THREE.MathUtils.smoothstep(towardCore, 0.35, 0.8))
+        .lerp(core, THREE.MathUtils.smoothstep(towardCore, 0.82, 1));
+      const brightness = 0.35 + random() * 0.65;
+      colors[i * 3] = color.r * brightness;
+      colors[i * 3 + 1] = color.g * brightness;
+      colors[i * 3 + 2] = color.b * brightness;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const points = new THREE.Points(
+      geometry,
+      new THREE.PointsMaterial({
+        size: skyRadius * 0.0024,
+        vertexColors: true,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.band.add(points);
+    // Broad smoky lanes along the band, and the core's glow above the horizon.
+    for (let i = 0; i < 9; i++) {
+      const longitude = (i / 9) * Math.PI * 2;
+      const towardCore = Math.pow(Math.max(0, Math.cos(longitude)), 2);
+      const lane = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: cloud,
+          color: new THREE.Color(0x3a2f8f).lerp(
+            new THREE.Color(0x9a62c8),
+            towardCore,
+          ),
+          transparent: true,
+          opacity: 0.55 + towardCore * 0.35,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          rotation: Math.PI / 2 + (random() - 0.5) * 0.3,
+        }),
+      );
+      lane.position.set(
+        Math.cos(longitude) * skyRadius * 0.9,
+        0,
+        Math.sin(longitude) * skyRadius * 0.9,
+      );
+      lane.scale.set(skyRadius * 0.34, skyRadius * 0.95, 1);
+      this.band.add(lane);
+    }
+    const glow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTexture(),
+        color: 0xffd9f0,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    glow.position.set(skyRadius * 0.9, skyRadius * 0.02, 0);
+    glow.scale.set(skyRadius * 0.95, skyRadius * 0.42, 1);
+    this.band.add(glow);
+  }
+
+  /**
+   * Face the band's core toward the galaxy center, as seen from this star, and
+   * lean the band's plane through the overview's line of sight so the galaxy
+   * the camera just crossed stays in frame behind the orbits.
+   */
+  orientSky(towardCore: THREE.Vector3, lineOfSight: THREE.Vector3) {
+    const core = new THREE.Vector3(towardCore.x, 0, towardCore.z);
+    if (core.lengthSq() < 1e-8) core.set(1, 0, 0);
+    core.normalize();
+    const sight = new THREE.Vector3(
+      lineOfSight.x,
+      lineOfSight.y * 0.7,
+      lineOfSight.z,
+    ).normalize();
+    const normal = new THREE.Vector3().crossVectors(core, sight);
+    if (normal.lengthSq() < 1e-4) normal.set(0, 1, 0);
+    normal.normalize();
+    if (normal.y < 0) normal.negate();
+    const third = new THREE.Vector3().crossVectors(core, normal);
+    this.band.quaternion.setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(core, normal, third),
+    );
+  }
+
+  setSkyOpacity(level: number) {
+    this.sky.visible = level > 0.001;
+    for (const [material, base] of this.skyMaterials)
+      material.opacity = base * level;
   }
 
   private addPlanet(recipe: PlanetRecipe, buffers: PlanetBuffers) {
@@ -262,40 +449,12 @@ export class SolarSystemResources {
       );
     }
     const ringOuter = Math.min(recipe.radius * 2.3, clearance * 0.77);
-    const { geometry, textures } = adoptPlanetBuffers(buffers);
-    const material = new THREE.MeshStandardMaterial({
-      map: textures.map,
-      bumpMap: textures.bumpMap,
-      bumpScale:
-        recipe.terrain === 'gas'
-          ? recipe.radius * 0.012
-          : recipe.radius * 0.075,
-      roughnessMap: textures.roughnessMap,
-      roughness: 1,
-      emissiveMap: textures.emissiveMap,
-      emissive: recipe.terrain === 'culture' ? 0xffffff : 0x000000,
-      emissiveIntensity: 0.45,
-      metalness: 0,
-    });
-    const surface = new THREE.Mesh(geometry, material);
-    surface.rotation.z = recipe.terrain === 'gas' ? 0.18 : 0.08;
-    root.add(surface);
-    const atmosphere = new THREE.Mesh(
-      new THREE.SphereGeometry(recipe.radius * 1.035, 64, 40),
-      atmosphereMaterial(recipe.atmosphere, this.starPosition),
+    const { surface, atmosphere, clouds } = createWorldBody(
+      recipe,
+      buffers,
+      this.starPosition,
     );
-    root.add(atmosphere);
-    const clouds = new THREE.Mesh(
-      new THREE.SphereGeometry(recipe.radius * 1.042, 64, 40),
-      new THREE.MeshStandardMaterial({
-        map: textures.cloudMap,
-        transparent: true,
-        opacity: 0.64,
-        depthWrite: false,
-        roughness: 1,
-      }),
-    );
-    root.add(clouds);
+    root.add(surface, atmosphere, clouds);
     if (recipe.rings) {
       const ringGeo = new THREE.RingGeometry(
         recipe.radius * 1.45,
@@ -374,25 +533,41 @@ export class SolarSystemResources {
       moonDistances,
       footprint: recipe.rings ? ringOuter : recipe.radius,
     });
-    // A world-space ribbon stays luminous at oblique angles; angular modulation
-    // gives the orbit a leading arc instead of a flat diagram's uniform hairline.
-    const orbitWidth = Math.max(0.06, (this.system?.extent ?? 40) * 0.005);
+    // A hairline of constant screen width: the ribbon geometry only reserves
+    // room, and fwidth() draws ~1.5px however near or far the camera is. The
+    // line parts around its world (never skewering it) and brightens into a
+    // short wake behind the direction of travel.
+    const orbitWidth = Math.max(0.12, (this.system?.extent ?? 40) * 0.006);
     const orbit = new THREE.Mesh(
       new THREE.RingGeometry(
         recipe.orbit - orbitWidth,
         recipe.orbit + orbitWidth,
-        256,
+        384,
       ),
       new THREE.ShaderMaterial({
         uniforms: {
           tint: { value: new THREE.Color(recipe.atmosphere) },
           radius: { value: recipe.orbit },
-          width: { value: orbitWidth },
-          phase: { value: recipe.phase },
+          planetAngle: { value: recipe.phase },
+          gap: {
+            value: Math.min(
+              0.9,
+              ((recipe.rings ? ringOuter : recipe.radius) * 1.9) / recipe.orbit,
+            ),
+          },
           focus: { value: 1 },
         },
         vertexShader: `varying vec2 p; void main(){p=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader: `varying vec2 p; uniform vec3 tint; uniform float radius; uniform float width; uniform float phase; uniform float focus; void main(){float edge=abs(length(p)-radius)/width; float arc=.35+.65*pow(.5+.5*cos(atan(-p.y,p.x)-phase),3.); float alpha=(1.-smoothstep(.12,1.,edge))*arc; gl_FragColor=vec4(tint*1.55,alpha*.9*focus);}`,
+        fragmentShader: `varying vec2 p; uniform vec3 tint; uniform float radius; uniform float planetAngle; uniform float gap; uniform float focus;
+          void main(){
+            float r=length(p); float px=abs(r-radius)/max(fwidth(r),1e-5);
+            float line=1.-smoothstep(.55,1.6,px);
+            float behind=mod(planetAngle-atan(-p.y,p.x),6.2831853);
+            float near=min(behind,6.2831853-behind);
+            float parted=smoothstep(gap,gap*1.8,near);
+            float wake=.3+.7*exp(-behind*.85);
+            gl_FragColor=vec4(tint*1.35,line*parted*wake*.85*focus);
+          }`,
         side: THREE.DoubleSide,
         transparent: true,
         depthWrite: false,
@@ -556,6 +731,7 @@ export class SolarSystemResources {
     this.group.clear();
     this.bodies.length = this.orbitMaterials.length = 0;
     this.sun = this.corona = null;
+    this.skyMaterials.length = 0;
     this.ownedTextures.clear();
   }
 }

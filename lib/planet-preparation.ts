@@ -23,11 +23,20 @@ type Pending = {
   resolve: (data: PlanetBuffers) => void;
   reject: (reason: unknown) => void;
   abort: () => void;
+  worker: Worker;
 };
 
-/** Instance-scoped worker, with abortable row-sized work on older/restricted browsers. */
+const POOL_SIZE = Math.max(
+  1,
+  Math.min(3, Math.floor((globalThis.navigator?.hardwareConcurrency ?? 2) / 2)),
+);
+
+/**
+ * A small instance-scoped worker pool (worlds generate in parallel), with
+ * abortable row-sized work on older/restricted browsers.
+ */
 export class PlanetPreparation {
-  private worker: Worker | null = null;
+  private workers: Worker[] = [];
   private failed = false;
   private disposed = false;
   private sequence = 0;
@@ -50,8 +59,8 @@ export class PlanetPreparation {
   }
 
   private failWorker() {
-    this.worker?.terminate();
-    this.worker = null;
+    this.workers.forEach((worker) => worker.terminate());
+    this.workers = [];
     this.failed = true;
     for (const [id, job] of this.pending) {
       this.pending.delete(id);
@@ -60,57 +69,76 @@ export class PlanetPreparation {
     }
   }
 
+  private spawn() {
+    const worker = new Worker(
+      new URL('./planet-preparation.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    worker.onmessage = (
+      event: MessageEvent<{ id: number; data?: PlanetBuffers; error?: string }>,
+    ) => {
+      const job = this.pending.get(event.data.id);
+      if (!job) return;
+      this.pending.delete(event.data.id);
+      job.signal.removeEventListener('abort', job.abort);
+      if (event.data.data) job.resolve(event.data.data);
+      else {
+        this.fallback(job.planet, job.signal).then(job.resolve, job.reject);
+        this.failWorker();
+      }
+    };
+    worker.onerror = (event) => {
+      event.preventDefault();
+      this.failWorker();
+    };
+    worker.onmessageerror = () => this.failWorker();
+    this.workers.push(worker);
+    return worker;
+  }
+
+  /** The least-loaded worker, spawning up to the pool size on demand. */
+  private pick() {
+    const load = new Map<Worker, number>(this.workers.map((w) => [w, 0]));
+    for (const job of this.pending.values())
+      load.set(job.worker, (load.get(job.worker) ?? 0) + 1);
+    let best: Worker | null = null,
+      least = Infinity;
+    for (const [worker, count] of load)
+      if (count < least) {
+        least = count;
+        best = worker;
+      }
+    if (best && (least === 0 || this.workers.length >= POOL_SIZE)) return best;
+    return this.spawn();
+  }
+
   generate(planet: PlanetRecipe, signal: AbortSignal): Promise<PlanetBuffers> {
     if (this.disposed || signal.aborted)
       return Promise.reject(new DOMException('Cancelled', 'AbortError'));
-    if (!this.worker && !this.failed) {
+    let worker: Worker | null = null;
+    if (!this.failed)
       try {
-        this.worker = new Worker(
-          new URL('./planet-preparation.worker.ts', import.meta.url),
-          { type: 'module' },
-        );
-        this.worker.onmessage = (
-          event: MessageEvent<{
-            id: number;
-            data?: PlanetBuffers;
-            error?: string;
-          }>,
-        ) => {
-          const job = this.pending.get(event.data.id);
-          if (!job) return;
-          this.pending.delete(event.data.id);
-          job.signal.removeEventListener('abort', job.abort);
-          if (event.data.data) job.resolve(event.data.data);
-          else {
-            this.fallback(job.planet, job.signal).then(job.resolve, job.reject);
-            this.failWorker();
-          }
-        };
-        this.worker.onerror = (event) => {
-          event.preventDefault();
-          this.failWorker();
-        };
-        this.worker.onmessageerror = () => this.failWorker();
+        worker = this.pick();
       } catch {
         this.failWorker();
       }
-    }
-    if (!this.worker) return this.fallback(planet, signal);
+    if (!worker) return this.fallback(planet, signal);
     const { promise, resolve, reject } = Promise.withResolvers<PlanetBuffers>();
     const id = ++this.sequence;
+    const assigned = worker;
     const abort = () => {
       this.pending.delete(id);
       reject(new DOMException('Cancelled', 'AbortError'));
-      // Stop abandoned terrain immediately if no retained system needs the worker.
-      if (!this.pending.size) {
-        this.worker?.terminate();
-        this.worker = null;
+      // Stop abandoned terrain immediately if nothing retained needs this worker.
+      if (![...this.pending.values()].some((job) => job.worker === assigned)) {
+        assigned.terminate();
+        this.workers = this.workers.filter((w) => w !== assigned);
       }
     };
-    this.pending.set(id, { planet, signal, resolve, reject, abort });
+    this.pending.set(id, { planet, signal, resolve, reject, abort, worker });
     signal.addEventListener('abort', abort, { once: true });
     try {
-      this.worker!.postMessage({ id, planet });
+      worker.postMessage({ id, planet });
     } catch {
       this.failWorker();
     }
@@ -119,8 +147,8 @@ export class PlanetPreparation {
 
   dispose() {
     this.disposed = true;
-    this.worker?.terminate();
-    this.worker = null;
+    this.workers.forEach((worker) => worker.terminate());
+    this.workers = [];
     for (const job of this.pending.values()) {
       job.signal.removeEventListener('abort', job.abort);
       job.reject(new DOMException('Cancelled', 'AbortError'));

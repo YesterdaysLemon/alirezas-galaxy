@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
 import { PlanetPreparation, preparationTurn } from './planet-preparation';
 import { SolarSystemResources, type SolarBody } from './solar-system-resources';
+import { SolarShip } from './solar-ship';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export type SolarPhase =
   | 'galaxy'
@@ -18,7 +20,16 @@ type SavedView = {
 };
 const EMPTY_BODIES: SolarBody[] = [];
 const EMPTY_ORBITS: THREE.ShaderMaterial[] = [];
-const GALAXY_UNIT = 0.035;
+/**
+ * Galaxy units per local system unit. A whole system spans roughly the
+ * thickness of a spiral arm, so it resolves only once the camera is inside
+ * that arm rather than floating over a third of the galaxy.
+ */
+export const GALAXY_UNIT = 0.0011;
+const ENTRY_SECONDS = 2.4;
+const SWITCH_SECONDS = 3;
+const LEAVE_SECONDS = 1.8;
+const smooth = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 
 function flightDust() {
   return new THREE.Mesh(
@@ -42,7 +53,7 @@ function flightDust() {
         float start=max(0.,-b-sqrt(d)); float end=-b+sqrt(d); float density=0.;
         for(int i=0;i<6;i++){vec3 q=eye+ray*mix(start,end,(float(i)+.5)/6.); float n=noise(q*5.+vec3(time*.035,0.,0.)); density+=smoothstep(.28,.78,n)*(1.-smoothstep(.55,1.,length(q)));}
         float a=(1.-exp(-density*(end-start)*.75))*opacity;
-        vec3 color=mix(tint,vec3(.48,.24,.12),smoothstep(-.4,.6,p.y))*(.38+density*.12);
+        vec3 color=mix(tint*1.6,vec3(.62,.4,.62),smoothstep(-.4,.6,p.y))*(.7+density*.25);
         gl_FragColor=vec4(color,a); }`,
     }),
   );
@@ -65,7 +76,29 @@ export class SolarSystemScene {
   private transitionFrom = new THREE.Vector3();
   private transitionQuaternion = new THREE.Quaternion();
   private transitionTime = 0;
+  private transitionDuration = ENTRY_SECONDS;
+  private switching = false;
+  private fromDirection = new THREE.Vector3();
+  private toDirection = new THREE.Vector3();
+  private fromDistance = 1;
+  private galaxyCenter = new THREE.Vector3();
   private arrivalTime = 0;
+  private skyLevel = 0;
+  /** 0 = galaxy decorations as usual; 1 = markers and core glare hidden for the dive. */
+  galaxyVeil = 0;
+  /** 0..1: the galaxy's own stars thin out just before the unit handoff. */
+  galaxyFade = 0;
+  private readonly ship = new SolarShip();
+  private shipPark: number | null = null;
+  private shipTarget = new THREE.Vector3();
+  private scope: HTMLCanvasElement | null = null;
+  /** Called when the reader keeps zooming out past the system overview. */
+  onExitRequest: (() => void) | null = null;
+  private overscroll = 0;
+  private overscrollAt = 0;
+  private shipHeading = 0;
+  private shipEnvironment: THREE.Texture | null = null;
+  private scopeSweep = 0;
   private localTime = 0;
   private visualTime = 0;
   private handedOff = false;
@@ -76,6 +109,7 @@ export class SolarSystemScene {
   private desiredPosition = new THREE.Vector3();
   private desiredTarget = new THREE.Vector3();
   private projected = new THREE.Vector3();
+  private scratchDirection = new THREE.Vector3();
   private transitionEnd = new THREE.Vector3();
   private lookQuaternion = new THREE.Quaternion();
   private pointer = new Map<number, { x: number; y: number }>();
@@ -121,6 +155,8 @@ export class SolarSystemScene {
     this.group.visible = false;
     this.dust.renderOrder = 5;
     this.group.add(this.dust, this.flightAmbient, this.flightLight);
+    this.ship.root.visible = false;
+    this.group.add(this.ship.root);
     scene.add(this.group);
     this.labelObserver = new MutationObserver(() => {
       this.labelsDirty = this.layoutDirty = true;
@@ -135,6 +171,10 @@ export class SolarSystemScene {
 
   get active() {
     return this.phase !== 'galaxy';
+  }
+  /** The galaxy camera position preserved for the return flight. */
+  get savedPosition() {
+    return this.saved?.position ?? null;
   }
   get navigating() {
     return this.phase === 'entering' || this.phase === 'leaving';
@@ -154,7 +194,26 @@ export class SolarSystemScene {
     camera.position.z = 2;
     try {
       await preparationTurn(this.flightPreparation.signal);
-      await this.renderer.compileAsync(staging, camera);
+      // Bake the ship's reflections once, while idle, then compile its lacquer
+      // with them so its first appearance costs no shader work.
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const room = new RoomEnvironment();
+      this.shipEnvironment = pmrem.fromScene(room, 0.04).texture;
+      room.dispose();
+      pmrem.dispose();
+      this.ship.setEnvironment(this.shipEnvironment);
+      await preparationTurn(this.flightPreparation.signal);
+      staging.add(this.ship.root);
+      const shipVisible = this.ship.root.visible;
+      this.ship.root.visible = true;
+      try {
+        await this.renderer.compileAsync(staging, camera);
+      } finally {
+        // Compiled only; the ship never draws into the live frame from here.
+        this.ship.root.visible =
+          shipVisible || (this.active && this.handedOff && !this.navigating);
+        this.group.add(this.ship.root);
+      }
       await preparationTurn(this.flightPreparation.signal);
       const material = this.dust.material;
       const colorWrite = material.colorWrite,
@@ -220,8 +279,13 @@ export class SolarSystemScene {
     });
   }
 
-  enter(system: SolarSystem, origin: THREE.Vector3) {
+  enter(
+    system: SolarSystem,
+    origin: THREE.Vector3,
+    galaxyCenter?: THREE.Vector3,
+  ) {
     if (this.destroyed) return;
+    this.switching = this.active;
     if (!this.active) {
       const visibility: SavedView['visibility'] = [];
       for (const child of this.scene.children)
@@ -245,11 +309,15 @@ export class SolarSystemScene {
     }
     this.setHover(null);
     this.releasePointers();
-    if (this.current) this.recent = this.current.system;
+    if (this.current) {
+      this.recent = this.current.system;
+      this.current.setSkyOpacity(0);
+    }
     this.current?.group.removeFromParent();
     this.current = null;
     this.system = system;
     this.origin.copy(origin);
+    if (galaxyCenter) this.galaxyCenter.copy(galaxyCenter);
     this.selected = null;
     this.autoPaused = false;
     this.localTime =
@@ -257,12 +325,21 @@ export class SolarSystemScene {
       this.transitionTime =
       this.arrivalTime =
         0;
+    this.skyLevel = 0;
+    this.shipPark = null;
+    this.ship.root.visible = false;
     this.yaw = -0.32;
     this.pitch = this.camera.aspect < 1 ? 0.9 : 0.62;
     this.distance = this.overviewDistance();
     this.handedOff = false;
     this.transitionFrom.copy(this.camera.position);
     this.transitionQuaternion.copy(this.camera.quaternion);
+    // Fly in log-distance about the destination star: every second covers the
+    // same ratio of distance, so the dive reads as one continuous zoom.
+    this.fromDirection.subVectors(this.camera.position, origin);
+    this.fromDistance = Math.max(1e-4, this.fromDirection.length());
+    this.fromDirection.divideScalar(this.fromDistance);
+    this.transitionDuration = this.switching ? SWITCH_SECONDS : ENTRY_SECONDS;
     this.group.position.copy(origin);
     this.group.scale.setScalar(GALAXY_UNIT);
     this.group.visible = true;
@@ -272,7 +349,10 @@ export class SolarSystemScene {
     this.dust.scale.setScalar(system.extent * 2.4);
     this.dust.material.uniforms.opacity.value = 0;
     this.dust.material.uniforms.tint.value.set(system.nebula[0]);
-    this.camera.near = Math.min(this.saved?.near ?? 0.1, 0.003);
+    this.camera.near = Math.min(
+      this.saved?.near ?? 0.1,
+      this.distance * GALAXY_UNIT * 0.02,
+    );
     this.camera.updateProjectionMatrix();
     this.saved?.visibility.forEach(([object]) => {
       if (object instanceof THREE.Light) object.visible = false;
@@ -289,6 +369,14 @@ export class SolarSystemScene {
     if (!resource?.ready) return;
     this.current = resource;
     resource.starPosition.copy(this.group.position);
+    this.scratchDirection.subVectors(this.galaxyCenter, this.origin);
+    this.toDirection.set(
+      -Math.sin(this.yaw) * Math.cos(this.pitch),
+      -Math.sin(this.pitch),
+      -Math.cos(this.yaw) * Math.cos(this.pitch),
+    );
+    resource.orientSky(this.scratchDirection, this.toDirection);
+    resource.setSkyOpacity(0);
     this.group.add(resource.group);
     this.flightAmbient.visible = this.flightLight.visible = false;
     for (const material of resource.orbitMaterials)
@@ -339,8 +427,14 @@ export class SolarSystemScene {
     this.releasePointers();
     this.toGalaxyUnits();
     this.showGalaxySurroundings();
+    this.current?.setSkyOpacity(0);
+    this.skyLevel = 0;
+    this.ship.root.visible = false;
     this.transitionFrom.copy(this.camera.position);
     this.transitionQuaternion.copy(this.camera.quaternion);
+    this.fromDirection.subVectors(this.camera.position, this.origin);
+    this.fromDistance = Math.max(1e-4, this.fromDirection.length());
+    this.fromDirection.divideScalar(this.fromDistance);
     this.transitionTime = 0;
     this.dust.visible = true;
     this.report('leaving');
@@ -354,6 +448,7 @@ export class SolarSystemScene {
 
   private restoreGalaxy() {
     this.group.visible = false;
+    this.ship.root.visible = false;
     this.saved?.visibility.forEach(([child, visible]) => {
       child.visible = visible;
     });
@@ -381,8 +476,11 @@ export class SolarSystemScene {
             -this.bodies[index].root.position.x,
             -this.bodies[index].root.position.z,
           ) + 0.55;
-    for (const material of this.orbitMaterials)
-      material.uniforms.focus.value = index === null ? 1 : 0.16;
+    // Up close, a world's own orbit runs edge-on through it: hide that one.
+    this.orbitMaterials.forEach((material, orbit) => {
+      material.uniforms.focus.value =
+        index === null ? 1 : orbit === index ? 0 : 0.3;
+    });
     this.pitch = index === null ? (this.camera.aspect < 1 ? 0.9 : 0.62) : 0.3;
     this.distance =
       index === null
@@ -402,7 +500,7 @@ export class SolarSystemScene {
   private overviewDistance() {
     const extent = this.system?.extent ?? 40;
     // Frame the tilted orbital plane rather than the sphere containing its belts.
-    return extent * 1.55 * Math.max(1, 0.8 / this.camera.aspect);
+    return extent * 1.38 * Math.max(1, 0.8 / this.camera.aspect);
   }
   private focusDistance(planet: PlanetRecipe) {
     const ringRadius =
@@ -414,11 +512,16 @@ export class SolarSystemScene {
     const portrait = width <= 720 && !short;
     const availableHeight = Math.max(
       100,
-      height - (portrait ? 420 : short ? 235 : 200),
+      height - (portrait ? 430 : short ? 110 : 200),
     );
     const availableWidth = Math.max(
       120,
-      width - (portrait ? 48 : short ? 330 : 350),
+      width -
+        (portrait
+          ? 48
+          : short
+            ? Math.min(420, width * 0.52)
+            : Math.min(560, width * 0.44)),
     );
     const vertical = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
     const apparentRadius = planet.rings ? ringRadius : planet.radius * 1.12;
@@ -462,6 +565,8 @@ export class SolarSystemScene {
         0,
         Math.sin(angle) * body.recipe.orbit,
       );
+      const orbitMaterial = this.orbitMaterials[index];
+      if (orbitMaterial) orbitMaterial.uniforms.planetAngle.value = angle;
       if (advance) {
         body.surface.rotation.y +=
           dt * (body.recipe.terrain === 'gas' ? 0.028 : 0.045);
@@ -487,88 +592,108 @@ export class SolarSystemScene {
     if (this.phase === 'entering') {
       this.transitionTime += elapsed;
       if (reduceMotion) {
+        this.galaxyVeil = 1;
         if (this.current) {
           this.target.copy(this.origin);
           if (!this.handedOff) this.toLocalUnits();
           this.moveCamera(dt, true);
           this.dust.visible = false;
-          this.report('system');
+          this.arrive();
         }
       } else if (!this.handedOff) {
-        const progress = 1 - Math.exp(-this.transitionTime * 1.45);
-        this.transitionEnd
-          .set(
-            Math.sin(this.yaw) * Math.cos(this.pitch),
-            Math.sin(this.pitch),
-            Math.cos(this.yaw) * Math.cos(this.pitch),
-          )
-          .multiplyScalar(this.distance * GALAXY_UNIT)
-          .add(this.origin);
-        // The asymptotic approach keeps moving on genuinely cold preparation;
-        // a small decaying curve adds parallax without a discontinuous camera cut.
-        this.transitionEnd.x +=
-          Math.sin(this.transitionTime * 0.45) *
-          Math.exp(-this.transitionTime * 0.3) *
-          GALAXY_UNIT *
-          this.distance *
-          0.08;
-        this.camera.position.lerpVectors(
-          this.transitionFrom,
-          this.transitionEnd,
-          progress,
+        const progress = Math.min(
+          1,
+          this.transitionTime / this.transitionDuration,
         );
+        const eased = smooth(progress);
+        this.flightFrame(eased, this.distance * GALAXY_UNIT);
+        // A system switch pulls back into the galaxy mid-hop before diving again.
+        if (this.switching)
+          this.camera.position
+            .sub(this.origin)
+            .multiplyScalar(1 + Math.sin(eased * Math.PI) * 5)
+            .add(this.origin);
+        this.skirtCore(eased);
         this.camera.lookAt(this.origin);
         this.lookQuaternion.copy(this.camera.quaternion);
-        const turn = Math.min(1, this.transitionTime / 2);
+        const turn = Math.min(1, progress / 0.45);
         this.camera.quaternion.slerpQuaternions(
           this.transitionQuaternion,
           this.lookQuaternion,
           turn * turn * (3 - 2 * turn),
         );
         this.target.copy(this.origin);
-        this.dust.material.uniforms.opacity.value = Math.min(
-          0.92,
-          this.transitionTime * 0.48,
-        );
-        if (this.current && this.transitionTime >= 2.4) {
+        this.galaxyVeil = THREE.MathUtils.smoothstep(progress, 0, 0.4);
+        this.galaxyFade = THREE.MathUtils.smoothstep(progress, 0.72, 0.99);
+        // Dust gathers only in the last stretch, as the camera enters the arm.
+        this.dust.material.uniforms.opacity.value =
+          0.55 * THREE.MathUtils.smoothstep(progress, 0.55, 0.97);
+        if (this.current && progress >= 1) {
           this.toLocalUnits();
           this.arrivalTime = 0;
+          this.launchShip();
         }
       } else {
         this.arrivalTime += elapsed;
         this.moveCamera(elapsed, false);
-        this.dust.material.uniforms.opacity.value =
-          0.92 * Math.max(0, 1 - this.arrivalTime / 1.05);
-        if (this.arrivalTime >= 1.05) {
+        const clear = Math.min(1, this.arrivalTime / 0.9);
+        this.dust.material.uniforms.opacity.value = 0.55 * (1 - smooth(clear));
+        this.skyLevel = smooth(clear);
+        if (clear >= 1) {
           this.dust.visible = false;
-          this.report('system');
+          this.arrive();
         }
       }
     } else if (this.phase === 'leaving') {
       this.transitionTime += elapsed;
       const progress = reduceMotion
         ? 1
-        : Math.min(1, this.transitionTime / 1.5);
-      const ease = progress * progress * (3 - 2 * progress);
+        : Math.min(1, this.transitionTime / LEAVE_SECONDS);
+      const eased = smooth(progress);
       if (this.saved) {
-        this.camera.position.lerpVectors(
-          this.transitionFrom,
-          this.saved.position,
-          ease,
-        );
+        // Retrace the log-distance dive back to the preserved galaxy view.
+        this.toDirection.subVectors(this.saved.position, this.origin);
+        const outDistance = Math.max(1e-6, this.toDirection.length());
+        this.toDirection.divideScalar(outDistance);
+        this.scratchDirection
+          .copy(this.fromDirection)
+          .lerp(this.toDirection, eased)
+          .normalize();
+        this.camera.position
+          .copy(this.scratchDirection)
+          .multiplyScalar(
+            Math.exp(
+              THREE.MathUtils.lerp(
+                Math.log(this.fromDistance),
+                Math.log(outDistance),
+                eased,
+              ),
+            ),
+          )
+          .add(this.origin);
+        this.skirtCore(eased);
         this.camera.quaternion.slerpQuaternions(
           this.transitionQuaternion,
           this.saved.quaternion,
-          ease,
+          eased,
         );
       }
+      this.galaxyVeil = 1 - THREE.MathUtils.smoothstep(progress, 0.35, 0.9);
+      this.galaxyFade = 1 - THREE.MathUtils.smoothstep(progress, 0.02, 0.3);
       this.dust.material.uniforms.opacity.value =
-        Math.sin(progress * Math.PI) * 0.65;
+        (1 - THREE.MathUtils.smoothstep(progress, 0.05, 0.45)) * 0.7;
       if (progress === 1) {
         this.restoreGalaxy();
+        this.galaxyVeil = this.galaxyFade = 0;
         this.report('galaxy');
       }
     } else this.moveCamera(dt, reduceMotion);
+    if (this.current && this.handedOff) {
+      if (this.phase !== 'entering') this.skyLevel = 1;
+      this.current.setSkyOpacity(this.skyLevel);
+    }
+    if (this.handedOff && this.phase !== 'leaving')
+      this.updateShip(dt, reduceMotion, advance);
     if (this.dust.visible) {
       this.group.updateMatrixWorld(true);
       this.dust.material.uniforms.eye.value.copy(this.camera.position);
@@ -576,6 +701,98 @@ export class SolarSystemScene {
       this.dust.material.uniforms.time.value = this.transitionTime;
     }
     this.updateLabels();
+    this.drawScope(dt, advance);
+  }
+
+  /** Position the camera on the log-distance path toward the destination star. */
+  private flightFrame(eased: number, endDistance: number) {
+    this.toDirection
+      .set(
+        Math.sin(this.yaw) * Math.cos(this.pitch),
+        Math.sin(this.pitch),
+        Math.cos(this.yaw) * Math.cos(this.pitch),
+      )
+      .normalize();
+    this.scratchDirection
+      .copy(this.fromDirection)
+      .lerp(this.toDirection, smooth(Math.min(1, eased * 1.15)))
+      .normalize();
+    const distance = Math.exp(
+      THREE.MathUtils.lerp(
+        Math.log(this.fromDistance),
+        Math.log(endDistance),
+        eased,
+      ),
+    );
+    this.camera.position
+      .copy(this.scratchDirection)
+      .multiplyScalar(distance)
+      .add(this.origin);
+  }
+
+  /**
+   * Flights between a far-side star and the galaxy view would pass straight
+   * through the blazing core. Bend the path around it; the weight vanishes at
+   * both ends, so departure and arrival poses are exact.
+   */
+  private skirtCore(eased: number) {
+    const keep = 10;
+    this.scratchDirection.subVectors(this.camera.position, this.galaxyCenter);
+    const distance = this.scratchDirection.length();
+    if (distance >= keep) return;
+    if (distance < 1e-4) this.scratchDirection.set(0, 1, 0);
+    else this.scratchDirection.divideScalar(distance);
+    const clear = keep * (0.8 + 0.2 * (distance / keep) ** 2);
+    const reach =
+      distance + (clear - distance) * Math.sin(Math.PI * Math.min(1, eased));
+    this.camera.position
+      .copy(this.scratchDirection)
+      .multiplyScalar(reach)
+      .add(this.galaxyCenter);
+  }
+
+  private arrive() {
+    this.skyLevel = 1;
+    this.galaxyVeil = 1;
+    if (!this.ship.root.visible) this.launchShip();
+    this.report('system');
+  }
+
+  /** The scout arrives with the camera, then settles beside the star. */
+  private launchShip() {
+    if (!this.system) return;
+    this.ship.root.visible = true;
+    this.shipPark = null;
+    this.scratchDirection.copy(this.camera.position).multiplyScalar(0.55);
+    this.ship.place(this.scratchDirection);
+  }
+
+  private updateShip(dt: number, reduceMotion: boolean, animate: boolean) {
+    if (!this.system || !this.ship.root.visible) return;
+    const focus = this.hovered ?? this.selected;
+    if (focus !== null) this.shipPark = focus;
+    const parked = this.shipPark === null ? null : this.bodies[this.shipPark];
+    const cameraDistance = this.camera.position.distanceTo(
+      this.ship.root.position,
+    );
+    const size = THREE.MathUtils.clamp(cameraDistance * 0.016, 0.26, 3);
+    let beam = 0;
+    if (parked) {
+      const radius = parked.recipe.radius;
+      const lift = radius * (this.selected === null ? 1.28 : 1.14) + size * 1.2;
+      this.shipTarget.copy(parked.root.position);
+      this.shipTarget.y += lift;
+      if (focus !== null) beam = lift - radius - size * 0.1;
+    } else {
+      // Park beside the star on the camera's right, never across its disc.
+      const star = this.system.star.radius;
+      this.shipTarget.set(
+        Math.cos(this.yaw) * star * 3.2 + Math.sin(this.yaw) * star * 1.4,
+        star * 1.5,
+        -Math.sin(this.yaw) * star * 3.2 + Math.cos(this.yaw) * star * 1.4,
+      );
+    }
+    this.ship.update(dt, this.shipTarget, beam, size, reduceMotion, animate);
   }
 
   private moveCamera(dt: number, reduceMotion: boolean) {
@@ -590,12 +807,13 @@ export class SolarSystemScene {
       const halfHeight =
         this.distance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
       // Shift in camera-plane coordinates, so framing survives dragging around a world.
-      const horizontal = portrait ? 0 : short ? 0.22 : -0.2;
+      // Frame the world left of center; its comms casing docks on the right.
+      const horizontal = portrait ? 0 : short ? 0.26 : 0.24;
       const vertical = portrait
         ? -Math.min(0.62, 288 / this.canvas.clientHeight)
         : short
           ? -0.28
-          : -0.12;
+          : -0.02;
       this.desiredTarget.x +=
         Math.cos(this.yaw) * horizontal * halfHeight * this.camera.aspect;
       this.desiredTarget.z -=
@@ -639,23 +857,26 @@ export class SolarSystemScene {
     this.canvasTop = rect.top;
     this.safeTop = 8;
     this.safeBottom = rect.height - 8;
-    const heading = this.host.querySelector<HTMLElement>('.solar-heading');
+    const heading = this.host.querySelector<HTMLElement>('.solar-nameplate');
     const console = this.host.querySelector<HTMLElement>('.solar-console');
-    if (heading) {
-      this.safeTop = Math.max(
-        8,
-        heading.getBoundingClientRect().bottom - rect.top + 8,
-      );
+    const headingBounds = heading?.getBoundingClientRect();
+    if (
+      heading &&
+      headingBounds &&
+      headingBounds.top < rect.top + rect.height / 2
+    ) {
+      this.safeTop = Math.max(8, headingBounds.bottom - rect.top + 8);
       this.resizeObserver.observe(heading);
     }
     if (console) {
-      this.safeBottom = Math.min(
-        this.safeBottom,
-        console.getBoundingClientRect().top - rect.top - 8,
-      );
+      // The console docks at the bottom; measure it wherever it sits.
+      const tray = console.getBoundingClientRect();
+      if (tray.top < rect.top + rect.height / 2)
+        this.safeTop = Math.max(this.safeTop, tray.bottom - rect.top + 8);
+      else this.safeBottom = Math.min(this.safeBottom, tray.top - rect.top - 8);
       this.resizeObserver.observe(console);
     }
-    const inspector = this.host.querySelector<HTMLElement>('.solar-inspector');
+    const inspector = this.host.querySelector<HTMLElement>('.solar-comms');
     this.inspectorBounds = inspector?.getBoundingClientRect() ?? null;
     if (inspector) this.resizeObserver.observe(inspector);
     if (this.preview) {
@@ -689,6 +910,9 @@ export class SolarSystemScene {
           `[data-planet-label="${body.recipe.id}"]`,
         ),
       );
+      this.scope = this.host.querySelector<HTMLCanvasElement>(
+        'canvas[data-solar-scope]',
+      );
       this.preview = this.host.querySelector<HTMLElement>(
         '[data-solar-preview]',
       );
@@ -717,7 +941,7 @@ export class SolarSystemScene {
           x > 45 &&
           x < width - 45 &&
           y > 90 &&
-          y < height - (width < 720 ? 155 : 112);
+          y < height - (width < 720 ? 200 : 170);
         label.style.visibility = visible ? 'visible' : 'hidden';
         label.style.transform = `translate(${x}px, ${y}px)`;
         label.dataset.selected = String(this.selected === index);
@@ -850,7 +1074,11 @@ export class SolarSystemScene {
     if (other) {
       const before = Math.hypot(previous.x - other.x, previous.y - other.y),
         after = Math.hypot(event.clientX - other.x, event.clientY - other.y);
-      if (after > 0) this.zoom(before / after);
+      if (after > 0) {
+        if (before > after && this.atWidest())
+          this.pushOut((before - after) * 3);
+        else this.zoom(before / after);
+      }
       this.dragged = Infinity;
     } else {
       this.yaw -= dx * 0.006;
@@ -874,8 +1102,31 @@ export class SolarSystemScene {
     this.canvas.style.cursor = 'grab';
   }
 
+  /** Zooming out past the widest overview leaves for the galaxy, as in Spore. */
+  private pushOut(amount: number) {
+    const now = performance.now();
+    if (now - this.overscrollAt > 450) this.overscroll = 0;
+    this.overscrollAt = now;
+    this.overscroll += amount;
+    if (this.overscroll < 260) return;
+    this.overscroll = 0;
+    this.onExitRequest?.();
+  }
+
+  private atWidest() {
+    return (
+      this.selected === null &&
+      this.distance >= this.overviewDistance() * 1.85 * 0.995
+    );
+  }
+
   wheel(delta: number) {
     if (this.navigating) return;
+    if (delta > 0 && this.atWidest()) {
+      this.pushOut(Math.min(delta, 120));
+      return;
+    }
+    if (delta < 0) this.overscroll = 0;
     if (
       delta > 0 &&
       this.selected !== null &&
@@ -928,6 +1179,152 @@ export class SolarSystemScene {
     return closest;
   }
 
+  /** Radar distance: square-root radial scale keeps inner worlds apart. */
+  private scopeRadius(distance: number, radius: number) {
+    const extent = this.system?.extent ?? 40;
+    return Math.sqrt(Math.min(1, distance / extent)) * radius * 0.9;
+  }
+
+  /** Radar coordinates: the view's forward direction is always up. */
+  private scopePoint(x: number, z: number, radius: number) {
+    const distance = Math.hypot(x, z) || 1;
+    const k = this.scopeRadius(distance, radius) / distance;
+    const sin = Math.sin(this.yaw),
+      cos = Math.cos(this.yaw);
+    return {
+      x: radius + (x * cos - z * sin) * k,
+      y: radius + (x * sin + z * cos) * k,
+    };
+  }
+
+  /** A live top-down scope of the system, drawn into the HUD's radar canvas. */
+  private drawScope(dt: number, animate: boolean) {
+    const canvas = this.scope;
+    if (!canvas || !this.system || !canvas.isConnected) return;
+    const g = canvas.getContext('2d');
+    if (!g) return;
+    const size = canvas.width;
+    const r = size / 2;
+    const px = size / Math.max(1, canvas.clientWidth);
+    g.clearRect(0, 0, size, size);
+    g.save();
+    g.beginPath();
+    g.arc(r, r, r - px, 0, Math.PI * 2);
+    g.clip();
+    if (animate) this.scopeSweep = (this.scopeSweep + dt * 1.1) % (Math.PI * 2);
+    const sweep = g.createConicGradient(this.scopeSweep - Math.PI / 2, r, r);
+    sweep.addColorStop(0, 'rgba(120,255,190,0.22)');
+    sweep.addColorStop(0.1, 'rgba(120,255,190,0)');
+    sweep.addColorStop(1, 'rgba(120,255,190,0)');
+    g.fillStyle = sweep;
+    g.fillRect(0, 0, size, size);
+    g.lineWidth = px;
+    for (const body of this.bodies) {
+      g.beginPath();
+      g.arc(r, r, this.scopeRadius(body.recipe.orbit, r), 0, Math.PI * 2);
+      g.strokeStyle = 'rgba(150,215,235,0.2)';
+      g.stroke();
+    }
+    for (const belt of this.system.belts) {
+      g.beginPath();
+      g.arc(
+        r,
+        r,
+        this.scopeRadius((belt.inner + belt.outer) / 2, r),
+        0,
+        Math.PI * 2,
+      );
+      g.setLineDash([px * 1.5, px * 2.5]);
+      g.strokeStyle = 'rgba(210,190,160,0.28)';
+      g.stroke();
+      g.setLineDash([]);
+    }
+    const star = g.createRadialGradient(r, r, 0, r, r, r * 0.12);
+    star.addColorStop(0, '#fffbe8');
+    star.addColorStop(0.4, this.system.star.color);
+    star.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = star;
+    g.fillRect(r * 0.85, r * 0.85, r * 0.3, r * 0.3);
+    this.bodies.forEach((body, index) => {
+      const p = this.scopePoint(body.root.position.x, body.root.position.z, r);
+      const dot = Math.max(
+        2.4 * px,
+        Math.min(6 * px, body.recipe.radius * 2.2 * px),
+      );
+      const focused = index === this.hovered || index === this.selected;
+      if (focused) {
+        g.beginPath();
+        g.arc(p.x, p.y, dot + 4 * px, 0, Math.PI * 2);
+        g.strokeStyle = index === this.selected ? '#ffe16a' : '#b7f58e';
+        g.lineWidth = 1.5 * px;
+        g.stroke();
+        g.lineWidth = px;
+      }
+      g.beginPath();
+      g.arc(p.x, p.y, dot, 0, Math.PI * 2);
+      g.fillStyle = body.recipe.atmosphere;
+      g.fill();
+    });
+    if (this.ship.root.visible) {
+      const p = this.scopePoint(
+        this.ship.root.position.x,
+        this.ship.root.position.z,
+        r,
+      );
+      // The blip points along the ship's course, eased so it turns, not snaps.
+      const v = this.ship.velocity;
+      const speed = Math.hypot(v.x, v.z);
+      if (speed > this.ship.size * 0.4) {
+        const sin = Math.sin(this.yaw),
+          cos = Math.cos(this.yaw);
+        const course = Math.atan2(
+          v.x * cos - v.z * sin,
+          -(v.x * sin + v.z * cos),
+        );
+        const turn = Math.atan2(
+          Math.sin(course - this.shipHeading),
+          Math.cos(course - this.shipHeading),
+        );
+        this.shipHeading += turn * Math.min(1, dt * 10);
+      }
+      g.save();
+      g.translate(p.x, p.y);
+      g.rotate(this.shipHeading);
+      g.fillStyle = '#e9fbff';
+      g.beginPath();
+      g.moveTo(0, -4.5 * px);
+      g.lineTo(3.5 * px, 3.5 * px);
+      g.lineTo(0, 1.8 * px);
+      g.lineTo(-3.5 * px, 3.5 * px);
+      g.closePath();
+      g.fill();
+      g.restore();
+    }
+    g.restore();
+  }
+
+  /** The world under a point on the radar, if any. */
+  pickScope(clientX: number, clientY: number) {
+    const canvas = this.scope;
+    if (!canvas || !this.active || this.navigating) return null;
+    const rect = canvas.getBoundingClientRect();
+    const r = rect.width / 2;
+    let closest: number | null = null,
+      best = 14;
+    this.bodies.forEach((body, index) => {
+      const p = this.scopePoint(body.root.position.x, body.root.position.z, r);
+      const d = Math.hypot(
+        p.x - (clientX - rect.left),
+        p.y - (clientY - rect.top),
+      );
+      if (d < best) {
+        best = d;
+        closest = index;
+      }
+    });
+    return closest;
+  }
+
   private releasePointers() {
     this.pointer.forEach((_, id) => {
       if (this.canvas.hasPointerCapture(id))
@@ -953,6 +1350,8 @@ export class SolarSystemScene {
     this.system = this.recent = null;
     this.dust.geometry.dispose();
     this.dust.material.dispose();
+    this.ship.dispose();
+    this.shipEnvironment?.dispose();
     this.group.removeFromParent();
     this.group.clear();
   }
