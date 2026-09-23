@@ -62,7 +62,7 @@ agent runtime was retired and its host repurposed as a private CI runner.
 State records the first failure, not every poll, so unchanged runs create no commits.
 Source errors and invalid schemas abort without replacing the last-known-good files.
 Publication has no eighteen-world cap. Galaxy capacity is bounded separately: one
-star per populated family, with six permanent project slots per solar system.
+star per populated family, with eight permanent project slots per solar system.
 Full catalog, stable-address, orbital-clearance, placement and build checks guard growth.
 All discovery happens before deployment, adding no browser requests or polling.
 

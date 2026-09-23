@@ -1,10 +1,7 @@
 'use client';
 
-/* oxlint-disable next/no-img-element -- Keep the local SVG unmodified in Vinext. */
-
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { CommsPresence } from './comms-presence';
-import { DockHousing } from './dock-housing';
 import { DockHover, DockSpin } from '@/lib/dock-spin';
 import { UI_MOTION_SPEED, uiDuration } from '@/lib/ui-motion';
 import { syncCommsIdentity } from '@/lib/comms-readiness';
@@ -16,432 +13,58 @@ import {
   GROX_STAR_POSITION,
 } from '@/lib/grox-encounter';
 import * as THREE from 'three';
-import { portraitUrls } from '@/data/portraits';
-import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
-import { worldCatalog } from '@/data/worlds';
-import { webring } from '@/data/webring';
 import { galaxies, galaxyDestinations, type GalaxyId } from '@/data/galaxies';
 import {
   solarSystems,
+  projectOrbits,
   getSolarSystem,
   systemHref,
   parseSystemRoute,
 } from '@/data/solar-systems';
-import { SolarSystemScene, type SolarPhase } from '@/lib/solar-system-scene';
+import { SolarSystemScene, type SolarPhase } from '@/lib/solar/scene';
 import { SolarSystemHud } from './solar-system-hud';
-
-const projectOrbits = solarSystems.flatMap((system) =>
-  system.planets.flatMap((planet, index) =>
-    planet.projectId ? [{ systemId: system.id, index }] : [],
-  ),
-);
-
-const pointsVertexShader = /* glsl */ `
-  uniform float uPixelRatio;
-  uniform float uPointScale;
-  uniform float uOpacity;
-  attribute float aSize;
-  attribute float aAlpha;
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    vColor = color;
-    vAlpha = aAlpha * uOpacity;
-    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-    float perspective = clamp(24.0 / max(1.0, -viewPosition.z), 0.32, 2.5);
-    gl_PointSize = max(1.0, aSize * uPointScale * uPixelRatio * perspective);
-    gl_Position = projectionMatrix * viewPosition;
-  }
-`;
-
-const pointsFragmentShader = /* glsl */ `
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    float distanceToCenter = length(gl_PointCoord - vec2(0.5)) * 2.0;
-    if (distanceToCenter > 1.0) discard;
-    float haze = 1.0 - smoothstep(0.06, 1.0, distanceToCenter);
-    float spark = 1.0 - smoothstep(0.0, 0.22, distanceToCenter);
-    float alpha = (haze * haze * 0.8 + spark * 0.48) * vAlpha;
-    gl_FragColor = vec4(vColor * (0.82 + spark * 1.35), alpha);
-  }
-`;
-
-/** A per-frame ease `rate` at 60fps, scaled to `frames` of 60fps time. */
-function frameEase(rate: number, frames: number) {
-  return 1 - Math.pow(1 - rate, frames);
-}
-
-function seededRandom(seed = 9173) {
-  let value = seed >>> 0;
-  return () => {
-    value += 0x6d2b79f5;
-    let result = value;
-    result = Math.imul(result ^ (result >>> 15), result | 1);
-    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
-    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function gaussian(random: () => number) {
-  const first = Math.max(0.000001, random());
-  const second = Math.max(0.000001, random());
-  return Math.sqrt(-2 * Math.log(first)) * Math.cos(Math.PI * 2 * second);
-}
-
-function createGalaxyGeometry(count: number, arms = 5) {
-  const random = seededRandom();
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const alphas = new Float32Array(count);
-  const inner = new THREE.Color(0xfff5d5);
-  const rose = new THREE.Color(0xffc7f5);
-  const violet = new THREE.Color(0x824cff);
-  const blue = new THREE.Color(0x2247ff);
-  const color = new THREE.Color();
-
-  for (let index = 0; index < count; index += 1) {
-    const normalizedRadius = Math.pow(random(), 0.72);
-    const baseRadius = normalizedRadius * 14.2;
-    const arm = index % arms;
-    const angleNoise = gaussian(random) * (0.065 + normalizedRadius * 0.15);
-    const radiusNoise = gaussian(random) * (0.15 + normalizedRadius * 0.74);
-    const radius = Math.max(0.04, baseRadius + radiusNoise);
-    const angle = (arm / arms) * Math.PI * 2 + radius * 0.49 + angleNoise;
-    const offset = index * 3;
-
-    positions[offset] = Math.cos(angle) * radius;
-    positions[offset + 1] =
-      gaussian(random) * (0.055 + normalizedRadius * 0.22);
-    positions[offset + 2] = Math.sin(angle) * radius;
-
-    if (normalizedRadius < 0.2) {
-      color
-        .copy(inner)
-        .lerp(rose, THREE.MathUtils.smoothstep(normalizedRadius, 0.02, 0.2));
-    } else if (normalizedRadius < 0.63) {
-      color
-        .copy(rose)
-        .lerp(violet, THREE.MathUtils.smoothstep(normalizedRadius, 0.2, 0.63));
-    } else {
-      color
-        .copy(violet)
-        .lerp(blue, THREE.MathUtils.smoothstep(normalizedRadius, 0.63, 1));
-    }
-
-    const warmth = random();
-    if (warmth > 0.965) color.lerp(inner, 0.62);
-    colors[offset] = color.r;
-    colors[offset + 1] = color.g;
-    colors[offset + 2] = color.b;
-
-    const isCloud = random() < 0.69;
-    sizes[index] = isCloud
-      ? 8 + random() * (13 + normalizedRadius * 7)
-      : 1.3 + random() * 3.1;
-    alphas[index] = isCloud ? 0.045 + random() * 0.075 : 0.45 + random() * 0.5;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
-  geometry.computeBoundingSphere();
-  return geometry;
-}
-
-function createBackdropGeometry(count: number) {
-  const random = seededRandom(5118);
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const alphas = new Float32Array(count);
-  const palette = [
-    new THREE.Color(0xffffff),
-    new THREE.Color(0x88dfff),
-    new THREE.Color(0xff9cdc),
-    new THREE.Color(0xffdd7a),
-    new THREE.Color(0xa68cff),
-  ];
-
-  for (let index = 0; index < count; index += 1) {
-    const offset = index * 3;
-    const radius = 23 + random() * 34;
-    const theta = random() * Math.PI * 2;
-    const phi = Math.acos(2 * random() - 1);
-    positions[offset] = radius * Math.sin(phi) * Math.cos(theta);
-    positions[offset + 1] = radius * Math.cos(phi);
-    positions[offset + 2] = radius * Math.sin(phi) * Math.sin(theta);
-    const color = palette[Math.floor(random() * palette.length)];
-    colors[offset] = color.r;
-    colors[offset + 1] = color.g;
-    colors[offset + 2] = color.b;
-    sizes[index] = 2 + Math.pow(random(), 4) * 9.5;
-    alphas[index] = 0.55 + random() * 0.45;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
-  geometry.computeBoundingSphere();
-  return geometry;
-}
-
-function createGlowTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
-
-  const glow = context.createRadialGradient(128, 128, 0, 128, 128, 128);
-  glow.addColorStop(0, 'rgba(255, 255, 244, 1)');
-  glow.addColorStop(0.09, 'rgba(255, 247, 197, .98)');
-  glow.addColorStop(0.22, 'rgba(255, 207, 160, .76)');
-  glow.addColorStop(0.46, 'rgba(245, 145, 245, .25)');
-  glow.addColorStop(0.72, 'rgba(103, 81, 255, .08)');
-  glow.addColorStop(1, 'rgba(27, 21, 92, 0)');
-  context.fillStyle = glow;
-  context.fillRect(0, 0, 256, 256);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function createDistantGalaxyGeometry(count: number, seed: number) {
-  const random = seededRandom(seed);
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const alphas = new Float32Array(count);
-  const core = new THREE.Color(0xffedcf);
-  const rose = new THREE.Color(0xe4a9ff);
-  const violet = new THREE.Color(0x706cff);
-  const color = new THREE.Color();
-  const arms = 3;
-
-  for (let index = 0; index < count; index += 1) {
-    const normalizedRadius = Math.pow(random(), 0.64);
-    const arm = index % arms;
-    const radius = Math.max(
-      0.015,
-      normalizedRadius + gaussian(random) * (0.025 + normalizedRadius * 0.07),
-    );
-    const angle =
-      (arm / arms) * Math.PI * 2 +
-      radius * Math.PI * 2.35 +
-      gaussian(random) * (0.045 + normalizedRadius * 0.12);
-    const offset = index * 3;
-
-    positions[offset] = Math.cos(angle) * radius;
-    positions[offset + 1] = Math.sin(angle) * radius;
-    positions[offset + 2] = gaussian(random) * 0.035;
-
-    color
-      .copy(core)
-      .lerp(
-        normalizedRadius < 0.38 ? rose : violet,
-        normalizedRadius < 0.38
-          ? THREE.MathUtils.smoothstep(normalizedRadius, 0.04, 0.38)
-          : THREE.MathUtils.smoothstep(normalizedRadius, 0.38, 1),
-      );
-    colors[offset] = color.r;
-    colors[offset + 1] = color.g;
-    colors[offset + 2] = color.b;
-    sizes[index] =
-      normalizedRadius < 0.14
-        ? 4.4 + random() * 4.8
-        : 1.2 + random() * (random() > 0.88 ? 4.6 : 2.1);
-    alphas[index] =
-      normalizedRadius < 0.18 ? 0.58 + random() * 0.38 : 0.25 + random() * 0.52;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
-  geometry.computeBoundingSphere();
-  return geometry;
-}
-
-function createMarkerTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
-
-  context.translate(128, 128);
-  const aura = context.createRadialGradient(0, 0, 1, 0, 0, 108);
-  aura.addColorStop(0, 'rgba(255,255,255,1)');
-  aura.addColorStop(0.025, 'rgba(255,247,193,1)');
-  aura.addColorStop(0.075, 'rgba(255,235,196,.42)');
-  aura.addColorStop(0.2, 'rgba(255,210,131,.08)');
-  aura.addColorStop(0.34, 'rgba(255,255,255,0)');
-  aura.addColorStop(1, 'rgba(255,255,255,0)');
-  context.fillStyle = aura;
-  context.fillRect(-128, -128, 256, 256);
-
-  const lens = context.createRadialGradient(-8, -10, 2, 0, 0, 39);
-  lens.addColorStop(0, 'rgba(6,12,25,.98)');
-  lens.addColorStop(0.7, 'rgba(5,9,19,.97)');
-  lens.addColorStop(1, 'rgba(9,14,30,.88)');
-  context.fillStyle = lens;
-  context.beginPath();
-  context.arc(0, 0, 38, 0, Math.PI * 2);
-  context.fill();
-
-  context.strokeStyle = 'rgba(238, 246, 255, .98)';
-  context.lineWidth = 4.6;
-  [43, 61].forEach((radius, index) => {
-    context.globalAlpha = 1 - index * 0.2;
-    context.beginPath();
-    context.arc(0, 0, radius, 0, Math.PI * 2);
-    context.stroke();
-  });
-
-  context.globalAlpha = 1;
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-const starDiffractionPath =
-  'M0 -29C2 -10 3 -4 6 -3Q12 -1 24 0Q12 1 6 3C3 4 2 10 0 29C-2 10 -3 4 -6 3Q-12 1 -24 0Q-12 -1 -6 -3C-3 -4 -2 -10 0 -29Z';
-
-function createStarlightTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 256;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
-  context.translate(128, 128);
-  // Separate the star's light from its neutral lens so its color and
-  // luminosity can vary without tinting the clear window or its rim.
-  const starlight = context.createRadialGradient(0, 0, 0, 0, 0, 22);
-  starlight.addColorStop(0, 'rgba(255,255,255,1)');
-  starlight.addColorStop(0.12, 'rgba(255,255,255,.98)');
-  starlight.addColorStop(0.3, 'rgba(255,255,255,.55)');
-  starlight.addColorStop(0.65, 'rgba(255,255,255,.13)');
-  starlight.addColorStop(1, 'rgba(255,255,255,0)');
-  context.fillStyle = starlight;
-  context.fillRect(-35, -35, 70, 70);
-
-  // Diffraction spikes taper into the glow instead of reading as equally
-  // weighted asterisk strokes. The vertical pair is a little longer.
-  const diffraction = context.createRadialGradient(0, 0, 2, 0, 0, 29);
-  diffraction.addColorStop(0, 'rgba(255,255,255,1)');
-  diffraction.addColorStop(0.32, 'rgba(255,255,255,.95)');
-  diffraction.addColorStop(0.72, 'rgba(255,255,255,.5)');
-  diffraction.addColorStop(1, 'rgba(255,255,255,0)');
-  context.fillStyle = diffraction;
-  context.shadowColor = 'rgba(255,255,255,.45)';
-  context.shadowBlur = 2;
-  context.fill(new Path2D(starDiffractionPath));
-  context.shadowBlur = 0;
-  context.fillStyle = 'white';
-  context.beginPath();
-  context.arc(0, 0, 5.5, 0, Math.PI * 2);
-  context.fill();
-  context.globalAlpha = 1;
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function createSignalWaveTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
-
-  context.translate(128, 128);
-  context.strokeStyle = 'rgba(237, 234, 255, .96)';
-  context.shadowColor = 'rgba(213, 201, 255, .92)';
-  context.shadowBlur = 10;
-  context.lineWidth = 4;
-  context.beginPath();
-  context.arc(0, 0, 94, 0, Math.PI * 2);
-  context.stroke();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function createPointsMaterial(pixelRatio: number, opacity = 1, pointScale = 1) {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uPixelRatio: { value: pixelRatio },
-      uPointScale: { value: pointScale },
-      uOpacity: { value: opacity },
-    },
-    vertexShader: pointsVertexShader,
-    fragmentShader: pointsFragmentShader,
-    vertexColors: true,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
-  });
-}
-
-type MenuIconName = 'random' | 'about' | 'github';
-
-function MenuIcon({ name }: { name: MenuIconName }) {
-  if (name === 'random') {
-    return (
-      <svg
-        className="menu-icon menu-icon-random"
-        data-icon="soft-organic-star"
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-      >
-        <path d="M12 2.8c2.2 0 3.1 3.1 3.8 5.2 2.1-.8 5.2-1.2 5.9.9.7 2.1-2 3.8-3.8 5.2 1.5 1.7 3.2 4.4 1.4 5.8-1.8 1.3-4.2-.8-6.1-2-1.2 1.9-3.1 4.5-5 3.3-1.9-1.2-.4-4.2.3-6.3-2.2-.5-5.4-1.4-5.2-3.6.2-2.2 3.5-2.5 5.7-2.5.2-2.3.7-6 3-6Z" />
-      </svg>
-    );
-  }
-
-  if (name === 'about') {
-    return (
-      <svg
-        className="menu-icon menu-icon-about"
-        data-icon="little-creature"
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-      >
-        <path d="M4 13.5c0-5 3.2-9 8-9s8 4 8 9c0 4.4-3.3 6.5-8 6.5s-8-2.1-8-6.5Z" />
-        <circle cx="9" cy="11" r="1.6" />
-        <circle cx="15" cy="11" r="1.6" />
-        <path d="M9 16c2 1.2 4 1.2 6 0M6.2 7 4.6 4.4M17.8 7l1.6-2.6" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      className="menu-icon menu-icon-github"
-      data-icon="github"
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-    >
-      <path d="M12 .9a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.16c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.54 0-1.22.44-2.22 1.16-3-.12-.29-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15A10.7 10.7 0 0 1 12 6.31c.95 0 1.9.13 2.8.38 2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.97.72.78 1.16 1.78 1.16 3 0 4.31-2.64 5.25-5.15 5.53.4.35.76 1.03.76 2.08v3.07c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .9Z" />
-    </svg>
-  );
-}
+import {
+  createGalaxyLayer,
+  disposeGalaxyLayer,
+  GALAXY_TILT,
+  MIST_TWIST,
+} from '@/lib/galaxy/galaxy-layer';
+import { PortraitBurst } from '@/lib/galaxy/portrait-burst';
+import {
+  detailBounds,
+  previewPosition as placePreview,
+  previewRoom,
+} from '@/lib/galaxy/card-layout';
+import { GalaxyCanopy } from './galaxy-canopy';
+import { GalaxyDock } from './galaxy-dock';
+import { WebringPortal } from './webring-portal';
+import { WorldCatalog } from './world-catalog';
+import { frameEase } from '@/lib/galaxy/math';
+import {
+  createBackdropGeometry,
+  createDistantGalaxyGeometry,
+} from '@/lib/galaxy/geometry';
+import { createPointsMaterial } from '@/lib/galaxy/points-material';
+import {
+  createGlowTexture,
+  createMarkerTexture,
+  createSignalWaveTexture,
+  createStarlightTexture,
+} from '@/lib/galaxy/textures';
 
 function randomIndex(itemCount: number) {
   return Math.floor(Math.random() * itemCount);
+}
+
+/** Camera distances for the resting galaxy and an open world's close-up. */
+const cameraDistances = (compact: boolean) =>
+  compact ? { rest: 25.5, open: 21.8 } : { rest: 20.5, open: 17.25 };
+
+/** Leave a system for the galaxy view, and say so in the address. */
+function returnToGalaxy(solar: SolarSystemScene | null) {
+  solar?.exit();
+  if (window.location.hash !== '#galaxy')
+    window.history.pushState(null, '', '#galaxy');
 }
 
 export function GalaxyIndex({
@@ -473,7 +96,6 @@ export function GalaxyIndex({
     ) => void
   >(() => undefined);
   const [graphicsUnavailable, setGraphicsUnavailable] = useState(false);
-  const CatalogContainer = graphicsUnavailable ? 'div' : 'noscript';
   const [solarPhase, setSolarPhase] = useState<SolarPhase>('galaxy');
   const [solarSelected, setSolarSelected] = useState<number | null>(null);
   const [solarHovered, setSolarHovered] = useState<number | null>(null);
@@ -482,11 +104,7 @@ export function GalaxyIndex({
   const solarActive = solarPhase !== 'galaxy';
   const solarNavigating = solarPhase === 'entering' || solarPhase === 'leaving';
 
-  const leaveSolar = () => {
-    solarRef.current?.exit();
-    if (window.location.hash !== '#galaxy')
-      window.history.pushState(null, '', '#galaxy');
-  };
+  const leaveSolar = () => returnToGalaxy(solarRef.current);
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
   const ringPortalRef = useRef<HTMLButtonElement>(null);
@@ -520,7 +138,6 @@ export function GalaxyIndex({
     number | null
   >(null);
   const [expanded, setExpanded] = useState(false);
-  const [dockTransmission, setDockTransmission] = useState(0);
   const currentWorlds = galaxies[galaxyId].worlds;
   const active = currentWorlds[activeIndex] ?? currentWorlds[0];
   const preview = currentWorlds[previewIndex] ?? currentWorlds[0];
@@ -531,8 +148,6 @@ export function GalaxyIndex({
       : null;
   const floatingPreview =
     floatingPreviewIndex === null ? null : currentWorlds[floatingPreviewIndex];
-  const dailyQuote = getQuoteOfTheDay();
-  const portalPressRef = useRef({ x: 0, y: 0, moved: false });
 
   useEffect(() => {
     if (travelling || !hasTravelledRef.current) return;
@@ -678,10 +293,10 @@ export function GalaxyIndex({
   }, []);
 
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    const stageElement = stageRef.current;
+    if (!stageElement) return;
+    const stage: HTMLDivElement = stageElement;
     const sceneShell = stage.parentElement!;
-    const portraitBurstTarget = stage;
 
     let renderer: THREE.WebGLRenderer;
     let fallbackFrame: number;
@@ -723,8 +338,8 @@ export function GalaxyIndex({
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
     const cameraLookTarget = new THREE.Vector3(0.7, 0, 0);
-    let defaultCameraDistance = isCompact ? 25.5 : 20.5;
-    let expandedCameraDistance = isCompact ? 21.8 : 17.25;
+    let { rest: defaultCameraDistance, open: expandedCameraDistance } =
+      cameraDistances(isCompact);
     let cameraDistance = defaultCameraDistance;
     camera.position.set(-0.45, cameraDistance * 0.37, cameraDistance * 0.93);
     camera.lookAt(0.7, 0, 0);
@@ -780,177 +395,24 @@ export function GalaxyIndex({
     const starlightTexture = createStarlightTexture();
     const signalWaveTexture = createSignalWaveTexture();
 
+    const galaxyTextures = {
+      glow: glowTexture,
+      marker: markerTexture,
+      starlight: starlightTexture,
+      signalWave: signalWaveTexture,
+    };
     // Both galaxies use the same scene and interaction architecture. Travel
     // moves these real groups continuously between foreground and distance.
-    function buildGalaxy(definition: (typeof galaxies)[GalaxyId]) {
-      const galaxy = new THREE.Group();
-      galaxy.rotation.x = -0.08;
-      galaxy.rotation.y = 0.16;
-      galaxy.position.y = 1.35;
-      galaxy.scale.setScalar(1.08);
-      scene.add(galaxy);
-
-      const galaxyGeometry = createGalaxyGeometry(
-        definition.id === 'home' ? starCount : Math.round(starCount * 0.7),
-        definition.arms,
-      );
-      const galaxyMaterial = createPointsMaterial(pixelRatio);
-      const galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
-      galaxyPoints.renderOrder = 1;
-      galaxy.add(galaxyPoints);
-
-      // A second pass over the same compact buffer turns the points into the
-      // broad, smoky ribbons that made the original menu read from across a room.
-      const galaxyMistMaterial = createPointsMaterial(pixelRatio, 0.32, 2.45);
-      galaxyMistMaterial.depthTest = false;
-      const galaxyMist = new THREE.Points(galaxyGeometry, galaxyMistMaterial);
-      galaxyMist.scale.set(1.012, 1, 1.012);
-      galaxyMist.rotation.y = 0.018;
-      galaxyMist.renderOrder = 0;
-      galaxy.add(galaxyMist);
-
-      const glowMaterial = new THREE.SpriteMaterial({
-        map: glowTexture,
-        color: 0xffffff,
-        transparent: true,
-        opacity: coreExposureRef.current,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        depthTest: false,
+    const buildGalaxy = (definition: (typeof galaxies)[GalaxyId]) => {
+      const layer = createGalaxyLayer(definition, {
+        starCount,
+        pixelRatio,
+        coreExposure: coreExposureRef.current,
+        textures: galaxyTextures,
       });
-      const glow = new THREE.Sprite(glowMaterial);
-      glow.scale.set(17.5, 8.2, 1);
-      glow.position.y = 0.22;
-      glow.renderOrder = 3;
-      galaxy.add(glow);
-
-      const softGlow = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: glowTexture,
-          color: 0x7d5dff,
-          transparent: true,
-          opacity: 0.3 * coreExposureRef.current,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          depthTest: false,
-        }),
-      );
-      softGlow.scale.set(25, 12.4, 1);
-      softGlow.position.y = -0.05;
-      softGlow.renderOrder = 2;
-      galaxy.add(softGlow);
-
-      scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x190f36, 1.35));
-      const keyLight = new THREE.PointLight(0xffe7ba, 18, 24, 1.4);
-      keyLight.position.set(0, 5, 0);
-      galaxy.add(keyLight);
-
-      const nodes = definition.worlds.map((destination, index) => {
-        let starSeed = 7;
-        for (let char = 0; char < destination.id.length; char += 1) {
-          starSeed = Math.imul(starSeed, 31) + destination.id.charCodeAt(char);
-        }
-        const starRandom = seededRandom(starSeed);
-        const spectralColors = [
-          0xff8570, 0xffcb91, 0xf4f7ff, 0x9bccff, 0x76a5ff,
-        ];
-        const starColor =
-          spectralColors[Math.floor(starRandom() * spectralColors.length)];
-        const luminosity = 1 + starRandom() * 0.9;
-        const lightSize = 1 + starRandom() * 0.4;
-        const shimmerPhase = starRandom() * Math.PI * 2;
-        const position = new THREE.Vector3(
-          Math.cos(destination.angle) * destination.radius,
-          0.38 + index * 0.018,
-          Math.sin(destination.angle) * destination.radius,
-        );
-        const markerMaterial = new THREE.SpriteMaterial({
-          map: markerTexture,
-          color: new THREE.Color(destination.color).lerp(
-            new THREE.Color(0xe9f3ff),
-            0.82,
-          ),
-          transparent: true,
-          opacity: 1,
-          // Normal compositing lets the dark, clear lens suppress local haze;
-          // additive black cannot clear anything beneath the marker.
-          blending: THREE.NormalBlending,
-          depthWrite: false,
-          depthTest: false,
-        });
-        const marker = new THREE.Sprite(markerMaterial);
-        marker.position.copy(position);
-        marker.scale.setScalar(destination.size * (index === 0 ? 0.56 : 0.51));
-        marker.userData.destinationIndex = index;
-        marker.renderOrder = 8;
-        galaxy.add(marker);
-
-        // Shared white light texture, individually tinted; the lens stays clear.
-        const sparkle = new THREE.Sprite(
-          new THREE.SpriteMaterial({
-            map: starlightTexture,
-            color: starColor,
-            toneMapped: false,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            depthTest: false,
-          }),
-        );
-        sparkle.position.copy(position);
-        sparkle.material.rotation = (starRandom() - 0.5) * 0.7;
-        sparkle.scale.copy(marker.scale).multiplyScalar(lightSize);
-        sparkle.renderOrder = 9;
-        galaxy.add(sparkle);
-
-        const signalWaves = Array.from({ length: 3 }, (_, waveIndex) => {
-          const material = new THREE.SpriteMaterial({
-            map: signalWaveTexture,
-            color: new THREE.Color(destination.color).lerp(
-              new THREE.Color(0xd3cfff),
-              0.78,
-            ),
-            transparent: true,
-            opacity: 0,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            depthTest: false,
-          });
-          const wave = new THREE.Sprite(material);
-          wave.position.copy(position);
-          wave.scale.setScalar(destination.size * 0.5);
-          wave.renderOrder = 7;
-          wave.userData.phase = waveIndex / 3;
-          galaxy.add(wave);
-          return wave;
-        });
-
-        return {
-          marker,
-          sparkle,
-          signalWaves,
-          position,
-          luminosity,
-          lightSize,
-          shimmerPhase,
-          occluded: false,
-        };
-      });
-
-      return {
-        galaxy,
-        tilt: -0.08,
-        galaxyGeometry,
-        galaxyMaterial,
-        galaxyPoints,
-        galaxyMistMaterial,
-        galaxyMist,
-        glowMaterial,
-        glow,
-        softGlow,
-        nodes,
-      };
-    }
+      scene.add(layer.galaxy);
+      return layer;
+    };
 
     const galaxyScenes = {
       home: buildGalaxy(galaxies.home),
@@ -970,109 +432,12 @@ export function GalaxyIndex({
     const foregroundPosition = new THREE.Vector3(0, 1.35, 0);
     const distantSignalPosition = new THREE.Vector3();
 
-    const portraitGroup = new THREE.Group();
-    galaxyScenes.home.galaxy.add(portraitGroup);
-    const portraitSprites: Array<{
-      sprite: THREE.Sprite;
-      velocity: THREE.Vector3;
-      spin: number;
-      life: number;
-    }> = [];
-    const portraitTextures: THREE.Texture[] = [];
-    let portraitsLoading = false;
-    let portraitsReady = false;
-    let pendingBurst = false;
-    let burstCooldown = 0;
-
-    const textureLoader = new THREE.TextureLoader();
-
-    function loadPortraitTextures() {
-      if (portraitsLoading || portraitsReady) return;
-      portraitsLoading = true;
-      let unsettledTextures = portraitUrls.length;
-
-      const settleTexture = () => {
-        unsettledTextures -= 1;
-        if (unsettledTextures > 0) return;
-
-        portraitsReady = true;
-        portraitsLoading = false;
-        if (pendingBurst && portraitTextures.length > 0) {
-          pendingBurst = false;
-          burstPortraits();
-        } else {
-          pendingBurst = false;
-        }
-      };
-
-      portraitUrls.forEach((url) => {
-        textureLoader.load(
-          url,
-          (texture) => {
-            if (disposed) {
-              texture.dispose();
-            } else {
-              texture.colorSpace = THREE.SRGBColorSpace;
-              portraitTextures.push(texture);
-            }
-            settleTexture();
-          },
-          undefined,
-          settleTexture,
-        );
-      });
-    }
-
-    function burstPortraits() {
-      if (burstCooldown > 0) return;
-      if (!portraitsReady) {
-        pendingBurst = true;
-        loadPortraitTextures();
-        return;
-      }
-      if (portraitTextures.length === 0) return;
-
-      portraitBurstCount += 1;
-      portraitBurstTarget.dataset.portraitBursts = String(portraitBurstCount);
-
-      portraitSprites.forEach(({ sprite }) => {
-        portraitGroup.remove(sprite);
-        sprite.material.dispose();
-      });
-      portraitSprites.length = 0;
-      const random = seededRandom(Date.now());
-
-      for (let index = 0; index < 10; index += 1) {
-        const material = new THREE.SpriteMaterial({
-          map: portraitTextures[Math.floor(random() * portraitTextures.length)],
-          transparent: true,
-          depthTest: false,
-          depthWrite: false,
-        });
-        const sprite = new THREE.Sprite(material);
-        const angle = (index / 10) * Math.PI * 2 + random() * 0.38;
-        const speed = 0.065 + random() * 0.08;
-        sprite.position.set(0, 0.82, 0);
-        sprite.scale.setScalar(0.01);
-        sprite.renderOrder = 20;
-        portraitGroup.add(sprite);
-        portraitSprites.push({
-          sprite,
-          velocity: new THREE.Vector3(
-            Math.cos(angle) * speed,
-            0.015 + random() * 0.04,
-            Math.sin(angle) * speed,
-          ),
-          spin: (random() - 0.5) * 0.1,
-          life: 1,
-        });
-      }
-      burstCooldown = 5;
-    }
+    const portraits = new PortraitBurst(stage);
+    galaxyScenes.home.galaxy.add(portraits.group);
 
     const portraitPreloadTimer = window.setTimeout(
       () => {
-        if (!groxActive) loadPortraitTextures();
+        if (!groxActive) portraits.preload();
       },
       isCompact ? 2600 : 1700,
     );
@@ -1094,11 +459,19 @@ export function GalaxyIndex({
     let rightInset = 0;
     let leftInset = 0;
     let touchPointer = false;
+    const setCursor = (cursor: string) => {
+      if (renderer.domElement.style.cursor !== cursor)
+        renderer.domElement.style.cursor = cursor;
+    };
     const pointers = new Map<number, { x: number; y: number }>();
     let pinchDistance = 0;
     let lastDetailIndex = -1;
     let detailMotion: CardMotion | null = null;
     let chromeRects: DOMRect[] = [];
+    let stageLeft = 0;
+    let stageTop = 0;
+    let beaconPortal: HTMLElement | null = null;
+    let beaconGalaxy: GalaxyId | null = null;
     let hoveredIndex = -1;
     let hasHoveredWorld = false;
     let isDragging = false;
@@ -1111,7 +484,6 @@ export function GalaxyIndex({
     const dockHover = new DockHover();
     let tiltVelocity = 0;
     let fastSpinTravel = 0;
-    let portraitBurstCount = 0;
     let dockSpinPresses = 0;
     let frame = 0;
     let animationFrame = 0;
@@ -1211,11 +583,7 @@ export function GalaxyIndex({
       setSolarHovered,
     );
     solarRef.current = solar;
-    solar.onExitRequest = () => {
-      solar.exit();
-      if (window.location.hash !== '#galaxy')
-        window.history.pushState(null, '', '#galaxy');
-    };
+    solar.onExitRequest = () => returnToGalaxy(solar);
     const solarWarmFrame = requestAnimationFrame(() => {
       if (!groxEncounter && !solar.active) solar.prepare(solarSystems[0]);
     });
@@ -1257,15 +625,9 @@ export function GalaxyIndex({
       );
       const galaxyCenter = new THREE.Vector3();
       galaxyScenes.home.galaxy.getWorldPosition(galaxyCenter);
-      if (!solar.active) {
-        // Every way in (random world, a link, history) closes an open galaxy
-        // detail, as a family star's own entry does; it must not reopen later.
-        expandedPreviewIndexRef.current = null;
-        expandedRef.current = false;
-        cameraModeRef.current = 'default';
-        setExpandedPreviewIndex(null);
-        setExpanded(false);
-      }
+      // Every way in (random world, a link, history) closes an open galaxy
+      // detail, as a family star's own entry does; it must not reopen later.
+      if (!solar.active) collapseDestination();
       setSolarSystem(system);
       setSolarPaused(false);
       applyingSolarRoute = !updateHistory;
@@ -1349,8 +711,6 @@ export function GalaxyIndex({
     window.addEventListener('hashchange', onHistory);
     if (!groxEncounter) onHistory();
 
-    portraitBurstTarget.dataset.portraitBursts = '0';
-
     hoverGalaxyRef.current = () => {
       if (travellingRef.current || expandedRef.current || reduceMotion) return;
       // CSS screen rotation has the opposite sign to the scene's Y rotation.
@@ -1378,20 +738,31 @@ export function GalaxyIndex({
       if (
         galaxyIdRef.current === 'home' &&
         Math.abs(angularVelocity) >= 0.12 &&
-        burstCooldown <= 0
+        !portraits.coolingDown
       ) {
-        burstPortraits();
+        portraits.burst();
         fastSpinTravel = 0;
         angularVelocity *= 0.58;
         dockSpinPresses = 0;
       }
     };
 
+    /** Wheel and pinch share limits, so switching input never jumps the view. */
+    const clampZoom = (distance: number) =>
+      THREE.MathUtils.clamp(
+        distance,
+        expandedRef.current ? 15.5 : 18,
+        expandedRef.current ? 24 : 31,
+      );
+
+    const aimPointer = (clientX: number, clientY: number) => {
+      const bounds = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+      pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+    };
     const updatePointer = (event: PointerEvent) => {
       touchPointer = event.pointerType === 'touch';
-      const bounds = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+      aimPointer(event.clientX, event.clientY);
     };
 
     const destinationAtPointer = () => {
@@ -1460,11 +831,8 @@ export function GalaxyIndex({
         const distance = Math.hypot(first.x - second.x, first.y - second.y);
         if (pinchDistance > 0 && distance > 0) {
           cameraModeRef.current = 'manual';
-          // The wheel's own limits, so switching input never jumps the view.
-          cameraDistance = THREE.MathUtils.clamp(
+          cameraDistance = clampZoom(
             (cameraDistance * pinchDistance) / distance,
-            expandedRef.current ? 15.5 : 18,
-            expandedRef.current ? 24 : 31,
           );
         }
         pinchDistance = distance;
@@ -1545,7 +913,7 @@ export function GalaxyIndex({
       }
       if (!isDragging) {
         pointer.set(4, 4);
-        renderer.domElement.style.cursor = 'grab';
+        setCursor('grab');
         if (expandedPreviewIndexRef.current !== null) {
           expandedPreviewIndexRef.current = null;
           setExpandedPreviewIndex(null);
@@ -1569,9 +937,7 @@ export function GalaxyIndex({
       // Spore-style descent: keep scrolling in over a family star to dive in.
       if (event.deltaY < 0 && galaxyIdRef.current === 'home') {
         // The wheel may arrive over a preview card; aim from its own position.
-        const bounds = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-        pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+        aimPointer(event.clientX, event.clientY);
         const index = destinationAtPointer();
         const systemId = index >= 0 ? sceneWorlds[index]?.systemId : undefined;
         const now = performance.now();
@@ -1590,11 +956,7 @@ export function GalaxyIndex({
         }
       } else diveIntent = 0;
       cameraModeRef.current = 'manual';
-      cameraDistance = THREE.MathUtils.clamp(
-        cameraDistance + event.deltaY * 0.01,
-        expandedRef.current ? 15.5 : 18,
-        expandedRef.current ? 24 : 31,
-      );
+      cameraDistance = clampZoom(cameraDistance + event.deltaY * 0.01);
     };
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
@@ -1630,20 +992,18 @@ export function GalaxyIndex({
       fastSpinTravel = 0;
       dockSpinPresses = 0;
       cameraDistance = defaultCameraDistance;
-      galaxy.rotation.x = -0.08;
-      galaxyScenes.home.tilt = -0.08;
+      galaxy.rotation.x = GALAXY_TILT;
+      galaxyScenes.home.tilt = GALAXY_TILT;
       galaxy.rotation.y = galaxyDestinations[0].angle - Math.PI / 2;
       galaxyPoints.rotation.y = 0;
-      galaxyMist.rotation.y = 0.018;
+      galaxyMist.rotation.y = MIST_TWIST;
       cameraLookTarget.set(0.7, 0, 0);
       activeIndexRef.current = 0;
       previewIndexRef.current = 0;
-      expandedRef.current = false;
-      cameraModeRef.current = 'default';
+      collapseDestination();
       focusRotationRef.current = galaxyDestinations[0].angle - Math.PI / 2;
       setActiveIndex(0);
       setPreviewIndex(0);
-      setExpanded(false);
     };
 
     const resizeObserver = new ResizeObserver(([entry]) => {
@@ -1657,8 +1017,8 @@ export function GalaxyIndex({
       leftInset = parseFloat(safeArea.getPropertyValue('--safe-left')) || 0;
       lastDetailIndex = -1;
       compactViewport = width <= 720 || height <= 500;
-      defaultCameraDistance = width <= 720 ? 25.5 : 20.5;
-      expandedCameraDistance = width <= 720 ? 21.8 : 17.25;
+      ({ rest: defaultCameraDistance, open: expandedCameraDistance } =
+        cameraDistances(width <= 720));
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -1819,6 +1179,21 @@ export function GalaxyIndex({
         return;
       }
 
+      // Sample only actual controls, never the transparent corner/dock
+      // wrappers. A beacon behind a real button should not invite a lost tap.
+      // Read here, before this frame writes any style.
+      if (frame % 8 === 1) {
+        const stageBounds = stage.getBoundingClientRect();
+        stageLeft = stageBounds.left;
+        stageTop = stageBounds.top;
+        chromeRects = Array.from(
+          sceneShell.querySelectorAll(
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
+          ),
+          (element) => element.getBoundingClientRect(),
+        );
+      }
+
       if (travellingRef.current) {
         travelElapsed += elapsedMs;
         const t = Math.min(1, travelElapsed / (reduceMotion ? 350 : 1650));
@@ -1858,18 +1233,10 @@ export function GalaxyIndex({
       }
 
       if (galaxyIdRef.current === 'home' && fastSpinTravel >= Math.PI * 8) {
-        burstPortraits();
+        portraits.burst();
         fastSpinTravel = 0;
       }
 
-      if (dockGalaxyIconRef.current) {
-        const dockPhase =
-          dockSpin.step(elapsedMs / 1000, reduceMotion) +
-          dockHover.step(elapsedMs / 1000, reduceMotion);
-        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
-      }
-
-      burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
       if (cameraModeRef.current !== 'manual') {
         const desiredCameraDistance = expandedRef.current
           ? expandedCameraDistance
@@ -1948,7 +1315,7 @@ export function GalaxyIndex({
         );
         cameraLookTarget.y -= progress * 1.45;
         camera.lookAt(cameraLookTarget);
-        portraitBurstTarget.dataset.groxApproach = progress.toFixed(3);
+        stage.dataset.groxApproach = progress.toFixed(3);
         if (groxRetreating && retreat.returned) {
           groxActive = false;
           groxBeacon.visible = false;
@@ -1957,53 +1324,11 @@ export function GalaxyIndex({
           coreExposureRef.current = previousCoreExposure;
           setGroxReturned(true);
           groxReturnRef.current?.();
-          loadPortraitTextures();
+          portraits.preload();
         } else if (!groxRetreating && approach.arrived && !groxArrived) {
           groxArrived = true;
           groxArrivalRef.current?.();
         }
-      }
-      const portal = ringPortalRef.current;
-      if (portal) {
-        portal.style.transform = `translate3d(${portalX}px, ${portalY}px, 0) translate(-50%, -50%)`;
-        const remote =
-          galaxyScenes[galaxyIdRef.current === 'home' ? 'webring' : 'home'];
-        portal.style.setProperty(
-          '--beacon-color',
-          `#${remote.nodes[0].sparkle.material.color.getHexString()}`,
-        );
-        distantSignalPosition.copy(remote.nodes[0].position);
-        remote.galaxy.localToWorld(distantSignalPosition);
-        distantSignalPosition.project(camera);
-        // Keep the entire touch target reachable when a remote star's orbit
-        // projects beyond a short landscape viewport.
-        const signalX = THREE.MathUtils.clamp(
-          (distantSignalPosition.x * 0.5 + 0.5) * stageWidth,
-          28 + leftInset,
-          stageWidth - 28 - rightInset,
-        );
-        const signalY = THREE.MathUtils.clamp(
-          (-distantSignalPosition.y * 0.5 + 0.5) * stageHeight,
-          28,
-          stageHeight - 90 - bottomInset,
-        );
-        portal.style.setProperty('--signal-x', `${signalX - portalX}px`);
-        portal.style.setProperty('--signal-y', `${signalY - portalY}px`);
-      }
-
-      // Sample only actual controls, never the transparent corner/dock
-      // wrappers. A beacon behind a real button should not invite a lost tap.
-      if (frame % 8 === 1) {
-        stageRef.current?.setAttribute(
-          'data-camera-distance',
-          cameraDistance.toFixed(2),
-        );
-        chromeRects = Array.from(
-          sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
-          ),
-          (element) => element.getBoundingClientRect(),
-        );
       }
       nodes.forEach((node) => {
         projectedHit.copy(node.position);
@@ -2011,12 +1336,15 @@ export function GalaxyIndex({
         projectedHit.project(camera);
         const x = (projectedHit.x * 0.5 + 0.5) * stageWidth;
         const y = (-projectedHit.y * 0.5 + 0.5) * stageHeight;
+        // Chrome rects are in viewport coordinates; the stage may be offset.
+        const clientX = x + stageLeft,
+          clientY = y + stageTop;
         node.occluded = chromeRects.some(
           (rect) =>
-            x >= rect.left - 8 &&
-            x <= rect.right + 8 &&
-            y >= rect.top - 8 &&
-            y <= rect.bottom + 8,
+            clientX >= rect.left - 8 &&
+            clientX <= rect.right + 8 &&
+            clientY >= rect.top - 8 &&
+            clientY <= rect.bottom + 8,
         );
       });
 
@@ -2048,7 +1376,7 @@ export function GalaxyIndex({
             setPreviewIndex(nextIndex);
           }
           hoveredIndex = nextIndex;
-          renderer.domElement.style.cursor = 'pointer';
+          setCursor('pointer');
         } else {
           if (
             hasHoveredWorld &&
@@ -2060,14 +1388,14 @@ export function GalaxyIndex({
             setPreviewVisible(false);
           }
           hoveredIndex = -1;
-          renderer.domElement.style.cursor = 'grab';
+          setCursor('grab');
           if (expandedPreviewIndexRef.current !== null) {
             expandedPreviewIndexRef.current = null;
             setExpandedPreviewIndex(null);
           }
         }
       } else if (isDragging) {
-        renderer.domElement.style.cursor = 'grabbing';
+        setCursor('grabbing');
       }
 
       nodes.forEach(
@@ -2140,165 +1468,177 @@ export function GalaxyIndex({
         },
       );
 
+      // Measure both comms cards before positioning either, so a frame never
+      // forces a synchronous layout between one card's write and the next read.
       const detail = detailRef.current;
+      let detailPlacement: { x: number; y: number; hidden: boolean } | null =
+        null;
       if (detail && syncCommsIdentity(detail, sceneWorlds[selectedIndex]?.id)) {
         labelPosition.copy(nodes[selectedIndex].position);
         galaxy.localToWorld(labelPosition);
         labelPosition.project(camera);
-        const bounds = renderer.domElement.getBoundingClientRect();
-        const screenX = (labelPosition.x * 0.5 + 0.5) * bounds.width;
-        const screenY = (-labelPosition.y * 0.5 + 0.5) * bounds.height;
-        const usesCompactPanel = compactViewport;
-        const panelWidth =
-          detail.offsetWidth || Math.min(640, bounds.width - 24);
-        const panelHeight =
-          detail.offsetHeight || (usesCompactPanel ? 178 : 188);
         const portrait = detail.querySelector<HTMLElement>('.world-orbit');
-        const anchorX = portrait
-          ? portrait.offsetLeft + portrait.offsetWidth / 2
-          : 58;
-        const anchorY = portrait
-          ? portrait.offsetTop + portrait.offsetHeight / 2
-          : 80;
-        const horizontalMargin = Math.max(
-          usesCompactPanel ? 10 : 14,
-          leftInset,
-        );
-        // 76 px housing, its safe-area offset, and an 8 px visual gap.
-        const bottomClearance = 76 + Math.max(6, bottomInset) + 8;
-        const maximumPanelX = Math.max(
-          horizontalMargin,
-          bounds.width - panelWidth - Math.max(horizontalMargin, rightInset),
-        );
-        const minimumPanelX = usesCompactPanel
-          ? horizontalMargin
-          : Math.min(220, maximumPanelX);
-        const maximumPanelY = Math.max(
-          10,
-          bounds.height - panelHeight - bottomClearance,
-        );
-        const minimumPanelY = usesCompactPanel
-          ? maximumPanelY
-          : Math.min(240, maximumPanelY);
-        const panelX = usesCompactPanel
-          ? bounds.width > 720
-            ? maximumPanelX
-            : horizontalMargin
-          : THREE.MathUtils.clamp(
-              screenX - anchorX,
-              minimumPanelX,
-              maximumPanelX,
-            );
-        const panelY = usesCompactPanel
-          ? maximumPanelY
-          : THREE.MathUtils.clamp(
-              screenY - anchorY,
-              minimumPanelY,
-              maximumPanelY,
-            );
+        const bounds = detailBounds({
+          starX: (labelPosition.x * 0.5 + 0.5) * stageWidth,
+          starY: (-labelPosition.y * 0.5 + 0.5) * stageHeight,
+          stageWidth,
+          stageHeight,
+          panelWidth: detail.offsetWidth || Math.min(640, stageWidth - 24),
+          panelHeight: detail.offsetHeight || (compactViewport ? 178 : 188),
+          anchorX: portrait
+            ? portrait.offsetLeft + portrait.offsetWidth / 2
+            : 58,
+          anchorY: portrait
+            ? portrait.offsetTop + portrait.offsetHeight / 2
+            : 80,
+          compact: compactViewport,
+          insets: { left: leftInset, right: rightInset, bottom: bottomInset },
+        });
         // Capture instantly; brief pointer exits do not release the card.
         // After that grace period, ease back into the projected orbit.
         detailMotion = followCard(
           lastDetailIndex === selectedIndex ? detailMotion : null,
-          { x: panelX, y: panelY },
+          { x: bounds.x, y: bounds.y },
           {
             now: time,
             deltaMs: elapsedMs,
             held: detail.matches(':hover, :focus-within'),
-            reducedMotion: reduceMotion || usesCompactPanel,
+            reducedMotion: reduceMotion || compactViewport,
           },
         );
         detailMotion.x = THREE.MathUtils.clamp(
           detailMotion.x,
-          minimumPanelX,
-          maximumPanelX,
+          bounds.minX,
+          bounds.maxX,
         );
         detailMotion.y = THREE.MathUtils.clamp(
           detailMotion.y,
-          minimumPanelY,
-          maximumPanelY,
+          bounds.minY,
+          bounds.maxY,
         );
-        detail.style.transform = `translate3d(${detailMotion.x}px, ${detailMotion.y}px, 0)`;
         lastDetailIndex = selectedIndex;
-        detail.style.opacity = labelPosition.z > 1 ? '0' : '1';
+        detailPlacement = {
+          x: detailMotion.x,
+          y: detailMotion.y,
+          hidden: labelPosition.z > 1,
+        };
       } else {
         detailMotion = null;
         lastDetailIndex = -1;
       }
 
       const previewElement = previewRef.current;
-      if (previewElement) {
-        const previewedIndex = expandedRef.current
-          ? expandedPreviewIndexRef.current
-          : previewIndexRef.current;
+      const previewedIndex = expandedRef.current
+        ? expandedPreviewIndexRef.current
+        : previewIndexRef.current;
+      let previewPlacement: {
+        x: number;
+        y: number;
+        opensLeft: boolean;
+        hidden: boolean;
+        occluded: boolean;
+      } | null = null;
+      if (
+        previewElement &&
+        syncCommsIdentity(
+          previewElement,
+          previewedIndex === null ? undefined : sceneWorlds[previewedIndex]?.id,
+        ) &&
+        previewedIndex !== null
+      ) {
+        previewPosition.copy(nodes[previewedIndex].position);
+        galaxy.localToWorld(previewPosition);
+        previewPosition.project(camera);
+        const starX = (previewPosition.x * 0.5 + 0.5) * stageWidth;
+        const starY = (-previewPosition.y * 0.5 + 0.5) * stageHeight;
+        // Fit the nameplate into the available space before clamping its
+        // position, keeping the circular portrait centered on its star. Its
+        // width follows the room, so only a change in room needs a layout.
+        const { margin, opensLeft, room } = previewRoom(starX, stageWidth);
+        const roomValue = `${room}px`;
         if (
-          syncCommsIdentity(
-            previewElement,
-            previewedIndex === null
-              ? undefined
-              : sceneWorlds[previewedIndex]?.id,
-          ) &&
-          previewedIndex !== null
-        ) {
-          previewPosition.copy(nodes[previewedIndex].position);
-          galaxy.localToWorld(previewPosition);
-          previewPosition.project(camera);
-          const bounds = renderer.domElement.getBoundingClientRect();
-          const screenX = (previewPosition.x * 0.5 + 0.5) * bounds.width;
-          const screenY = (-previewPosition.y * 0.5 + 0.5) * bounds.height;
-          const previewMargin = bounds.width <= 720 ? 8 : 14;
-          // Fit the nameplate into the available space before clamping its
-          // position, keeping the circular portrait centered on its star.
-          const rightRoom = bounds.width - screenX - previewMargin - 19;
-          const leftRoom = screenX - previewMargin - 19;
-          const opensLeft = rightRoom < 150 && leftRoom > rightRoom;
-          previewElement.style.setProperty(
-            '--preview-room',
-            `${Math.floor(Math.min(220, Math.max(90, opensLeft ? leftRoom : rightRoom)))}px`,
-          );
-          const previewWidth = previewElement.offsetWidth || 166;
-          const previewHeight = previewElement.offsetHeight || 62;
-          const anchorOffset = opensLeft ? previewWidth - 31 : 31;
-          const maximumPreviewX = Math.max(
-            previewMargin,
-            bounds.width - previewWidth - previewMargin,
-          );
-          const previewX = THREE.MathUtils.clamp(
-            screenX - anchorOffset,
-            previewMargin,
-            maximumPreviewX,
-          );
-          const previewY = THREE.MathUtils.clamp(
-            screenY,
-            previewMargin + previewHeight / 2,
-            bounds.height - previewMargin - previewHeight / 2,
-          );
-          previewElement.dataset.edge = opensLeft ? 'right' : 'left';
-          previewElement.style.visibility = nodes[previewedIndex].occluded
-            ? 'hidden'
-            : '';
-          // Compact previews always track their star directly. Only the open
-          // dialog above gets hover capture and a smoothed return to orbit.
-          previewElement.style.transform = `translate3d(${previewX}px, ${previewY}px, 0) translateY(-50%)`;
-          previewElement.style.opacity = previewPosition.z > 1 ? '0' : '1';
-        }
+          previewElement.style.getPropertyValue('--preview-room') !== roomValue
+        )
+          previewElement.style.setProperty('--preview-room', roomValue);
+        previewPlacement = {
+          ...placePreview({
+            starX,
+            starY,
+            stageWidth,
+            stageHeight,
+            width: previewElement.offsetWidth || 166,
+            height: previewElement.offsetHeight || 62,
+            margin,
+            opensLeft,
+          }),
+          opensLeft,
+          hidden: previewPosition.z > 1,
+          occluded: nodes[previewedIndex].occluded,
+        };
       }
 
-      for (let index = portraitSprites.length - 1; index >= 0; index -= 1) {
-        const portrait = portraitSprites[index];
-        portrait.life -= 0.0085 * delta;
-        portrait.sprite.position.addScaledVector(portrait.velocity, delta);
-        portrait.sprite.material.rotation += portrait.spin * delta;
-        const envelope = Math.sin(Math.max(0, portrait.life) * Math.PI);
-        const scale = Math.max(0.01, envelope * 0.96);
-        portrait.sprite.scale.set(scale, scale, 1);
-        portrait.sprite.material.opacity = Math.min(1, portrait.life * 2);
-        if (portrait.life <= 0) {
-          portraitGroup.remove(portrait.sprite);
-          portrait.sprite.material.dispose();
-          portraitSprites.splice(index, 1);
-        }
+      if (detail && detailPlacement) {
+        detail.style.transform = `translate3d(${detailPlacement.x}px, ${detailPlacement.y}px, 0)`;
+        detail.style.opacity = detailPlacement.hidden ? '0' : '1';
       }
+      if (previewElement && previewPlacement) {
+        const edge = previewPlacement.opensLeft ? 'right' : 'left';
+        if (previewElement.dataset.edge !== edge)
+          previewElement.dataset.edge = edge;
+        previewElement.style.visibility = previewPlacement.occluded
+          ? 'hidden'
+          : '';
+        // Compact previews always track their star directly. Only the open
+        // dialog above gets hover capture and a smoothed return to orbit.
+        previewElement.style.transform = `translate3d(${previewPlacement.x}px, ${previewPlacement.y}px, 0) translateY(-50%)`;
+        previewElement.style.opacity = previewPlacement.hidden ? '0' : '1';
+      }
+
+      if (dockGalaxyIconRef.current) {
+        const dockPhase =
+          dockSpin.step(elapsedMs / 1000, reduceMotion) +
+          dockHover.step(elapsedMs / 1000, reduceMotion);
+        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
+      }
+
+      const portal = ringPortalRef.current;
+      if (portal) {
+        portal.style.transform = `translate3d(${portalX}px, ${portalY}px, 0) translate(-50%, -50%)`;
+        const remote =
+          galaxyScenes[galaxyIdRef.current === 'home' ? 'webring' : 'home'];
+        // The beacon takes the remote galaxy's first star colour, which is
+        // fixed; set it only when the portal or the remote galaxy changes.
+        if (beaconPortal !== portal || beaconGalaxy !== galaxyIdRef.current) {
+          portal.style.setProperty(
+            '--beacon-color',
+            `#${remote.nodes[0].sparkle.material.color.getHexString()}`,
+          );
+          beaconPortal = portal;
+          beaconGalaxy = galaxyIdRef.current;
+        }
+        distantSignalPosition.copy(remote.nodes[0].position);
+        remote.galaxy.localToWorld(distantSignalPosition);
+        distantSignalPosition.project(camera);
+        // Keep the entire touch target reachable when a remote star's orbit
+        // projects beyond a short landscape viewport.
+        const signalX = THREE.MathUtils.clamp(
+          (distantSignalPosition.x * 0.5 + 0.5) * stageWidth,
+          28 + leftInset,
+          stageWidth - 28 - rightInset,
+        );
+        const signalY = THREE.MathUtils.clamp(
+          (-distantSignalPosition.y * 0.5 + 0.5) * stageHeight,
+          28,
+          stageHeight - 90 - bottomInset,
+        );
+        portal.style.setProperty('--signal-x', `${signalX - portalX}px`);
+        portal.style.setProperty('--signal-y', `${signalY - portalY}px`);
+      }
+
+      if (frame % 8 === 1)
+        stage.setAttribute('data-camera-distance', cameraDistance.toFixed(2));
+
+      portraits.update(elapsedMs, delta);
 
       renderer.render(scene, camera);
       // Once parked at the Grox star, only the small portrait video needs to
@@ -2332,8 +1672,7 @@ export function GalaxyIndex({
       spinGalaxyRef.current = () => undefined;
       hoverGalaxyRef.current = () => undefined;
       groxLeaveRef.current = () => false;
-      portraitSprites.forEach(({ sprite }) => sprite.material.dispose());
-      portraitTextures.forEach((texture) => texture.dispose());
+      portraits.dispose();
       glowTexture?.dispose();
       markerTexture?.dispose();
       starlightTexture?.dispose();
@@ -2343,18 +1682,7 @@ export function GalaxyIndex({
       backdropMaterial.dispose();
       farGalaxyGeometry.dispose();
       distantGalaxies.forEach(({ material }) => material.dispose());
-      Object.values(galaxyScenes).forEach((layer) => {
-        layer.galaxyGeometry.dispose();
-        layer.galaxyMaterial.dispose();
-        layer.galaxyMistMaterial.dispose();
-        layer.glowMaterial.dispose();
-        layer.softGlow.material.dispose();
-        layer.nodes.forEach(({ marker, sparkle, signalWaves }) => {
-          marker.material.dispose();
-          sparkle.material.dispose();
-          signalWaves.forEach(({ material }) => material.dispose());
-        });
-      });
+      Object.values(galaxyScenes).forEach(disposeGalaxyLayer);
       window.removeEventListener('popstate', onHistory);
       window.removeEventListener('hashchange', onHistory);
       travelRef.current = () => undefined;
@@ -2442,52 +1770,14 @@ export function GalaxyIndex({
         />
       )}
 
-      <button
-        ref={ringPortalRef}
-        type="button"
-        className="webring-portal"
-        aria-label={
-          galaxyId === 'home' ? 'Travel to the web ring' : 'Return to my galaxy'
+      <WebringPortal
+        galaxyId={galaxyId}
+        travelling={travelling}
+        portalRef={ringPortalRef}
+        onTravel={() =>
+          travelRef.current(galaxyIdRef.current === 'home' ? 'webring' : 'home')
         }
-        disabled={travelling}
-        onPointerDown={(event) => {
-          portalPressRef.current = {
-            x: event.clientX,
-            y: event.clientY,
-            moved: false,
-          };
-        }}
-        onPointerMove={(event) => {
-          if (
-            event.buttons &&
-            Math.hypot(
-              event.clientX - portalPressRef.current.x,
-              event.clientY - portalPressRef.current.y,
-            ) > 10
-          )
-            portalPressRef.current.moved = true;
-        }}
-        onClick={(event) => {
-          if (event.detail > 0 && portalPressRef.current.moved) return;
-          travelRef.current(
-            galaxyIdRef.current === 'home' ? 'webring' : 'home',
-          );
-        }}
-      >
-        <span className="galaxy-signal" aria-hidden="true">
-          <i />
-          <i />
-          <span className="galaxy-signal-orbit" />
-          <svg
-            className="galaxy-signal-star"
-            viewBox="-32 -32 64 64"
-            focusable="false"
-          >
-            <path d={starDiffractionPath} />
-            <circle r="5.5" />
-          </svg>
-        </span>
-      </button>
+      />
 
       <p className="galaxy-location" aria-live="polite">
         {solarActive
@@ -2503,68 +1793,22 @@ export function GalaxyIndex({
               : 'web ring · friends & discoveries'}
       </p>
 
-      <header className="spore-corner" aria-label="Main menu">
-        <span className="spore-canopy-spiral" aria-hidden="true" />
-        <button
-          type="button"
-          className="sprawl-mark"
-          aria-label="Alireza Afshan — return home"
-          onClick={(event) => {
-            event.preventDefault();
-            if (solarRef.current?.active) leaveSolar();
-            else resetGalaxyRef.current();
-          }}
-        >
-          <span>alireza</span>
-          <span>afshan</span>
-        </button>
-        <nav className="spore-menu" aria-label="Primary">
-          <button
-            type="button"
-            disabled={travelling || solarNavigating}
-            className="spore-menu-item"
-            onClick={expandRandomDestination}
-          >
-            <span className="menu-motion-light" aria-hidden="true" />
-            <span className="menu-motion-ripple" aria-hidden="true" />
-            <MenuIcon name="random" />
-            <span className="menu-motion-label">
-              {galaxyId === 'home' ? 'random world' : 'random neighbor'}
-            </span>
-          </button>
-          {/* The canopy sits out a system visit; the ship's own HUD takes over. */}
-          {!solarActive && (
-            <>
-              <button
-                type="button"
-                className="spore-menu-item"
-                disabled={travelling}
-                onClick={() =>
-                  galaxyIdRef.current === 'home'
-                    ? expandDestination(0)
-                    : travelRef.current('home', true)
-                }
-              >
-                <span className="menu-motion-light" aria-hidden="true" />
-                <span className="menu-motion-ripple" aria-hidden="true" />
-                <MenuIcon name="about" />
-                <span className="menu-motion-label">about</span>
-              </button>
-              <a
-                className="spore-menu-item"
-                href="https://github.com/YesterdaysLemon"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="menu-motion-light" aria-hidden="true" />
-                <span className="menu-motion-ripple" aria-hidden="true" />
-                <MenuIcon name="github" />
-                <span className="menu-motion-label">github</span>
-              </a>
-            </>
-          )}
-        </nav>
-      </header>
+      <GalaxyCanopy
+        galaxyId={galaxyId}
+        travelling={travelling}
+        solarActive={solarActive}
+        randomDisabled={travelling || solarNavigating}
+        onHome={() => {
+          if (solarRef.current?.active) leaveSolar();
+          else resetGalaxyRef.current();
+        }}
+        onRandom={expandRandomDestination}
+        onAbout={() =>
+          galaxyIdRef.current === 'home'
+            ? expandDestination(0)
+            : travelRef.current('home', true)
+        }
+      />
 
       <CommsPresence
         kind="preview"
@@ -2580,154 +1824,16 @@ export function GalaxyIndex({
         onAction={collapseDestination}
       />
 
-      <div className="spore-dock" aria-label="Galaxy controls">
-        <DockHousing />
-        <div className="dock-buttons">
-          <button
-            type="button"
-            aria-label={
-              expanded
-                ? currentWorlds.length > 1
-                  ? `Next world: ${currentWorlds[(activeIndex + 1) % currentWorlds.length].name}`
-                  : 'Only world in this galaxy'
-                : 'Spin the galaxy faster'
-            }
-            title={
-              expanded
-                ? currentWorlds.length > 1
-                  ? 'Go to the next world'
-                  : 'Only world in this galaxy'
-                : 'Spin the galaxy faster'
-            }
-            // The dock sits out a system visit; its icon holds still as it leaves.
-            data-action={expanded ? 'next' : 'spin'}
-            disabled={
-              travelling ||
-              solarNavigating ||
-              (expanded && currentWorlds.length < 2)
-            }
-            className="dock-orb"
-            onClick={() => {
-              advanceOrSpin();
-            }}
-            onPointerEnter={(event) => {
-              if (event.pointerType === 'mouse' || event.pointerType === 'pen')
-                hoverGalaxyRef.current();
-            }}
-            onFocus={(event) => {
-              if (event.currentTarget.matches(':focus-visible'))
-                hoverGalaxyRef.current();
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="next-world">
-              <path d="M5 5.8c0-.9.9-1.3 1.6-.8l8.3 6.2c.6.4.6 1.2 0 1.6L6.6 19c-.7.5-1.6.1-1.6-.8V5.8Z" />
-              <rect x="17" y="5" width="3" height="14" rx="1.5" />
-            </svg>
-            <span className="dock-flywheel">
-              <img
-                ref={dockGalaxyIconRef}
-                aria-hidden="true"
-                data-icon="spore-main-menu-spiral"
-                src={
-                  galaxyId === 'webring'
-                    ? '/spiral-galaxy-3.svg'
-                    : '/spiral-galaxy.svg'
-                }
-                alt=""
-                width={44}
-                height={44}
-              />
-            </span>
-          </button>
-          <button
-            type="button"
-            aria-label="Show next footer transmission"
-            aria-controls="dock-transmission"
-            className="dock-tuner"
-            title="Cycle transmissions: credit, quote, source, contact"
-            onClick={() => setDockTransmission((current) => (current + 1) % 4)}
-          >
-            <svg
-              aria-hidden="true"
-              data-icon="cycle-transmission"
-              viewBox="0 0 24 24"
-            >
-              {[0, 1, 2, 3].map((mode) => (
-                <rect
-                  key={mode}
-                  x={mode % 2 ? 13 : 5}
-                  y={mode > 1 ? 13 : 5}
-                  width="6"
-                  height="6"
-                  rx=".8"
-                  className={
-                    dockTransmission === mode ? 'is-active' : undefined
-                  }
-                />
-              ))}
-            </svg>
-          </button>
-        </div>
-        <div
-          className="dock-console"
-          data-mode={
-            dockTransmission === 1
-              ? 'quote'
-              : dockTransmission === 2
-                ? 'source'
-                : dockTransmission === 3
-                  ? 'contact'
-                  : 'credit'
-          }
-        >
-          {dockTransmission === 3 ? (
-            <a
-              id="dock-transmission"
-              href="mailto:mail@alirezaafshan.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dock-message"
-              data-mode="contact"
-              aria-label="Contact me by email"
-            >
-              <span className="dock-text">contact me ↗</span>
-            </a>
-          ) : dockTransmission === 2 ? (
-            <a
-              id="dock-transmission"
-              href={quotationCollection.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dock-message"
-              data-mode="source"
-              aria-label={`Open ${quotationCollection.label}`}
-              title={quotationCollection.label}
-            >
-              <span className="dock-text">
-                open bartlett&apos;s quotations ↗
-              </span>
-            </a>
-          ) : (
-            <output
-              id="dock-transmission"
-              className="dock-message"
-              data-mode={dockTransmission === 1 ? 'quote' : 'credit'}
-              aria-live="polite"
-              title={
-                dockTransmission === 1
-                  ? `“${dailyQuote.text}” — ${dailyQuote.author}`
-                  : '© alireza afshan · 2026'
-              }
-            >
-              <span className="dock-text">
-                {dockTransmission === 1
-                  ? `“${dailyQuote.text}” — ${dailyQuote.author}`
-                  : '© alireza afshan · 2026'}
-              </span>
-            </output>
-          )}
-        </div>
-      </div>
+      <GalaxyDock
+        galaxyId={galaxyId}
+        worlds={currentWorlds}
+        activeIndex={activeIndex}
+        expanded={expanded}
+        disabled={travelling || solarNavigating}
+        iconRef={dockGalaxyIconRef}
+        onAdvance={advanceOrSpin}
+        onNudge={() => hoverGalaxyRef.current()}
+      />
 
       <nav className="sr-only" aria-label="Website worlds">
         {currentWorlds.map((destination, index) => (
@@ -2749,44 +1855,7 @@ export function GalaxyIndex({
           : `Previewing world: ${preview.name}.`}
       </p>
 
-      <CatalogContainer>
-        <section className="noscript-catalog" aria-label="Website worlds">
-          <h1>Alireza&apos;s Galaxy</h1>
-          <p>
-            Everything I build becomes a planet. Here they all are, no rocket
-            required.
-          </p>
-          <ul>
-            {worldCatalog.map((destination) => (
-              <li key={destination.id}>
-                <a
-                  href={destination.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {destination.name}
-                </a>
-                <span>{destination.description}</span>
-              </li>
-            ))}
-          </ul>
-          <h2>Web ring</h2>
-          <ul>
-            {webring.map((neighbor) => (
-              <li key={neighbor.id}>
-                <a
-                  href={neighbor.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {neighbor.name}
-                </a>
-                <span>{neighbor.description}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </CatalogContainer>
+      <WorldCatalog visible={graphicsUnavailable} />
     </main>
   );
 }

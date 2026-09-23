@@ -53,7 +53,7 @@ retained for immediate routing rollback.
 
 - A direct portfolio homeworld and family stars leading into project solar systems
 - Patterns & Life, Curiosity & Play, and Tools & Infrastructure, with room to grow
-- Sculpted worlds, orbital navigation, a system chart, and direct planet URLs
+- Sculpted worlds, orbital navigation, a ship HUD with live radar, and direct planet URLs
 - Continuous dust-clearing system entry in the existing canvas, without a page load
 - A distant-galaxy web ring for friends, collaborations, and interesting sites
 - Favicon or project-glyph callouts that follow the currently previewed world
@@ -96,7 +96,7 @@ Deploy Manager public URLs; see [daily discovery](docs/world-discovery.md).
 Add authored metadata and permanent `systemId`/`orbitSlot` membership in
 `data/world-registry.json`. `data/worlds.ts` exposes every public project;
 `data/galaxies.ts` limits galaxy markers independently of catalog size.
-`data/solar-systems.ts` groups six stable project slots per system, creating
+`data/solar-systems.ts` groups eight stable project slots per system, creating
 companions without reshuffling existing worlds. New discoveries enter Frontier.
 Renames, domain moves and temporary outages preserve addresses and terrain.
 See [solar systems](docs/SOLAR-SYSTEMS.md) for navigation and rendering details.

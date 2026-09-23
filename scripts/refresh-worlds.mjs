@@ -76,7 +76,10 @@ export function assignMembership(projects, previous, state) {
   }
   const byId = new Map(previous.map((project) => [project.id, project]));
   for (const project of projects) byId.set(project.id, project);
-  for (const id of [...byId.keys()].sort()) {
+  // Code-unit order, so addresses never depend on the runner's locale.
+  for (const id of [...byId.keys()].sort((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  )) {
     if (!assignments.has(id)) {
       if (!Number.isSafeInteger(nextFrontierSlot))
         throw new Error('Frontier address space exhausted');

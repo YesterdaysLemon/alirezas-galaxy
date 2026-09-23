@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "node dist/standalone/server.js",
-    "lint": "oxlint app components data tests",
+    "lint": "oxlint app components data lib scripts tests",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",

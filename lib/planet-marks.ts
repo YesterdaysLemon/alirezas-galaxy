@@ -1,27 +1,28 @@
 import type { SolarSystem, PlanetRecipe } from '../data/solar-systems';
 import { renderPlanetPortrait } from './planet-textures';
 
-const planetPortraits = new Map<string, HTMLCanvasElement>();
+/**
+ * Lit portraits by recipe and pixel size. Recipes are immutable (the planet
+ * lab makes a new one per edit), so a recipe's portraits never go stale and
+ * leave with it.
+ */
+const planetPortraits = new WeakMap<
+  PlanetRecipe,
+  Map<number, HTMLCanvasElement>
+>();
 
 /** A cached, lit portrait from the same surface sampler as the 3D world. */
 export function portraitCanvas(planet: PlanetRecipe, size: number) {
-  const key = `${size}/${JSON.stringify([
-    planet.id,
-    planet.seed,
-    planet.terrain,
-    planet.colors,
-    planet.atmosphere,
-    planet.surface,
-  ])}`;
-  let canvas = planetPortraits.get(key);
+  let sizes = planetPortraits.get(planet);
+  if (!sizes) planetPortraits.set(planet, (sizes = new Map()));
+  let canvas = sizes.get(size);
   if (!canvas) {
-    if (planetPortraits.size > 160) planetPortraits.clear();
     canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     canvas
       .getContext('2d')
       ?.putImageData(renderPlanetPortrait(planet, size), 0, 0);
-    planetPortraits.set(key, canvas);
+    sizes.set(size, canvas);
   }
   return canvas;
 }
@@ -85,8 +86,8 @@ export function drawSystemMark(canvas: HTMLCanvasElement, system: SolarSystem) {
   const tilt = 0.42;
   g.clearRect(0, 0, size, size);
   const sky = g.createRadialGradient(c, c * 0.9, 0, c, c, c * 1.1);
-  sky.addColorStop(0, `${system.nebula[1]}`);
-  sky.addColorStop(0.55, `${system.nebula[0]}`);
+  sky.addColorStop(0, system.nebula[1]);
+  sky.addColorStop(0.55, system.nebula[0]);
   sky.addColorStop(1, '#040912');
   g.fillStyle = sky;
   g.fillRect(0, 0, size, size);
@@ -121,10 +122,10 @@ export function drawSystemMark(canvas: HTMLCanvasElement, system: SolarSystem) {
       ),
     };
   });
+  // One scratch canvas per thumbnail, resized per world.
+  const mark = document.createElement('canvas');
   const drawBody = ({ planet, x, y, d }: (typeof bodies)[number]) => {
-    const px = Math.max(8, Math.round(d * 2));
-    const mark = document.createElement('canvas');
-    mark.width = mark.height = px;
+    mark.width = mark.height = Math.max(8, Math.round(d * 2));
     drawPlanetMark(mark, planet, system.star.color);
     g.drawImage(mark, x - d, y - d, d * 2, d * 2);
   };

@@ -22,6 +22,7 @@ export class SolarShip {
   private readonly owned: (THREE.BufferGeometry | THREE.Material)[] = [];
   private time = 0;
   private beamLevel = 0;
+  private chase = -1;
   private placed = false;
   size = 1;
 
@@ -183,10 +184,6 @@ export class SolarShip {
     this.placed = true;
   }
 
-  get isPlaced() {
-    return this.placed;
-  }
-
   /**
    * @param target world-space point to hover at
    * @param beamDepth distance the beam should reach below, or 0 for none
@@ -248,7 +245,10 @@ export class SolarShip {
       this.beam.material.uniforms.level.value = this.beamLevel;
       this.beam.material.uniforms.time.value = this.time;
     }
+    // The chase steps nine times a second; upload colors only when it does.
     const chase = Math.floor(this.time * 9) % 12;
+    if (chase === this.chase) return;
+    this.chase = chase;
     for (let i = 0; i < 12; i++) {
       this.lightColor.set(
         (i + chase) % 12 < 2 ? 0xfff6c8 : i % 2 ? 0xffc35a : 0x7ff0ff,

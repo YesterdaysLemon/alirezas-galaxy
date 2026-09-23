@@ -122,12 +122,15 @@ export function jevRequest(project, summary, families, themes, worlds) {
   return { model: JEV_MODEL, state, questions };
 }
 
+const sameMembers = (a, b) =>
+  a.length === b.length && new Set([...a, ...b]).size === a.length;
+
 /** Validate a Choice answer exactly as the reference client does. */
 export function validateChoice(answer, options) {
   const probabilities = answer?.probabilities ?? {};
   if (
     answer?.type !== 'choice' ||
-    Object.keys(probabilities).sort().join() !== [...options].sort().join()
+    !sameMembers(Object.keys(probabilities), options)
   )
     throw new Error('Choice schema or option coverage mismatch');
   const values = Object.values(probabilities);

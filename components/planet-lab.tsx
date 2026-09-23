@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { solarSystems, type PlanetRecipe } from '@/data/solar-systems';
 import { surfaceTuning } from '@/lib/planet-textures';
 import { PlanetPreparation } from '@/lib/planet-preparation';
-import { createWorldBody } from '@/lib/solar-system-resources';
+import { createWorldBody } from '@/lib/solar/bodies';
 import { drawPlanetMark } from '@/lib/planet-marks';
 
 type Terrain = PlanetRecipe['terrain'];
@@ -126,9 +126,7 @@ function recipeSnippet(planet: PlanetRecipe, draft: Draft) {
     ...(draft.rings ? ['  rings: true,'] : []),
     `  surface: { ${surface} },`,
   ];
-  return planet.projectId
-    ? `// authoredTerrain in data/solar-systems.ts\n'${planet.id}': {\n${lines.map((l) => `  ${l}`).join('\n')}\n},`
-    : `// the scenic ${planet.name} recipe in data/solar-systems.ts\n{\n${lines.join('\n')}\n}`;
+  return `// authoredTerrain in data/solar-systems.ts\n'${planet.id}': {\n${lines.map((l) => `  ${l}`).join('\n')}\n},`;
 }
 
 function Mark({ planet, size }: { planet: PlanetRecipe; size: number }) {

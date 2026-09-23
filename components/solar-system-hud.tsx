@@ -12,7 +12,7 @@ import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
 import { worldCatalog, type CatalogWorld } from '../data/worlds';
 import { worldComms } from '../data/world-comms';
 import { PanelFasteners, WorldPreview } from './world-comms';
-import type { SolarPhase } from '../lib/solar-system-scene';
+import type { SolarPhase } from '../lib/solar/scene';
 import { drawPlanetMark } from '../lib/planet-marks';
 
 const projectsById: Record<string, CatalogWorld | undefined> =
@@ -58,8 +58,8 @@ function PlanetComms({
   system: SolarSystem;
   onClose: () => void;
 }) {
-  const project = planet.projectId ? projectsById[planet.projectId] : undefined;
-  const message = planet.projectId ? worldComms[planet.projectId] : undefined;
+  const project = projectsById[planet.projectId];
+  const message = worldComms[planet.projectId];
   const [tuned, setTuned] = useState(false);
   useEffect(() => {
     // A brief carrier sweep before the picture locks, as in the galaxy comms.
@@ -104,9 +104,7 @@ function PlanetComms({
           </span>
           <p>{message?.intro ?? planet.description}</p>
           <span className="world-address">
-            {planet.url
-              ? new URL(planet.url).hostname.replace(/^www\./, '')
-              : 'Uninhabited · no transmission'}
+            {new URL(planet.url).hostname.replace(/^www\./, '')}
           </span>
           <PanelFasteners />
           <span className="comms-screen-static" aria-hidden="true" />
@@ -119,26 +117,20 @@ function PlanetComms({
       </div>
       <div className="world-replies">
         <span className="comms-screen-static" aria-hidden="true" />
-        {planet.url ? (
-          <a
-            href={planet.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="world-play"
-            aria-label={`Visit ${planet.name}`}
-          >
-            <span aria-hidden="true" className="comms-response-arrow">
-              ▸
-            </span>
-            <span>
-              {planet.status === 'preview' ? 'preview world' : 'open world'}
-            </span>
-          </a>
-        ) : (
-          <p className="world-play solar-silent">
-            <span>no answer · scenic world</span>
-          </p>
-        )}
+        <a
+          href={planet.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="world-play"
+          aria-label={`Visit ${planet.name}`}
+        >
+          <span aria-hidden="true" className="comms-response-arrow">
+            ▸
+          </span>
+          <span>
+            {planet.status === 'preview' ? 'preview world' : 'open world'}
+          </span>
+        </a>
         {message?.source && (
           <a
             href={message.source}
@@ -169,9 +161,6 @@ function PlanetComms({
   );
 }
 
-const inhabited = (system: SolarSystem) =>
-  system.planets.filter((body) => body.url).length;
-
 const GALAXY_ICON =
   'M12 12c0-1.7 2.4-2.1 3.3-.6 1.3 2.1-1 4.6-3.6 4.3-3.6-.4-4.9-4.9-2.6-7.6 3-3.4 8.8-2.2 10 2.3';
 
@@ -189,7 +178,9 @@ function Readout({
         <span>{system.star.classification}</span>
         <span className="solar-chips">
           <i>{system.planets.length} worlds</i>
-          <i>{system.planets.filter((body) => body.url).length} inhabited</i>
+          {system.belts.some((belt) => belt.kind === 'asteroid') && (
+            <i>asteroid belt</i>
+          )}
         </span>
       </div>
     );
@@ -199,20 +190,8 @@ function Readout({
       <strong>{planet.name}</strong>
       <span>{planet.kind}</span>
       <span className="solar-chips">
-        <i
-          data-tone={
-            planet.url
-              ? planet.status === 'preview'
-                ? 'amber'
-                : 'lime'
-              : 'dim'
-          }
-        >
-          {planet.url
-            ? planet.status === 'preview'
-              ? 'preview'
-              : 'live world'
-            : 'scenic'}
+        <i data-tone={planet.status === 'preview' ? 'amber' : 'lime'}>
+          {planet.status === 'preview' ? 'preview' : 'live world'}
         </i>
         {moons > 0 && <i>{moons === 1 ? '1 moon' : `${moons} moons`}</i>}
         {planet.rings && <i>rings</i>}
@@ -270,20 +249,19 @@ export function SolarSystemHud({
       : (planet ?? null);
   const hoverPlanet =
     hovered === null || navigating ? null : system.planets[hovered];
-  const hoverProject = hoverPlanet?.projectId
-    ? projectsById[hoverPlanet.projectId]
-    : null;
+  const hoverProject = hoverPlanet && projectsById[hoverPlanet.projectId];
+  // Only what the card shows: a systemId would turn its portrait into a star's.
   const previewWorld =
-    hoverPlanet && (!hoverPlanet.projectId || hoverProject)
+    hoverPlanet && hoverProject
       ? {
-          id: hoverProject?.id ?? hoverPlanet.id,
-          name: hoverProject?.name ?? hoverPlanet.name,
-          kind: hoverProject?.kind ?? hoverPlanet.kind,
-          url: hoverProject?.url,
-          iconSrc: hoverProject?.iconSrc,
-          glyph: hoverProject?.glyph ?? hoverPlanet.name.charAt(0),
+          id: hoverProject.id,
+          name: hoverProject.name,
+          kind: hoverProject.kind,
+          url: hoverProject.url,
+          iconSrc: hoverProject.iconSrc,
+          glyph: hoverProject.glyph,
           color:
-            hoverProject?.color ??
+            hoverProject.color ??
             Number.parseInt(hoverPlanet.atmosphere.slice(1), 16),
         }
       : null;
@@ -560,9 +538,9 @@ export function SolarSystemHud({
                       <strong>{entry.name}</strong>
                       <small>
                         {entry.starName} ·{' '}
-                        {inhabited(entry) === 1
+                        {entry.planets.length === 1
                           ? '1 world'
-                          : `${inhabited(entry)} worlds`}
+                          : `${entry.planets.length} worlds`}
                       </small>
                     </span>
                   </button>

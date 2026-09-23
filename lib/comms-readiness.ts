@@ -7,7 +7,10 @@ export function syncCommsIdentity(
     Boolean(worldId) &&
     element.dataset.worldId === worldId &&
     element.dataset.phase !== 'leaving';
-  element.dataset.positionReady = String(matches);
+  // Called every frame: write only on change.
+  const ready = String(matches);
+  if (element.dataset.positionReady !== ready)
+    element.dataset.positionReady = ready;
   return matches;
 }
 

@@ -40,11 +40,9 @@
   --ss-glass-hi: rgba(22, 52, 84, 0.94);
   --ss-metal: linear-gradient(#a9b6bf, #6b7881 38%, #3c464e 62%, #58646d);
   --ss-metal-edge: #1a2127;
-  --ss-rim-hi: #dfe9ef;
   --ss-cyan: #6fe6ff;
   --ss-lime: #b7f58e;
   --ss-amber: #ffe16a;
-  --ss-gold: #e0bd52;
   --ss-text: #eef8ff;
   --ss-muted: #9fbccb;
   --scope: 140px;
@@ -144,14 +142,6 @@
   object-fit: contain;
   background: #0b2533;
   box-shadow: 0 1px 4px #000c;
-}
-.solar-silent {
-  margin: 0;
-  cursor: default;
-  color: #b9c4b0;
-  border-color: #6f7d73;
-  background: linear-gradient(#3c4a44 0%, #26332f 43%, #1d2926 51%, #2d3a35);
-  filter: none !important;
 }
 
 /* ---------- Console: rail, helm (left) and worlds deck (right) ---------- */
@@ -587,9 +577,6 @@
 .solar-chips i[data-tone='amber'] {
   border-color: #9a8438;
   color: var(--ss-amber);
-}
-.solar-chips i[data-tone='dim'] {
-  color: var(--ss-muted);
 }
 .solar-tray {
   display: flex;
