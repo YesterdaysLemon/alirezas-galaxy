@@ -128,6 +128,15 @@ export class SolarSystemScene {
   private viewLift = 0;
   /** Distance scale at the last layout, so a resize keeps the reader's zoom. */
   private zoomBase = 1;
+  /**
+   * The world a zoom-in gesture began over. The camera eases behind the zoom
+   * goal, so per-notch hit tests drift off a world during a quick flick;
+   * the gesture keeps its first aim instead.
+   */
+  private zoomTarget: number | null = null;
+  private zoomTargetAt = 0;
+  private zoomTargetX = 0;
+  private zoomTargetY = 0;
   private raycaster = new THREE.Raycaster();
   private orbitalPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private target = new THREE.Vector3();
@@ -1351,18 +1360,32 @@ export class SolarSystemScene {
     this.distance = closer;
     this.widestAt = 0;
     // Close enough over a world: glide down onto it without a turn.
-    const world =
-      clientX === undefined || clientY === undefined
-        ? null
-        : this.pick(clientX, clientY);
-    if (world === null) return;
+    if (clientX === undefined || clientY === undefined) return;
+    const now = performance.now();
+    if (
+      now - this.zoomTargetAt > 400 ||
+      Math.hypot(clientX - this.zoomTargetX, clientY - this.zoomTargetY) > 24
+    ) {
+      this.zoomTarget = this.pick(clientX, clientY);
+      this.zoomTargetX = clientX;
+      this.zoomTargetY = clientY;
+    }
+    this.zoomTargetAt = now;
+    const world = this.zoomTarget;
+    if (world === null || !this.bodies[world]) return;
     const base = this.focusDistance(this.bodies[world].recipe);
-    if (closer > base * CAPTURE_WORLD) return;
+    // Small worlds capture beyond the system zoom's floor; reaching the floor
+    // over one still lands on it.
+    if (closer > base * CAPTURE_WORLD && closer > closest * 1.001) return;
+    this.zoomTarget = null;
     this.setHover(null);
     this.selected = world;
     this.flying = false;
     this.highlightOrbits();
-    this.distance = Math.max(base * 0.56, closer);
+    this.distance = Math.max(
+      base * 0.56,
+      Math.min(closer, base * CAPTURE_WORLD),
+    );
     this.zoomBase = base;
     this.report('planet');
   }

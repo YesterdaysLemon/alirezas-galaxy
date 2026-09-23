@@ -129,8 +129,10 @@
   );
 }
 .solar-comms-face .solar-mini-planet {
-  width: 84%;
-  height: 84%;
+  /* The bay is taller than wide on phones; keep the world round. */
+  width: min(84%, 112px);
+  height: auto;
+  aspect-ratio: 1;
 }
 .spore-shell .solar-comms-face img.solar-comms-badge {
   inset: auto 6px 6px auto;
