@@ -225,6 +225,21 @@
       "glyph": "♜",
       "systemId": "curiosity-and-play",
       "orbitSlot": 5
+    },
+    {
+      "id": "dodeca",
+      "name": "Dodeca & Point",
+      "kind": "Living 3D experiment",
+      "url": "https://dodeca.alirezaafshan.com",
+      "description": "Twelve competing drives and one holistic decision wander a strange, abundant world.",
+      "relationship": "owned",
+      "hosting": "first-party",
+      "status": "live",
+      "iconSrc": "https://dodeca.alirezaafshan.com/icon.svg",
+      "glyph": "◈",
+      "color": 16026482,
+      "systemId": "frontier",
+      "orbitSlot": 0
     }
   ]
 }

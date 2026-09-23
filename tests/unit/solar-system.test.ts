@@ -89,12 +89,20 @@ describe('catalog-driven solar systems', () => {
   });
 
   it('keeps every project reachable exactly once beyond eighteen and never compacts companion slots', () => {
+    // Newcomers take the next free Frontier slots, after real members.
+    const firstFree =
+      Math.max(
+        -1,
+        ...worldCatalog
+          .filter((world) => world.systemId === 'frontier')
+          .map((world) => world.orbitSlot),
+      ) + 1;
     const frontier = Array.from({ length: 31 }, (_, index) => ({
       ...worldCatalog[1],
       id: `frontier-${index}`,
       url: `https://frontier-${index}.alirezaafshan.com`,
       systemId: 'frontier',
-      orbitSlot: index,
+      orbitSlot: firstFree + index,
     }));
     const expanded = [...worldCatalog, ...frontier];
     const systems = buildSolarSystems(expanded);

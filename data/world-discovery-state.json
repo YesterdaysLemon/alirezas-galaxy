@@ -103,5 +103,12 @@
     "failedSince": null,
     "systemId": "patterns-and-life",
     "orbitSlot": 1
+  },
+  "dodeca": {
+    "url": "https://dodeca.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "frontier",
+    "orbitSlot": 0
   }
 }

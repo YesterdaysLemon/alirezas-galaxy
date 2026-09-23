@@ -13,7 +13,7 @@ The original five-arm galaxy remains the home view. Its family stars lead to **P
 - Orbital positions hold while hovering or inspecting a planet so the attached card, controls and composition remain stable. Surface rotation continues until paused. The pause control freezes ambient scene motion; reduced motion skips camera animation once the real system resources are ready.
 - Share `/#system/patterns-and-life` or `/#system/patterns-and-life/plato`. Unknown or malformed system/planet addresses return safely to the galaxy.
 
-The galaxy's camera position, orientation and visibility are saved on entry and restored on return, including after switching systems or cancelling an entry. Patterns & Life has five project worlds plus Nacre, five moons and two asteroid belts. Curiosity & Play has six projects; Tools & Infrastructure has three. The system chart exposes populated companion systems as the catalog grows.
+The galaxy's camera position, orientation and visibility are saved on entry and restored on return, including after switching systems or cancelling an entry. Patterns & Life has five project worlds plus Nacre, five moons and two asteroid belts. Curiosity & Play has six projects; Tools & Infrastructure has three; Frontier, where new discoveries land, begins with Dodeca & Point. The system chart exposes populated companion systems as the catalog grows.
 
 ## Art direction
 

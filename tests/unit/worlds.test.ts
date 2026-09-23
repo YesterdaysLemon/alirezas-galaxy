@@ -61,15 +61,23 @@ describe('public catalog and bounded galaxy', () => {
   });
 
   it('bounds galaxy targets even when every family needs companion systems', () => {
+    // Fill Frontier slots 0-89 around any real members already there.
+    const taken = new Set(
+      worldCatalog
+        .filter((world) => world.systemId === 'frontier')
+        .map((world) => world.orbitSlot),
+    );
     const expanded = [
       ...worldCatalog,
-      ...Array.from({ length: 90 }, (_, index) => ({
-        ...worldCatalog[1],
-        id: `new-${index}`,
-        url: `https://new-${index}.alirezaafshan.com`,
-        systemId: 'frontier',
-        orbitSlot: index,
-      })),
+      ...Array.from({ length: 90 }, (_, slot) => slot)
+        .filter((slot) => !taken.has(slot))
+        .map((slot) => ({
+          ...worldCatalog[1],
+          id: `new-${slot}`,
+          url: `https://new-${slot}.alirezaafshan.com`,
+          systemId: 'frontier',
+          orbitSlot: slot,
+        })),
     ];
     const systems = buildSolarSystems(expanded);
     const markers = buildGalaxyDestinations(expanded, systems);
