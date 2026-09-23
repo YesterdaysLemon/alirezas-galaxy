@@ -13,81 +13,10 @@ import { worldCatalog, type CatalogWorld } from '../data/worlds';
 import { worldComms } from '../data/world-comms';
 import { PanelFasteners, WorldPreview } from './world-comms';
 import type { SolarPhase } from '../lib/solar-system-scene';
-import { renderPlanetPortrait } from '../lib/planet-textures';
+import { drawPlanetMark } from '../lib/planet-marks';
 
 const projectsById: Record<string, CatalogWorld | undefined> =
   Object.fromEntries(worldCatalog.map((world) => [world.id, world]));
-
-const planetPortraits = new Map<string, HTMLCanvasElement>();
-
-/** A cached, lit portrait from the same surface sampler as the 3D world. */
-function portraitCanvas(planet: PlanetRecipe, size: number) {
-  const key = `${size}/${JSON.stringify([
-    planet.id,
-    planet.seed,
-    planet.terrain,
-    planet.colors,
-    planet.atmosphere,
-    planet.surface,
-  ])}`;
-  let canvas = planetPortraits.get(key);
-  if (!canvas) {
-    if (planetPortraits.size > 160) planetPortraits.clear();
-    canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    canvas
-      .getContext('2d')
-      ?.putImageData(renderPlanetPortrait(planet, size), 0, 0);
-    planetPortraits.set(key, canvas);
-  }
-  return canvas;
-}
-
-/** Draws a world (and any ring system, split behind and in front) or a star. */
-export function drawPlanetMark(
-  canvas: HTMLCanvasElement,
-  planet: PlanetRecipe | undefined,
-  color: string,
-) {
-  const g = canvas.getContext('2d');
-  if (!g) return;
-  const size = canvas.width;
-  const c = size / 2;
-  g.clearRect(0, 0, size, size);
-  if (!planet) {
-    const glow = g.createRadialGradient(c * 0.9, c * 0.85, 0, c, c, c);
-    glow.addColorStop(0, '#fffdf0');
-    glow.addColorStop(0.35, color);
-    glow.addColorStop(0.62, `${color}99`);
-    glow.addColorStop(1, `${color}00`);
-    g.fillStyle = glow;
-    g.fillRect(0, 0, size, size);
-    return;
-  }
-  const body = planet.rings ? Math.round(size * 0.58) : size;
-  const ring = (from: number, to: number) => {
-    g.save();
-    g.translate(c, c);
-    g.rotate(-0.38);
-    g.lineCap = 'butt';
-    for (const [radius, width, alpha] of [
-      [0.47, 0.075, 0.85],
-      [0.37, 0.05, 0.6],
-    ] as const) {
-      g.beginPath();
-      g.ellipse(0, 0, size * radius, size * radius * 0.3, 0, from, to);
-      g.strokeStyle = planet.colors[3];
-      g.globalAlpha = alpha;
-      g.lineWidth = size * width;
-      g.stroke();
-    }
-    g.restore();
-  };
-  // Canvas angles run clockwise from +x: π..2π is the far (upper) half.
-  if (planet.rings) ring(Math.PI, Math.PI * 2);
-  g.drawImage(portraitCanvas(planet, body), c - body / 2, c - body / 2);
-  if (planet.rings) ring(0, Math.PI);
-}
 
 function SolarPlanetMark({
   planet,

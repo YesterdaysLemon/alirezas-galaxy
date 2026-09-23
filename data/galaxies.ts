@@ -40,7 +40,7 @@ export function buildGalaxyDestinations(
     markers.push({
       id: family.id,
       name: family.name,
-      kind: 'Project solar system',
+      kind: `${projectCount} ${projectCount === 1 ? 'world' : 'worlds'} around ${family.starName}`,
       systemId: first.id,
       url: `https://alirezaafshan.com/${systemHref(first.id)}`,
       description: `${family.subtitle} ${projectCount} public worlds across ${members.length} ${members.length === 1 ? 'system' : 'systems'}.`,
