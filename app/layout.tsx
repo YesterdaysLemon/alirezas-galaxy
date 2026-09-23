@@ -42,9 +42,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og.png',
-        width: 1731,
-        height: 909,
-        alt: "Alireza's Galaxy — linked worlds in one luminous corner of the web.",
+        width: 1200,
+        height: 630,
+        alt: "A glowing five-armed spiral galaxy with Alireza Afshan's wordmark in the corner: the home view of alirezaafshan.com.",
       },
     ],
   },

@@ -1,6 +1,8 @@
 'use client';
 
-import type { CSSProperties, RefObject } from 'react';
+import { useCallback, type CSSProperties, type RefObject } from 'react';
+import { getSolarSystem } from '@/data/solar-systems';
+import { drawSystemMark } from '@/lib/planet-marks';
 import type { Destination } from '@/data/worlds';
 import { worldComms } from '@/data/world-comms';
 
@@ -25,13 +27,39 @@ export function PanelFasteners() {
   );
 }
 
+/** A family star's live thumbnail in place of its glyph. */
+function SystemPortrait({ systemId }: { systemId: string }) {
+  const draw = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      const system = getSolarSystem(systemId);
+      if (canvas && system) drawSystemMark(canvas, system);
+    },
+    [systemId],
+  );
+  return (
+    <canvas className="system-portrait" ref={draw} width={128} height={128} />
+  );
+}
+
 function Portrait({
   world,
   compact = false,
 }: {
-  world: Pick<Destination, 'glyph' | 'iconSrc'>;
+  world: Pick<Destination, 'glyph' | 'iconSrc' | 'systemId'>;
   compact?: boolean;
 }) {
+  if (world.systemId)
+    return (
+      <div
+        className={compact ? 'world-preview-orbit' : 'world-orbit'}
+        aria-hidden="true"
+      >
+        <div className={compact ? 'world-preview-face' : 'world-face'}>
+          <SystemPortrait systemId={world.systemId} />
+          <span className="comms-screen-static" aria-hidden="true" />
+        </div>
+      </div>
+    );
   return (
     <div
       className={compact ? 'world-preview-orbit' : 'world-orbit'}
