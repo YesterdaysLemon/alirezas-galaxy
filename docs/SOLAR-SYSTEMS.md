@@ -1,6 +1,6 @@
 # Project solar systems
 
-The original five-arm galaxy remains the home view. Its family stars lead to **Patterns & Life**, **Curiosity & Play**, and **Tools & Infrastructure**, using the same Three.js scene, camera, renderer and animation loop. The portfolio remains a direct homeworld. Changes are local until publication is explicitly authorized.
+The original five-arm galaxy remains the home view. Its family stars lead to **Patterns & Life**, **Curiosity & Play**, **Tools & Infrastructure**, **Ideas & Inquiry** and, once discoveries arrive, **Frontier**, using the same Three.js scene, camera, renderer and animation loop. The portfolio remains a direct homeworld. Changes are local until publication is explicitly authorized.
 
 ## The journey
 
@@ -13,7 +13,7 @@ The original five-arm galaxy remains the home view. Its family stars lead to **P
 - Orbital positions hold while hovering or inspecting a planet so the attached card, controls and composition remain stable. Surface rotation continues until paused. The pause control freezes ambient scene motion; reduced motion skips camera animation once the real system resources are ready.
 - Share `/#system/patterns-and-life` or `/#system/patterns-and-life/plato`. Unknown or malformed system/planet addresses return safely to the galaxy.
 
-The galaxy's camera position, orientation and visibility are saved on entry and restored on return, including after switching systems or cancelling an entry. Patterns & Life has five project worlds plus Nacre, five moons and two asteroid belts. Curiosity & Play has six projects; Tools & Infrastructure has three; Frontier, where new discoveries land, begins with Dodeca & Point. The system chart exposes populated companion systems as the catalog grows.
+The galaxy's camera position, orientation and visibility are saved on entry and restored on return, including after switching systems or cancelling an entry. Patterns & Life has six project worlds plus Nacre, five moons and two asteroid belts, and a companion system (Morphogenesis, Openwater, Between Worlds, Dodeca & Point). Curiosity & Play fills its six slots and continues in a companion (Cube, SOFT SIGNAL). Tools & Infrastructure fills its six. Ideas & Inquiry, around the star Vesper, holds Lyrebird, The Intuition Lab and please. Frontier, where uncurated discoveries land, is empty and its star appears only when populated. Sparse companion systems frame at a common minimum scale. The system chart exposes populated companion systems as the catalog grows.
 
 ## Art direction
 
@@ -46,7 +46,7 @@ One sampler per world type drives textures, relief, portraits and console icons:
 
 Run `npm run dev` and open `/planet-lab` to tune any world: type, seed, palette, atmosphere, sea, continents, ice, clouds, relief and detail, with a live 3D preview using the game's own materials plus the portrait and socket icon. Drafts persist in that browser only. **Copy recipe** produces the `authoredTerrain` entry to paste into `data/solar-systems.ts`. The lab is excluded from release images by `.dockerignore` and a Dockerfile guard.
 
-`data/worlds.ts` exposes the complete public catalog; `data/galaxies.ts` projects it into the portfolio and at most four family stars. `data/solar-systems.ts` derives system and planet metadata from that catalog, with immutable project IDs selecting terrain. Names, URLs, descriptions and publication status are not copied into a second project registry.
+`data/worlds.ts` exposes the complete public catalog; `data/galaxies.ts` projects it into the portfolio and one star per populated family. `data/solar-systems.ts` derives system and planet metadata from that catalog, with immutable project IDs selecting terrain. Names, URLs, descriptions and publication status are not copied into a second project registry.
 
 Each project has a permanent family `systemId` and family-wide `orbitSlot`. Six slots form a system: 0–5 use `<family>`, 6–11 use `<family>-2`, and so on. Removing a member leaves a gap rather than moving its neighbors. Entire empty companions disappear from the chart without renumbering later systems. New discoveries receive Frontier slots; catalog size no longer depends on a galaxy marker cap. The discovery state retains retired addresses so recovery and future growth do not reshuffle worlds. See [daily discovery](world-discovery.md) for public eligibility and curation.
 

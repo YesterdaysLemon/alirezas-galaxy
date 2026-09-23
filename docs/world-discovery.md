@@ -12,6 +12,11 @@ exposes that field as `apps[].url`. Merely appearing in `city.routes`, DNS,
 datastores, or the control plane does not opt a service in. Frame by Frame and
 Herald were verified from the public topology and their HTTPS home pages.
 Valet is explicitly seeded as a preview until its home page returns 2xx.
+On 2026-09-23, twelve Deploy Manager opt-ins (Between Worlds, Bezalel, Cube,
+D. melanogaster, Lyrebird, Magic Keys, Morphogenesis, Openwater, please., SOFT
+SIGNAL, The Intuition Lab and WorkCiv) were curated into families with registry
+addresses after HTTPS checks; the refresh on `main` had been failing since
+2026-09-19 against its old eighteen-world cap.
 
 Only single-label HTTPS subdomains of alirezaafshan.com with a root path qualify.
 Mail, admin, internal, staging, dev, test, VPN, and API labels are rejected.
@@ -50,7 +55,7 @@ Run locally: `node scripts/refresh-worlds.mjs`, then `npm run test:unit` and
 
 Every registry project has a `systemId` family and nonnegative integer `orbitSlot`.
 The portfolio alone uses `home`/`0`; authored families are `patterns-and-life`,
-`curiosity-and-play`, and `tools-and-infrastructure`. New public discoveries receive
+`curiosity-and-play`, `tools-and-infrastructure` and `ideas-and-inquiry`. New public discoveries receive
 the next unallocated `frontier` slot in deterministic project-ID order.
 
 Slots 0–5 belong to the family's root system, 6–11 to `<family>-2`, and so on.

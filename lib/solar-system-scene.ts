@@ -609,7 +609,9 @@ export class SolarSystemScene {
   }
 
   private overviewDistance() {
-    const extent = this.system?.extent ?? 40;
+    // A sparse companion system still frames at a common scale, so its star
+    // keeps the same size on screen instead of swallowing the view.
+    const extent = Math.max(44, this.system?.extent ?? 40);
     // Frame the tilted orbital plane rather than the sphere containing its belts.
     return extent * 1.38 * Math.max(1, 0.8 / this.camera.aspect);
   }

@@ -6,6 +6,7 @@ import {
   solarSystems,
   buildSolarSystems,
   getSolarSystem,
+  systemFamilies,
 } from '@/data/solar-systems';
 import { serializeWorlds, renderLlmsText } from '@/data/site';
 import { MIN_WORLD_SPACING, worldCatalog, worldDistance } from '@/data/worlds';
@@ -81,7 +82,8 @@ describe('public catalog and bounded galaxy', () => {
     ];
     const systems = buildSolarSystems(expanded);
     const markers = buildGalaxyDestinations(expanded, systems);
-    expect(markers).toHaveLength(5);
+    // The homeworld plus one star per populated family, however many systems.
+    expect(markers).toHaveLength(1 + systemFamilies.length);
     expect(
       systems.filter((system) => system.id.startsWith('frontier')),
     ).toHaveLength(15);

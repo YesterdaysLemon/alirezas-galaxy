@@ -99,7 +99,7 @@
   },
   "plato": {
     "url": "https://plato.alirezaafshan.com",
-    "everHealthy": false,
+    "everHealthy": true,
     "failedSince": null,
     "systemId": "patterns-and-life",
     "orbitSlot": 1
@@ -108,7 +108,91 @@
     "url": "https://dodeca.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "frontier",
+    "systemId": "patterns-and-life",
+    "orbitSlot": 9
+  },
+  "dmelanogaster": {
+    "url": "https://fly.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 5
+  },
+  "morphogenesis": {
+    "url": "https://morphogenesis.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 6
+  },
+  "openwater": {
+    "url": "https://openwater.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 7
+  },
+  "between-worlds": {
+    "url": "https://between-worlds.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 8
+  },
+  "cube": {
+    "url": "https://cube.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 6
+  },
+  "astrapop": {
+    "url": "https://astrapop.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 7
+  },
+  "magic-keys": {
+    "url": "https://keys.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 3
+  },
+  "bezalel": {
+    "url": "https://bezalel.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 4
+  },
+  "workciv": {
+    "url": "https://workciv.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 5
+  },
+  "lyrebird": {
+    "url": "https://lyrebird.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "ideas-and-inquiry",
     "orbitSlot": 0
+  },
+  "intuition": {
+    "url": "https://intuition.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 1
+  },
+  "pretty-please": {
+    "url": "https://please.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 2
   }
 }

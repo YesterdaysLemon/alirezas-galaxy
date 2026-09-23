@@ -289,12 +289,12 @@ test('the ship HUD keeps the top clear and runs the menu, zoom and pause', async
   const menu = page.getByRole('button', { name: 'Ship menu' });
   await menu.click();
   await expect(
-    page.getByRole('button', { name: 'Enter Curiosity & Play' }),
+    page.getByRole('button', { name: 'Enter Curiosity & Play', exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'random world' }).focus();
   await page.keyboard.press('Escape');
   await expect(
-    page.getByRole('button', { name: 'Enter Curiosity & Play' }),
+    page.getByRole('button', { name: 'Enter Curiosity & Play', exact: true }),
   ).toBeHidden();
   await expect(menu).toBeFocused();
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');

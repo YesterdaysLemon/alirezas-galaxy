@@ -32,6 +32,7 @@ const familyIds = [
   'patterns-and-life',
   'curiosity-and-play',
   'tools-and-infrastructure',
+  'ideas-and-inquiry',
   'frontier',
 ];
 
