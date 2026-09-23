@@ -22,7 +22,11 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # New worlds are placed by Jev when the key is present; otherwise they
+      # land on the Frontier. The key never reaches logs or committed files.
       - run: node scripts/refresh-worlds.mjs
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
       - run: npm run test:unit
       - run: npm run build
       - name: Commit validated catalog and request release
@@ -30,12 +34,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- data/worlds.generated.json data/world-discovery-state.json; then exit 0; fi
+          files='data/worlds.generated.json data/world-discovery-state.json data/families.json data/world-terrain.json data/world-classifications.json'
+          if git diff --quiet -- $files; then exit 0; fi
           catalog_changed=false
-          if ! git diff --quiet -- data/worlds.generated.json; then catalog_changed=true; fi
+          if ! git diff --quiet -- data/worlds.generated.json data/families.json data/world-terrain.json; then catalog_changed=true; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/worlds.generated.json data/world-discovery-state.json
+          git add $files
           git commit -m 'Refresh public galaxy worlds'
           git push origin HEAD:main
           # GITHUB_TOKEN pushes do not trigger push workflows. Dispatch explicitly.

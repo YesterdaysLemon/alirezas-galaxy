@@ -1,5 +1,6 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { classifyNewWorlds } from './classify-worlds.mjs';
 
 export const GRACE_MS = 7 * 86400000;
 const source = 'https://deploy.alirezaafshan.com/api/topology';
@@ -28,20 +29,19 @@ export function publicUrl(value) {
   }
 }
 
-const familyIds = [
-  'patterns-and-life',
-  'curiosity-and-play',
-  'tools-and-infrastructure',
-  'ideas-and-inquiry',
-  'frontier',
-];
+// Active families live in data/families.json; classification may add one.
+const familyIds = new Set(
+  JSON.parse(await readFile('data/families.json', 'utf8')).active.map(
+    (family) => family.id,
+  ),
+);
 
 function hasAddress(project) {
   return (
     project &&
     Number.isSafeInteger(project.orbitSlot) &&
     project.orbitSlot >= 0 &&
-    (familyIds.includes(project.systemId) ||
+    (familyIds.has(project.systemId) ||
       (project.id === 'portfolio' &&
         project.systemId === 'home' &&
         project.orbitSlot === 0))
@@ -236,6 +236,60 @@ async function saveChanged(path, value) {
   return true;
 }
 
+/**
+ * New healthy worlds with no address are placed by Jev when a key is present
+ * (TYPESAFE_API_KEY); without one they fall back to Frontier as before.
+ * Applies addresses to the candidate projects, which then behave exactly like
+ * reviewed registry addresses, and records every decision.
+ */
+async function classify(projects, previous, state, health) {
+  const key = process.env.TYPESAFE_API_KEY?.trim();
+  const addressed = new Set([
+    ...previous.filter(hasAddress).map((p) => p.id),
+    ...Object.entries(state)
+      .filter(([id, entry]) => hasAddress({ ...entry, id }))
+      .map(([id]) => id),
+  ]);
+  const newWorlds = projects.filter(
+    (p) =>
+      p.systemId === undefined && !addressed.has(p.id) && health[p.id] === true,
+  );
+  if (!key || !newWorlds.length) return [];
+  const familyData = JSON.parse(await readFile('data/families.json', 'utf8'));
+  const addresses = [
+    ...Object.values(state),
+    ...previous,
+    ...projects.filter(hasAddress),
+  ].filter((entry) => Number.isSafeInteger(entry.orbitSlot));
+  const catalog = [...previous, ...projects.filter(hasAddress)];
+  const { placements, terrain, families, log } = await classifyNewWorlds({
+    newWorlds,
+    familyData,
+    catalog,
+    addresses,
+    key,
+  });
+  for (const family of families.active) familyIds.add(family.id);
+  for (const project of projects) {
+    const address = placements.get(project.id);
+    if (address) Object.assign(project, address);
+  }
+  await saveChanged('data/families.json', families);
+  const knownTerrain = JSON.parse(
+    await readFile('data/world-terrain.json', 'utf8').catch(() => '{}'),
+  );
+  await saveChanged('data/world-terrain.json', { ...knownTerrain, ...terrain });
+  const history = JSON.parse(
+    await readFile('data/world-classifications.json', 'utf8').catch(() => '[]'),
+  );
+  await saveChanged('data/world-classifications.json', [...history, ...log]);
+  return log.map((entry) => ({
+    id: entry.id,
+    ...entry.decision,
+    ...(entry.error ? { error: entry.error } : {}),
+  }));
+}
+
 export async function refresh() {
   const registry = JSON.parse(
     await readFile('data/world-registry.json', 'utf8'),
@@ -263,6 +317,7 @@ export async function refresh() {
       }),
     );
   }
+  const classified = await classify(projects, previous, state, health);
   const result = reconcile(
     projects,
     previous,
@@ -276,6 +331,7 @@ export async function refresh() {
   console.log(
     JSON.stringify({
       source,
+      classified,
       worlds: result.worlds.map((w) => ({ id: w.id, status: w.status })),
       unhealthy: projects.filter((p) => !health[p.id]).map((p) => p.id),
     }),

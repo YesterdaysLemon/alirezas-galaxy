@@ -1,8 +1,37 @@
 # Daily public worlds
 
-The deterministic `Refresh public worlds` GitHub Actions job runs daily at
-10:23 UTC (03:23 PDT / 02:23 PST), and can be dispatched manually. GitHub may
-delay scheduled jobs. No LLM, DNS credentials, or infrastructure changes are involved.
+The `Refresh public worlds` GitHub Actions job runs daily at 10:23 UTC
+(03:23 PDT / 02:23 PST), and can be dispatched manually. GitHub may delay
+scheduled jobs. Discovery and health are deterministic; placing brand-new worlds
+uses Jev (below). No DNS credentials or infrastructure changes are involved.
+
+## Autonomous placement with Jev
+
+A new, healthy, opted-in world with no address is placed without review by Jev
+(TypeSafe AI, pinned `jev-1.13.0`), using the `TYPESAFE_API_KEY` repository
+secret. Jev only answers typed questions, so one request asks three Choices:
+
+- **family**: each active family (described by its subtitle and current worlds)
+  or "none of these";
+- **theme**: which curated, not-yet-active theme in `data/families.json` a new
+  family would take;
+- **kind**: which world type (ocean, garden, desert, ice, colony, gas giant).
+
+A family pick weighted at least 0.45 takes that family's next never-used lane. A
+"none of these" weighted at least 0.5 opens the chosen theme as a new family
+(its star appears in the galaxy, before Frontier), up to `maxActive` families,
+which the galaxy's marker placement is tested to hold. Anything less certain, a
+failed call, or a missing key places the world on the Frontier, as before. The
+world kind is stored in `data/world-terrain.json`; its palette still varies by
+the world's own seed. Every decision, with all probabilities and a request hash
+but never a key or response body, is appended to `data/world-classifications.json`.
+The job commits these with the catalog only after the unit suite and build pass.
+
+Moving a world later is safe: project IDs are unique, so an old
+`#system/<old-system>/<world>` link resolves to wherever the world now lives.
+A calibration on 2026-09-23 against the thirteen worlds curated that day agreed
+on nine; Jev preferred Curiosity & Play for Openwater, Morphogenesis and Between
+Worlds.
 
 `data/world-registry.json` is the reviewed public project registry. Its order and
 metadata override discovery and preserve the portfolio as the default homeworld.
@@ -55,8 +84,9 @@ Run locally: `node scripts/refresh-worlds.mjs`, then `npm run test:unit` and
 
 Every registry project has a `systemId` family and nonnegative integer `orbitSlot`.
 The portfolio alone uses `home`/`0`; authored families are `patterns-and-life`,
-`curiosity-and-play`, `tools-and-infrastructure` and `ideas-and-inquiry`. New public discoveries receive
-the next unallocated `frontier` slot in deterministic project-ID order.
+`curiosity-and-play`, `tools-and-infrastructure` and `ideas-and-inquiry`. New public discoveries are placed by
+Jev (above), or receive the next unallocated `frontier` slot in deterministic
+project-ID order. Active families and the theme pool live in `data/families.json`.
 
 Slots 0–7 belong to the family's root system, 8–15 to `<family>-2`, and so on;
 each slot is a lane at a fixed orbit, so systems grow outward.

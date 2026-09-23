@@ -1,4 +1,6 @@
 import { worldCatalog, type CatalogWorld, type Destination } from './worlds';
+import familyData from './families.json' with { type: 'json' };
+import classifiedTerrain from './world-terrain.json' with { type: 'json' };
 
 /** Optional artistic controls for a world's generated surface (see the planet lab). */
 export type SurfaceTuning = {
@@ -96,53 +98,24 @@ function laneEnvelope(lane: number) {
 export function envelopeScale(planet: Pick<PlanetRecipe, 'moons' | 'rings'>) {
   return planet.moons ? 3.35 : planet.rings ? 2.5 : 1.1;
 }
-export const systemFamilies = [
-  {
-    id: 'patterns-and-life',
-    name: 'Patterns & Life',
-    subtitle: 'Small worlds. Emergent things.',
-    starName: 'Lumen',
-    color: '#ffe2a0',
-    classification: 'Warm gold star',
-    nebula: ['#244e6a', '#654465'],
-  },
-  {
-    id: 'curiosity-and-play',
-    name: 'Curiosity & Play',
-    subtitle: 'Field notes, little machines, imagined realms.',
-    starName: 'Lucida',
-    color: '#b7eaff',
-    classification: 'Blue-white star',
-    nebula: ['#263e79', '#76528b'],
-  },
-  {
-    id: 'tools-and-infrastructure',
-    name: 'Tools & Infrastructure',
-    subtitle: 'Quiet machinery that keeps the work moving.',
-    starName: 'Vigil',
-    color: '#ffc68c',
-    classification: 'Amber star',
-    nebula: ['#243f5b', '#665042'],
-  },
-  {
-    id: 'ideas-and-inquiry',
-    name: 'Ideas & Inquiry',
-    subtitle: 'Essays, research and questions put to the test.',
-    starName: 'Vesper',
-    color: '#ffd2c2',
-    classification: 'Rose-white star',
-    nebula: ['#3a2c5c', '#6b4454'],
-  },
-  {
-    id: 'frontier',
-    name: 'Frontier',
-    subtitle: 'New public worlds, with room to grow.',
-    starName: 'Aster',
-    color: '#d6c5ff',
-    classification: 'Pale violet star',
-    nebula: ['#293660', '#58476e'],
-  },
-] as const;
+export type SystemFamily = {
+  id: string;
+  name: string;
+  subtitle: string;
+  starName: string;
+  color: string;
+  classification: string;
+  nebula: [string, string];
+};
+
+/**
+ * Active families, in galaxy order; Frontier stays last. The daily refresh may
+ * promote a curated theme into this list when a new world fits no family.
+ */
+export const systemFamilies = familyData.active as SystemFamily[];
+/** Curated, not-yet-active families a classifier may open. */
+export const familyThemes = familyData.themes as SystemFamily[];
+export const MAX_ACTIVE_FAMILIES = familyData.maxActive;
 
 type TerrainRecipe = Pick<
   PlanetRecipe,
@@ -349,11 +322,89 @@ const palettes: Pick<TerrainRecipe, 'terrain' | 'colors' | 'atmosphere'>[] = [
     atmosphere: '#e4bcf1',
   },
 ];
+const gasPalette: (typeof palettes)[number] = {
+  terrain: 'gas',
+  colors: ['#4d3a6e', '#9a7fc0', '#e0b8a8', '#f7e3cc'],
+  atmosphere: '#e2cfff',
+};
+
+/** Shift a palette's hue and saturation by a seed, so generated worlds differ. */
+function varyPalette(
+  palette: (typeof palettes)[number],
+  seed: number,
+): (typeof palettes)[number] {
+  const hueShift = (((seed >>> 4) % 121) - 60) / 360;
+  const saturate = 0.75 + ((seed >>> 10) % 56) / 100;
+  const vary = (hex: string) => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    const [r, g, b] = [(n >>> 16) & 255, (n >>> 8) & 255, n & 255].map(
+      (v) => v / 255,
+    );
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b),
+      l = (max + min) / 2,
+      d = max - min;
+    let h = 0,
+      sat = 0;
+    if (d) {
+      sat = d / (1 - Math.abs(2 * l - 1));
+      h =
+        max === r
+          ? ((g - b) / d + (g < b ? 6 : 0)) / 6
+          : max === g
+            ? ((b - r) / d + 2) / 6
+            : ((r - g) / d + 4) / 6;
+    }
+    h = (h + hueShift + 1) % 1;
+    sat = Math.min(1, sat * saturate);
+    const c = (1 - Math.abs(2 * l - 1)) * sat,
+      x = c * (1 - Math.abs(((h * 6) % 2) - 1)),
+      m = l - c / 2;
+    const [r1, g1, b1] =
+      h < 1 / 6
+        ? [c, x, 0]
+        : h < 2 / 6
+          ? [x, c, 0]
+          : h < 3 / 6
+            ? [0, c, x]
+            : h < 4 / 6
+              ? [0, x, c]
+              : h < 5 / 6
+                ? [x, 0, c]
+                : [c, 0, x];
+    return (
+      '#' +
+      [r1, g1, b1]
+        .map((v) =>
+          Math.round((v + m) * 255)
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('')
+    );
+  };
+  return {
+    terrain: palette.terrain,
+    colors: palette.colors.map(vary) as TerrainRecipe['colors'],
+    atmosphere: vary(palette.atmosphere),
+  };
+}
+
 function terrainFor(id: string): TerrainRecipe {
   if (Object.hasOwn(authoredTerrain, id)) return authoredTerrain[id];
   const seed = identitySeed(id);
+  // A classifier may choose the kind of world; the palette still varies by seed.
+  const chosen = (classifiedTerrain as Record<string, { terrain?: string }>)[id]
+    ?.terrain;
+  const matching =
+    chosen === 'gas'
+      ? [gasPalette]
+      : palettes.filter((palette) => palette.terrain === chosen);
+  const base = (matching.length ? matching : palettes)[
+    seed % (matching.length || palettes.length)
+  ];
   return {
-    ...palettes[seed % palettes.length],
+    ...varyPalette(base, seed),
     seed,
     radius: 0.8 + ((seed >>> 8) % 40) / 100,
     phase: ((seed >>> 16) / 65536) * Math.PI * 2,
@@ -524,12 +575,19 @@ export function parseSystemRoute(
   if (!parts) return null;
   try {
     const system = getSolarSystem(decodeURIComponent(parts[1]));
-    if (!system) return null;
-    if (parts[2] === undefined) return { system, planetIndex: null };
-    const planetIndex = system.planets.findIndex(
-      (planet) => planet.id === decodeURIComponent(parts[2]),
-    );
-    return planetIndex < 0 ? null : { system, planetIndex };
+    if (parts[2] === undefined)
+      return system ? { system, planetIndex: null } : null;
+    const planetId = decodeURIComponent(parts[2]);
+    const planetIndex =
+      system?.planets.findIndex((planet) => planet.id === planetId) ?? -1;
+    if (system && planetIndex >= 0) return { system, planetIndex };
+    // Project IDs are unique: a world that moved (curation or classification)
+    // is still found from its old address.
+    for (const other of solarSystems) {
+      const index = other.planets.findIndex((planet) => planet.id === planetId);
+      if (index >= 0) return { system: other, planetIndex: index };
+    }
+    return null;
   } catch {
     return null;
   }
