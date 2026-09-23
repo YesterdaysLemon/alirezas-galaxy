@@ -1,119 +1,113 @@
 import { describe, expect, it } from 'vitest';
 import { webring } from '@/data/webring';
 import registry from '@/data/world-registry.json';
+import discoveryState from '@/data/world-discovery-state.json';
+import { galaxyDestinations, buildGalaxyDestinations } from '@/data/galaxies';
 import {
-  destinations,
-  MIN_WORLD_SPACING,
-  worldCatalog,
-  worldDistance,
-} from '@/data/worlds';
+  solarSystems,
+  buildSolarSystems,
+  getSolarSystem,
+  systemFamilies,
+  PROJECT_SLOTS_PER_SYSTEM,
+} from '@/data/solar-systems';
+import { serializeWorlds, renderLlmsText } from '@/data/site';
+import { MIN_WORLD_SPACING, worldCatalog, worldDistance } from '@/data/worlds';
+import { publicUrl } from '../../scripts/refresh-worlds.mjs';
 
-const requiredWorlds = [
-  'portfolio',
-  'celegans-lab',
-  'proof-bonsai',
-  'aquarium',
-  'bird-of-the-day',
-  'android-hell',
-  'conspiracy',
-  'codex-continuity',
-  'sponsor-my-microduck',
-  'agar-protocol',
-  'deploy-manager',
-];
-
-describe('world catalog', () => {
-  it('keeps every confirmed world mapped exactly once', () => {
-    expect(registry.projects.map(({ id }) => id)).toEqual(expect.arrayContaining(requiredWorlds));
-    expect(new Set(destinations.map(({ id }) => id)).size).toBe(destinations.length);
-    expect(destinations.length).toBeLessThanOrEqual(18);
-    expect(new Set(destinations.map(({ url }) => url)).size).toBe(
-      destinations.length,
+describe('public catalog and bounded galaxy', () => {
+  it('publishes all registry destinations without substituting family gateways', () => {
+    const published = serializeWorlds();
+    const ids = new Set(published.map(({ id }) => id));
+    // Every reviewed project is published; anything else was discovered and
+    // placed by the daily refresh, so it must be on record in discovery state.
+    for (const { id } of registry.projects) expect(ids).toContain(id);
+    for (const id of ids)
+      expect(
+        registry.projects.some((project) => project.id === id) ||
+          Object.hasOwn(discoveryState, id),
+      ).toBe(true);
+    expect(new Set(published.map(({ url }) => url)).size).toBe(
+      published.length,
     );
-  });
-
-  it('keeps the portfolio as the default homeworld', () => {
-    expect(destinations[0]).toMatchObject({
-      id: 'portfolio',
-      relationship: 'owned',
-      hosting: 'first-party',
-      iconSrc: 'https://portfolio.alirezaafshan.com/apple-touch-icon.png',
-    });
-  });
-  it('maps ChatJimmy as a discovery in the separate web ring', () => {
-    expect(webring.find(({ id }) => id === 'chatjimmy')).toMatchObject({
-      url: 'https://chatjimmy.ai/',
-      kind: 'inspiration',
-    });
-    expect(destinations.some(({ id }) => id === 'chatjimmy')).toBe(false);
-  });
-
-  it('reserves the home galaxy for owned projects and puts collaborations in the web ring', () => {
+    expect(published.find(({ id }) => id === 'plato')?.url).toBe(
+      'https://plato.alirezaafshan.com',
+    );
+    for (const world of worldCatalog) {
+      expect(publicUrl(world.url)).toBe(world.url);
+      expect(registry.deniedIds).not.toContain(world.id);
+      expect(renderLlmsText()).toContain(`](${world.url})`);
+    }
     expect(
-      destinations.every(({ relationship }) => relationship === 'owned'),
+      webring.every(({ url }) => !published.some((world) => world.url === url)),
     ).toBe(true);
-    expect(webring.find(({ id }) => id === 'learn2design')).toMatchObject({
-      kind: 'collaboration',
-    });
-    const worldUrls = new Set(destinations.map(({ url }) => url));
-    expect(webring.every(({ url }) => !worldUrls.has(url))).toBe(true);
+  });
+
+  it('keeps portfolio direct and maps each family star to an extant system', () => {
+    expect(galaxyDestinations[0].id).toBe('portfolio');
+    expect(galaxyDestinations[0].systemId).toBeUndefined();
+    for (const marker of galaxyDestinations.slice(1)) {
+      expect(
+        getSolarSystem(marker.systemId!)?.planets.some(
+          (planet) => planet.projectId,
+        ),
+      ).toBe(true);
+      expect(marker.url).toBe(
+        `https://alirezaafshan.com/#system/${marker.systemId}`,
+      );
+    }
+    const members = solarSystems.flatMap((system) =>
+      system.planets.flatMap((planet) =>
+        planet.projectId ? [planet.projectId] : [],
+      ),
+    );
+    expect(members.sort()).toEqual(
+      worldCatalog
+        .filter((world) => world.id !== 'portfolio')
+        .map((world) => world.id)
+        .sort(),
+    );
+    expect(buildGalaxyDestinations([])).toEqual([]);
+  });
+
+  it('bounds galaxy targets even when every family needs companion systems', () => {
+    // Fill Frontier slots 0-89 around any real members already there.
+    const taken = new Set(
+      worldCatalog
+        .filter((world) => world.systemId === 'frontier')
+        .map((world) => world.orbitSlot),
+    );
+    const expanded = [
+      ...worldCatalog,
+      ...Array.from({ length: 90 }, (_, slot) => slot)
+        .filter((slot) => !taken.has(slot))
+        .map((slot) => ({
+          ...worldCatalog[1],
+          id: `new-${slot}`,
+          url: `https://new-${slot}.alirezaafshan.com`,
+          systemId: 'frontier',
+          orbitSlot: slot,
+        })),
+    ];
+    const systems = buildSolarSystems(expanded);
+    const markers = buildGalaxyDestinations(expanded, systems);
+    // The homeworld plus one star per populated family, however many systems.
+    expect(markers).toHaveLength(1 + systemFamilies.length);
     expect(
-      destinations.find(({ id }) => id === 'codex-continuity'),
-    ).toMatchObject({
-      relationship: 'owned',
-      hosting: 'first-party',
-    });
-  });
-
-  it('uses verified public domains instead of development hosts', () => {
-    for (const world of destinations) {
-      expect(new URL(world.url).hostname.endsWith('.alirezaafshan.com')).toBe(true);
-      expect(world.hosting).toBe('first-party');
-    }
-    expect(destinations.find(({ id }) => id === 'conspiracy')?.url).toBe(
-      'https://conspiracy.alirezaafshan.com',
-    );
-    expect(destinations.find(({ id }) => id === 'codex-continuity')?.url).toBe(
-      'https://continuity.alirezaafshan.com',
-    );
-    expect(destinations.some(({ id }) => id === 'application-builder')).toBe(false);
-  });
-
-  it('keeps the retired Oyster runtime out of the public catalog', () => {
-    expect(registry.deniedIds).toContain('oyster-house');
-    expect(destinations.some(({ id }) => id === 'oyster-house')).toBe(false);
-  });
-
-  it('uses the current published brand icons', () => {
-    expect(destinations.find(({ id }) => id === 'agar-protocol')?.iconSrc).toBe(
-      'https://agar.alirezaafshan.com/agar-mark-02.svg',
-    );
-    expect(destinations.find(({ id }) => id === 'deploy-manager')?.iconSrc).toBe(
-      'https://deploy.alirezaafshan.com/favicon.svg',
-    );
-    expect(webring.find(({ id }) => id === 'chatjimmy')?.iconSrc).toBe(
-      'https://chatjimmy.ai/favicon.ico',
-    );
-  });
-
-  it('materializes safe deterministic galaxy coordinates', () => {
-    expect(destinations).toHaveLength(worldCatalog.length);
-    for (const destination of destinations) {
-      expect(Number.isFinite(destination.radius)).toBe(true);
-      expect(Number.isFinite(destination.angle)).toBe(true);
-      expect(Number.isFinite(destination.size)).toBe(true);
-      expect(destination.radius).toBeGreaterThan(0);
-      expect(destination.size).toBeGreaterThan(0);
-    }
-  });
-
-  it('keeps every world far enough apart to remain a distinct target', () => {
-    for (let first = 0; first < destinations.length; first += 1) {
-      for (let second = first + 1; second < destinations.length; second += 1) {
+      systems.filter((system) => system.id.startsWith('frontier')),
+    ).toHaveLength(Math.ceil(90 / PROJECT_SLOTS_PER_SYSTEM));
+    for (let first = 0; first < markers.length; first++) {
+      for (let second = first + 1; second < markers.length; second++) {
         expect(
-          worldDistance(destinations[first], destinations[second]),
+          worldDistance(markers[first], markers[second]),
         ).toBeGreaterThanOrEqual(MIN_WORLD_SPACING);
       }
     }
+    const sparse = expanded.filter(
+      (world) => world.systemId === 'frontier' && world.orbitSlot >= 12,
+    );
+    // The family star opens its first populated system, however far out.
+    expect(buildGalaxyDestinations(sparse)[0].systemId).toBe(
+      `frontier-${Math.floor(12 / PROJECT_SLOTS_PER_SYSTEM) + 1}`,
+    );
   });
 });

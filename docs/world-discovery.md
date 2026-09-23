@@ -1,8 +1,37 @@
 # Daily public worlds
 
-The deterministic `Refresh public worlds` GitHub Actions job runs daily at
-10:23 UTC (03:23 PDT / 02:23 PST), and can be dispatched manually. GitHub may
-delay scheduled jobs. No LLM, DNS credentials, or infrastructure changes are involved.
+The `Refresh public worlds` GitHub Actions job runs daily at 10:23 UTC
+(03:23 PDT / 02:23 PST), and can be dispatched manually. GitHub may delay
+scheduled jobs. Discovery and health are deterministic; placing brand-new worlds
+uses Jev (below). No DNS credentials or infrastructure changes are involved.
+
+## Autonomous placement with Jev
+
+A new, healthy, opted-in world with no address is placed without review by Jev
+(TypeSafe AI, pinned `jev-1.13.0`), using the `TYPESAFE_API_KEY` repository
+secret. Jev only answers typed questions, so one request asks three Choices:
+
+- **family**: each active family (described by its subtitle and current worlds)
+  or "none of these";
+- **theme**: which curated, not-yet-active theme in `data/families.json` a new
+  family would take;
+- **kind**: which world type (ocean, garden, desert, ice, colony, gas giant).
+
+A family pick weighted at least 0.45 takes that family's next never-used lane. A
+"none of these" weighted at least 0.5 opens the chosen theme as a new family
+(its star appears in the galaxy, before Frontier), up to `maxActive` families,
+which the galaxy's marker placement is tested to hold. Anything less certain, a
+failed call, or a missing key places the world on the Frontier, as before. The
+world kind is stored in `data/world-terrain.json`; its palette still varies by
+the world's own seed. Every decision, with all probabilities and a request hash
+but never a key or response body, is appended to `data/world-classifications.json`.
+The job commits these with the catalog only after the unit suite and build pass.
+
+Moving a world later is safe: project IDs are unique, so an old
+`#system/<old-system>/<world>` link resolves to wherever the world now lives.
+A calibration on 2026-09-23 against the thirteen worlds curated that day agreed
+on nine; Jev preferred Curiosity & Play for Openwater, Morphogenesis and Between
+Worlds (0.83–0.91), and they were moved there before publication.
 
 `data/world-registry.json` is the reviewed public project registry. Its order and
 metadata override discovery and preserve the portfolio as the default homeworld.
@@ -12,6 +41,11 @@ exposes that field as `apps[].url`. Merely appearing in `city.routes`, DNS,
 datastores, or the control plane does not opt a service in. Frame by Frame and
 Herald were verified from the public topology and their HTTPS home pages.
 Valet is explicitly seeded as a preview until its home page returns 2xx.
+On 2026-09-23, twelve Deploy Manager opt-ins (Between Worlds, Bezalel, Cube,
+D. melanogaster, Lyrebird, Magic Keys, Morphogenesis, Openwater, please., SOFT
+SIGNAL, The Intuition Lab and WorkCiv) were curated into families with registry
+addresses after HTTPS checks; the refresh on `main` had been failing since
+2026-09-19 against its old eighteen-world cap.
 
 Only single-label HTTPS subdomains of alirezaafshan.com with a root path qualify.
 Mail, admin, internal, staging, dev, test, VPN, and API labels are rejected.
@@ -27,11 +61,15 @@ explicit preview remains a preview. Oyster House is explicitly denied after the
 agent runtime was retired and its host repurposed as a private CI runner.
 State records the first failure, not every poll, so unchanged runs create no commits.
 Source errors and invalid schemas abort without replacing the last-known-good files.
-An eighteen-world cap plus actual placement/unit/build checks blocks overflow.
+Publication has no eighteen-world cap. Galaxy capacity is bounded separately: one
+star per populated family, with six permanent project slots per solar system.
+Full catalog, stable-address, orbital-clearance, placement and build checks guard growth.
 All discovery happens before deployment, adding no browser requests or polling.
 
-`data/worlds.generated.json` feeds both the galaxy and machine-readable catalogs.
-`data/world-discovery-state.json` stores only public URLs and health transition state.
+`data/worlds.generated.json` feeds the full `worldCatalog`, system membership and
+machine-readable catalogs; galaxy markers are a separate bounded projection.
+`data/world-discovery-state.json` stores public URLs, health transitions and permanent
+membership addresses, including tombstones for retired or denied projects.
 The job validates the full unit suite and build before committing. A conflicting
 push fails safely instead of overwriting other work. Catalog changes explicitly
 dispatch `Container` because GITHUB_TOKEN pushes do not start push workflows.
@@ -41,3 +79,23 @@ dispatching Container on main; a failed refresh can be rerun from Actions.
 
 Run locally: `node scripts/refresh-worlds.mjs`, then `npm run test:unit` and
 `npm run build`. Review the two generated JSON files before committing.
+
+## Stable membership
+
+Every registry project has a `systemId` family and nonnegative integer `orbitSlot`.
+The portfolio alone uses `home`/`0`; authored families are `patterns-and-life`,
+`curiosity-and-play`, `tools-and-infrastructure` and `ideas-and-inquiry`. New public discoveries are placed by
+Jev (above), or receive the next unallocated `frontier` slot in deterministic
+project-ID order. Active families and the theme pool live in `data/families.json`.
+
+Slots 0–7 belong to the family's root system, 8–15 to `<family>-2`, and so on;
+each slot is a lane at a fixed orbit, so systems grow outward.
+Empty slots do not collapse; absent systems do not renumber later companions.
+Renames, domain changes, discovery ordering and health transitions leave membership
+unchanged. Terrain is keyed by immutable project ID rather than display name or URL.
+Registry addresses override persisted membership only for intentional curation;
+duplicate addresses abort the refresh. Choose an unused slot when moving a project.
+
+Retired and denied project IDs retain their addresses indefinitely. Recovery reuses
+the project's address; unrelated newcomers never fill its slot. Keep IDs stable,
+and do not clear state tombstones as routine housekeeping.

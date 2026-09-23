@@ -13,7 +13,9 @@
     "color": 7397375,
     "radius": 8.6,
     "angle": 1.73,
-    "size": 1.22
+    "size": 1.22,
+    "systemId": "home",
+    "orbitSlot": 0
   },
   {
     "id": "celegans-lab",
@@ -29,7 +31,22 @@
     "color": 10158059,
     "radius": 5.05,
     "angle": 2.82,
-    "size": 0.86
+    "size": 0.86,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 0
+  },
+  {
+    "id": "plato",
+    "name": "Plato",
+    "kind": "Patterns and possible minds",
+    "url": "https://plato.alirezaafshan.com",
+    "description": "Patterns, possible minds, and falsifiable experiments.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "P",
+    "systemId": "patterns-and-life",
+    "orbitSlot": 1
   },
   {
     "id": "proof-bonsai",
@@ -44,7 +61,9 @@
     "color": 16770685,
     "radius": 8.15,
     "angle": 0.16,
-    "size": 0.93
+    "size": 0.93,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 2
   },
   {
     "id": "aquarium",
@@ -59,7 +78,9 @@
     "color": 7514367,
     "radius": 8.9,
     "angle": 4.28,
-    "size": 0.78
+    "size": 0.78,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 3
   },
   {
     "id": "bird-of-the-day",
@@ -74,7 +95,9 @@
     "color": 16754404,
     "radius": 10.65,
     "angle": 5.52,
-    "size": 0.76
+    "size": 0.76,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 0
   },
   {
     "id": "android-hell",
@@ -86,7 +109,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://androidhell.alirezaafshan.com/favicon.svg",
-    "glyph": "🔥"
+    "glyph": "🔥",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 2
   },
   {
     "id": "conspiracy",
@@ -97,7 +122,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "⌁"
+    "glyph": "⌁",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 3
   },
   {
     "id": "codex-continuity",
@@ -109,7 +136,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://continuity.alirezaafshan.com/icon.svg",
-    "glyph": "↻"
+    "glyph": "↻",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 0
   },
   {
     "id": "sponsor-my-microduck",
@@ -122,7 +151,9 @@
     "status": "live",
     "iconSrc": "https://sponsormymicroduck.alirezaafshan.com/favicon.svg",
     "glyph": "🦆",
-    "color": 16767051
+    "color": 16767051,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 1
   },
   {
     "id": "agar-protocol",
@@ -134,7 +165,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://agar.alirezaafshan.com/agar-mark-02.svg",
-    "glyph": "◉"
+    "glyph": "◉",
+    "systemId": "patterns-and-life",
+    "orbitSlot": 4
   },
   {
     "id": "deploy-manager",
@@ -146,7 +179,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://deploy.alirezaafshan.com/favicon.svg",
-    "glyph": "↟"
+    "glyph": "↟",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 1
   },
   {
     "id": "valet",
@@ -157,7 +192,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "V"
+    "glyph": "V",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 2
   },
   {
     "id": "animator",
@@ -168,7 +205,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "✎"
+    "glyph": "✎",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 4
   },
   {
     "id": "herald",
@@ -179,7 +218,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "♜"
+    "glyph": "♜",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 5
   },
   {
     "id": "dodeca",
@@ -192,6 +233,200 @@
     "status": "live",
     "iconSrc": "https://dodeca.alirezaafshan.com/icon.svg",
     "glyph": "◈",
-    "color": 16026482
+    "color": 16026482,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 6
+  },
+  {
+    "id": "dmelanogaster",
+    "name": "D. melanogaster",
+    "kind": "Open fly laboratory",
+    "url": "https://fly.alirezaafshan.com",
+    "description": "An open anatomical and physiological fly reconstruction.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://fly.alirezaafshan.com/favicon.svg",
+    "glyph": "❋",
+    "color": 14263387,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 5
+  },
+  {
+    "id": "morphogenesis",
+    "name": "Morphogenesis",
+    "kind": "Creature and world workshop",
+    "url": "https://morphogenesis.alirezaafshan.com",
+    "description": "A native creature and world creation workshop, with an interactive export showcase.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://morphogenesis.alirezaafshan.com/favicon.svg",
+    "glyph": "✿",
+    "color": 16752592,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 8
+  },
+  {
+    "id": "openwater",
+    "name": "Openwater",
+    "kind": "Interactive ocean",
+    "url": "https://openwater.alirezaafshan.com",
+    "description": "An interactive ocean with sunlit shallows, sailing ships, rolling swells and passing storms.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://openwater.alirezaafshan.com/favicon.svg",
+    "glyph": "≈",
+    "color": 6277119,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 9
+  },
+  {
+    "id": "between-worlds",
+    "name": "Between Worlds",
+    "kind": "Geometry laboratory",
+    "url": "https://between-worlds.alirezaafshan.com",
+    "description": "An interactive geometry laboratory for fields, matter and contact between dimensions.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://between-worlds.alirezaafshan.com/favicon.svg",
+    "glyph": "⬡",
+    "color": 9098495,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 10
+  },
+  {
+    "id": "cube",
+    "name": "Cube",
+    "kind": "Architectural study",
+    "url": "https://cube.alirezaafshan.com",
+    "description": "An interactive architectural study of Cube (1997).",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://cube.alirezaafshan.com/favicon.svg",
+    "glyph": "▣",
+    "color": 13218426,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 6
+  },
+  {
+    "id": "astrapop",
+    "name": "SOFT SIGNAL",
+    "kind": "Synthetic pop",
+    "url": "https://astrapop.alirezaafshan.com",
+    "description": "Original pop, synthetic performers, and a concert feed.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://astrapop.alirezaafshan.com/favicon.svg",
+    "glyph": "♪",
+    "color": 16744416,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 7
+  },
+  {
+    "id": "magic-keys",
+    "name": "Magic Keys",
+    "kind": "Keyboard layouts",
+    "url": "https://keys.alirezaafshan.com",
+    "description": "Keyboard layouts and context-sensitive Magic and Repeat programming.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://keys.alirezaafshan.com/favicon.svg",
+    "glyph": "⌨",
+    "color": 10991359,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 3
+  },
+  {
+    "id": "bezalel",
+    "name": "Bezalel",
+    "kind": "TempleOS coding harness",
+    "url": "https://bezalel.alirezaafshan.com",
+    "description": "A native TempleOS AI coding harness written in HolyC.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://bezalel.alirezaafshan.com/favicon.svg",
+    "glyph": "⚒",
+    "color": 16765562,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 4
+  },
+  {
+    "id": "workciv",
+    "name": "WorkCiv",
+    "kind": "Strategy workspace",
+    "url": "https://workciv.alirezaafshan.com",
+    "description": "A native C++ strategy workspace with a public product tour.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://workciv.alirezaafshan.com/favicon.svg",
+    "glyph": "⚑",
+    "color": 10413736,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 5
+  },
+  {
+    "id": "lyrebird",
+    "name": "Lyrebird",
+    "kind": "Open research",
+    "url": "https://lyrebird.alirezaafshan.com",
+    "description": "Independent research papers and reproducible experiments by Alireza Afshan.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✎",
+    "color": 12182470,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 0
+  },
+  {
+    "id": "intuition",
+    "name": "The Intuition Lab",
+    "kind": "Decision lab",
+    "url": "https://intuition.alirezaafshan.com",
+    "description": "Jev decisions on internet dilemmas: real distributions, sequential games, and inspectable evidence.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://intuition.alirezaafshan.com/favicon.svg",
+    "glyph": "◐",
+    "color": 16769146,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 1
+  },
+  {
+    "id": "pretty-please",
+    "name": "please.",
+    "kind": "Interactive essay",
+    "url": "https://please.alirezaafshan.com",
+    "description": "An interactive philosophical essay on consent, delegated will, and who gets to say yes.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "iconSrc": "https://please.alirezaafshan.com/favicon.svg",
+    "glyph": "❝",
+    "color": 16761523,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 2
+  },
+  {
+    "id": "urep-attendance",
+    "name": "UREP Attendance",
+    "kind": "Public project",
+    "url": "https://attendance.alirezaafshan.com",
+    "description": "Web preview of the UREP student attendance app for PALM reader scans.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 6
   }
 ]

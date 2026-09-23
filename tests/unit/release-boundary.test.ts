@@ -22,6 +22,8 @@ describe('local-only lab release boundary', () => {
     for (const path of [
       'app/motion-lab/page.tsx',
       'app/static-lab/static-lab.css',
+      'app/planet-lab/page.tsx',
+      'components/planet-lab.tsx',
       'app/new-lab/page.tsx',
       'app/tools/new-lab/page.tsx',
       'app/labs/page.tsx',
@@ -50,6 +52,7 @@ describe('local-only lab release boundary', () => {
     const dockerfile = await readFile('Dockerfile', 'utf8');
     expect(dockerfile).toContain('test ! -e app/motion-lab');
     expect(dockerfile).toContain('test ! -e app/static-lab');
+    expect(dockerfile).toContain('test ! -e app/planet-lab');
     expect(dockerfile).toContain('test ! -e public/icon-lab.html');
     expect(dockerfile.indexOf('test ! -e app/motion-lab')).toBeLessThan(
       dockerfile.indexOf('RUN npm run build'),

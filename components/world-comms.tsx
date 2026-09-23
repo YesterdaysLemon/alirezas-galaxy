@@ -4,12 +4,17 @@ import type { CSSProperties, RefObject } from 'react';
 import type { Destination } from '@/data/worlds';
 import { worldComms } from '@/data/world-comms';
 
-const worldStyle = (world: Destination) =>
+type PreviewWorld = Pick<
+  Destination,
+  'id' | 'name' | 'kind' | 'glyph' | 'color' | 'iconSrc' | 'systemId'
+> & { url?: string };
+
+const worldStyle = (world: Pick<Destination, 'color'>) =>
   ({
     '--world-color': `#${world.color.toString(16).padStart(6, '0')}`,
   }) as CSSProperties;
 
-function PanelFasteners() {
+export function PanelFasteners() {
   return (
     <span className="comms-fasteners" aria-hidden="true">
       <i />
@@ -24,7 +29,7 @@ function Portrait({
   world,
   compact = false,
 }: {
-  world: Destination;
+  world: Pick<Destination, 'glyph' | 'iconSrc'>;
   compact?: boolean;
 }) {
   return (
@@ -58,13 +63,17 @@ export function WorldPreview({
   hint,
   contentReady = false,
   leaving = false,
+  positionReady,
+  inspectLabel,
   onInspect,
 }: {
-  world: Destination;
-  previewRef: RefObject<HTMLButtonElement | null>;
+  world: PreviewWorld;
+  previewRef?: RefObject<HTMLButtonElement | null>;
   hint: boolean;
   contentReady?: boolean;
   leaving?: boolean;
+  positionReady?: boolean;
+  inspectLabel?: string;
   onInspect: () => void;
 }) {
   return (
@@ -74,8 +83,14 @@ export function WorldPreview({
       className={`world-preview ${hint ? 'is-hover-hint' : ''}`}
       data-world-id={world.id}
       data-content-ready={contentReady}
+      data-position-ready={positionReady}
       aria-busy={!contentReady}
-      aria-label={`Inspect ${world.name}`}
+      aria-label={
+        inspectLabel ??
+        (world.systemId
+          ? `Enter ${world.name} solar system`
+          : `Inspect ${world.name}`)
+      }
       aria-hidden={hint || leaving || undefined}
       inert={leaving || undefined}
       data-phase={leaving ? 'leaving' : undefined}
@@ -94,7 +109,9 @@ export function WorldPreview({
           </span>
           <span className="world-preview-address">
             <span className="world-preview-address-text">
-              {new URL(world.url).hostname.replace(/^www\./, '')}
+              {world.systemId || !world.url
+                ? world.kind
+                : new URL(world.url).hostname.replace(/^www\./, '')}
             </span>
             <span className="comms-screen-static" aria-hidden="true" />
           </span>
@@ -142,7 +159,9 @@ export function WorldComms({
           </span>
           <p>{message?.intro ?? world.description}</p>
           <span className="world-address">
-            {new URL(world.url).hostname.replace(/^www\./, '')}
+            {world.systemId
+              ? world.kind
+              : new URL(world.url).hostname.replace(/^www\./, '')}
           </span>
           <PanelFasteners />
           <span className="comms-screen-static" aria-hidden="true" />
@@ -157,18 +176,28 @@ export function WorldComms({
         <span className="comms-screen-static" aria-hidden="true" />
         <a
           href={world.url}
-          target="_blank"
+          target={world.systemId ? undefined : '_blank'}
           rel="noopener noreferrer"
           className="world-play"
-          aria-label={`Launch ${world.name}`}
+          aria-label={
+            world.systemId
+              ? `Enter ${world.name} solar system`
+              : `Launch ${world.name}`
+          }
         >
           <span aria-hidden="true" className="comms-response-arrow">
             ▸
           </span>
           <span>
-            {world.status === 'preview' ? 'preview world' : 'open world'}
+            {world.systemId
+              ? 'enter system'
+              : world.status === 'preview'
+                ? 'preview world'
+                : 'open world'}
           </span>
-          <span className="sr-only"> (opens in a new tab)</span>
+          {!world.systemId && (
+            <span className="sr-only"> (opens in a new tab)</span>
+          )}
         </a>
         {message?.source && (
           <a

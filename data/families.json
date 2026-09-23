@@ -1,0 +1,163 @@
+{
+  "maxActive": 9,
+  "active": [
+    {
+      "id": "patterns-and-life",
+      "name": "Patterns & Life",
+      "subtitle": "Small worlds. Emergent things.",
+      "starName": "Lumen",
+      "color": "#ffe2a0",
+      "classification": "Warm gold star",
+      "nebula": [
+        "#244e6a",
+        "#654465"
+      ]
+    },
+    {
+      "id": "curiosity-and-play",
+      "name": "Curiosity & Play",
+      "subtitle": "Field notes, little machines, imagined realms.",
+      "starName": "Lucida",
+      "color": "#b7eaff",
+      "classification": "Blue-white star",
+      "nebula": [
+        "#263e79",
+        "#76528b"
+      ]
+    },
+    {
+      "id": "tools-and-infrastructure",
+      "name": "Tools & Infrastructure",
+      "subtitle": "Quiet machinery that keeps the work moving.",
+      "starName": "Vigil",
+      "color": "#ffc68c",
+      "classification": "Amber star",
+      "nebula": [
+        "#243f5b",
+        "#665042"
+      ]
+    },
+    {
+      "id": "ideas-and-inquiry",
+      "name": "Ideas & Inquiry",
+      "subtitle": "Essays, research and questions put to the test.",
+      "starName": "Vesper",
+      "color": "#ffd2c2",
+      "classification": "Rose-white star",
+      "nebula": [
+        "#3a2c5c",
+        "#6b4454"
+      ]
+    },
+    {
+      "id": "frontier",
+      "name": "Frontier",
+      "subtitle": "New public worlds, with room to grow.",
+      "starName": "Aster",
+      "color": "#d6c5ff",
+      "classification": "Pale violet star",
+      "nebula": [
+        "#293660",
+        "#58476e"
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "id": "sound-and-stage",
+      "name": "Sound & Stage",
+      "subtitle": "Music, performance and things you listen to.",
+      "starName": "Cantor",
+      "color": "#ffb8ea",
+      "classification": "Magenta star",
+      "nebula": [
+        "#3c2464",
+        "#7a3f6e"
+      ]
+    },
+    {
+      "id": "worlds-and-games",
+      "name": "Worlds & Games",
+      "subtitle": "Games, simulations and places to play in.",
+      "starName": "Ludus",
+      "color": "#c8ffb0",
+      "classification": "Green-white star",
+      "nebula": [
+        "#234a3c",
+        "#4f5a2c"
+      ]
+    },
+    {
+      "id": "images-and-motion",
+      "name": "Images & Motion",
+      "subtitle": "Visual art, animation, film and design.",
+      "starName": "Iris",
+      "color": "#b8c4ff",
+      "classification": "Periwinkle star",
+      "nebula": [
+        "#26346e",
+        "#5b3f7a"
+      ]
+    },
+    {
+      "id": "words-and-stories",
+      "name": "Words & Stories",
+      "subtitle": "Fiction, writing and told worlds.",
+      "starName": "Fable",
+      "color": "#ffe9b8",
+      "classification": "Cream star",
+      "nebula": [
+        "#4a3a28",
+        "#5c3048"
+      ]
+    },
+    {
+      "id": "machines-and-minds",
+      "name": "Machines & Minds",
+      "subtitle": "AI agents, models and the harnesses around them.",
+      "starName": "Axon",
+      "color": "#9fe8ff",
+      "classification": "Cyan star",
+      "nebula": [
+        "#1f4058",
+        "#34506e"
+      ]
+    },
+    {
+      "id": "places-and-maps",
+      "name": "Places & Maps",
+      "subtitle": "Architecture, geography, cities and maps.",
+      "starName": "Atlas",
+      "color": "#ffcfa0",
+      "classification": "Peach star",
+      "nebula": [
+        "#3e3a22",
+        "#5a3a2c"
+      ]
+    },
+    {
+      "id": "money-and-markets",
+      "name": "Money & Markets",
+      "subtitle": "Finance, trading and economic experiments.",
+      "starName": "Tally",
+      "color": "#e8ffb0",
+      "classification": "Lime-white star",
+      "nebula": [
+        "#2c4a28",
+        "#4a4a24"
+      ]
+    },
+    {
+      "id": "bodies-and-health",
+      "name": "Bodies & Health",
+      "subtitle": "Medicine, anatomy, fitness and wellbeing.",
+      "starName": "Vita",
+      "color": "#ffc2c2",
+      "classification": "Coral star",
+      "nebula": [
+        "#4a2830",
+        "#5e3a4a"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { destinations } from './worlds';
+import { worldCatalog } from './worlds';
 import { webring } from './webring';
 
 export const siteIdentity = {
@@ -11,7 +11,7 @@ export const siteIdentity = {
   github: 'https://github.com/YesterdaysLemon',
 } as const;
 
-export const publicWorlds = destinations.filter(
+export const publicWorlds = worldCatalog.filter(
   (destination) => destination.status !== 'archived',
 );
 
@@ -35,7 +35,7 @@ const agentWelcome = [
 
 export function serializeWorlds() {
   return publicWorlds.map(
-    ({ id, name, kind, url, description, relationship, hosting, status }) => ({
+    ({
       id,
       name,
       kind,
@@ -44,6 +44,19 @@ export function serializeWorlds() {
       relationship,
       hosting,
       status,
+      systemId,
+      orbitSlot,
+    }) => ({
+      id,
+      name,
+      kind,
+      url,
+      description,
+      relationship,
+      hosting,
+      status,
+      systemId,
+      orbitSlot,
     }),
   );
 }

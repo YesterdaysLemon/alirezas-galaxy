@@ -18,9 +18,23 @@ import {
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
-import { destinations } from '@/data/worlds';
+import { worldCatalog } from '@/data/worlds';
 import { webring } from '@/data/webring';
-import { galaxies, type GalaxyId } from '@/data/galaxies';
+import { galaxies, galaxyDestinations, type GalaxyId } from '@/data/galaxies';
+import {
+  solarSystems,
+  getSolarSystem,
+  systemHref,
+  parseSystemRoute,
+} from '@/data/solar-systems';
+import { SolarSystemScene, type SolarPhase } from '@/lib/solar-system-scene';
+import { SolarSystemHud } from './solar-system-hud';
+
+const projectOrbits = solarSystems.flatMap((system) =>
+  system.planets.flatMap((planet, index) =>
+    planet.projectId ? [{ systemId: system.id, index }] : [],
+  ),
+);
 
 const pointsVertexShader = /* glsl */ `
   uniform float uPixelRatio;
@@ -54,6 +68,11 @@ const pointsFragmentShader = /* glsl */ `
     gl_FragColor = vec4(vColor * (0.82 + spark * 1.35), alpha);
   }
 `;
+
+/** A per-frame ease `rate` at 60fps, scaled to `frames` of 60fps time. */
+function frameEase(rate: number, frames: number) {
+  return 1 - Math.pow(1 - rate, frames);
+}
 
 function seededRandom(seed = 9173) {
   let value = seed >>> 0;
@@ -421,8 +440,8 @@ function MenuIcon({ name }: { name: MenuIconName }) {
   );
 }
 
-function randomNonzeroOffset(itemCount: number) {
-  return 1 + Math.floor(Math.random() * (itemCount - 1));
+function randomIndex(itemCount: number) {
+  return Math.floor(Math.random() * itemCount);
 }
 
 export function GalaxyIndex({
@@ -445,6 +464,29 @@ export function GalaxyIndex({
     groxReturnRef.current = onGroxReturn;
   }, [onGroxArrival, onGroxReturn]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const solarRef = useRef<SolarSystemScene | null>(null);
+  const enterSolarRef = useRef<
+    (
+      systemId: string,
+      planetIndex?: number | null,
+      updateHistory?: boolean,
+    ) => void
+  >(() => undefined);
+  const [graphicsUnavailable, setGraphicsUnavailable] = useState(false);
+  const CatalogContainer = graphicsUnavailable ? 'div' : 'noscript';
+  const [solarPhase, setSolarPhase] = useState<SolarPhase>('galaxy');
+  const [solarSelected, setSolarSelected] = useState<number | null>(null);
+  const [solarHovered, setSolarHovered] = useState<number | null>(null);
+  const [solarSystem, setSolarSystem] = useState(solarSystems[0]);
+  const [solarPaused, setSolarPaused] = useState(false);
+  const solarActive = solarPhase !== 'galaxy';
+  const solarNavigating = solarPhase === 'entering' || solarPhase === 'leaving';
+
+  const leaveSolar = () => {
+    solarRef.current?.exit();
+    if (window.location.hash !== '#galaxy')
+      window.history.pushState(null, '', '#galaxy');
+  };
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
   const ringPortalRef = useRef<HTMLButtonElement>(null);
@@ -468,7 +510,7 @@ export function GalaxyIndex({
   const hoverGalaxyRef = useRef<() => void>(() => undefined);
   const dockGalaxyIconRef = useRef<HTMLImageElement>(null);
   const focusRotationRef = useRef<number | null>(
-    destinations[0].angle - Math.PI / 2,
+    galaxyDestinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -507,10 +549,20 @@ export function GalaxyIndex({
     setPreviewVisible(true);
     previewIndexRef.current = index;
     setPreviewIndex(index);
+    const systemId = galaxies[galaxyIdRef.current].worlds[index]?.systemId;
+    const system = systemId && getSolarSystem(systemId);
+    if (system) solarRef.current?.prepare(system);
   };
 
   const expandDestination = (index: number) => {
     if (travellingRef.current) return;
+    const destination = galaxies[galaxyIdRef.current].worlds[index];
+    if (destination.systemId) {
+      previewDestination(index);
+      collapseDestination();
+      enterSolarRef.current(destination.systemId);
+      return;
+    }
     activeIndexRef.current = index;
     previewIndexRef.current = index;
     expandedPreviewIndexRef.current = null;
@@ -525,11 +577,16 @@ export function GalaxyIndex({
   };
 
   const expandRandomDestination = () => {
+    if (galaxyIdRef.current === 'home' && projectOrbits.length) {
+      const destination = projectOrbits[randomIndex(projectOrbits.length)];
+      enterSolarRef.current(destination.systemId, destination.index);
+      return;
+    }
     const currentIndex = expandedRef.current
       ? activeIndexRef.current
       : previewIndexRef.current;
     const count = galaxies[galaxyIdRef.current].worlds.length;
-    const offset = randomNonzeroOffset(count);
+    const offset = 1 + randomIndex(count - 1);
     expandDestination((currentIndex + offset) % count);
   };
 
@@ -553,6 +610,36 @@ export function GalaxyIndex({
 
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
+      const solar = solarRef.current;
+      if (
+        event.defaultPrevented ||
+        (event.target instanceof Element &&
+          event.target.closest('input, textarea, select, [role="dialog"]'))
+      )
+        return;
+      if (solar?.active) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          if (solar.selected !== null && !solar.navigating) solar.select(null);
+          else leaveSolar();
+        } else if (
+          (event.key === 'ArrowRight' || event.key === 'ArrowLeft') &&
+          !solar.navigating
+        ) {
+          event.preventDefault();
+          const count = solar.system?.planets.length ?? 0;
+          if (!count) return;
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
+          solar.select(
+            solar.selected === null
+              ? direction === 1
+                ? 0
+                : count - 1
+              : (solar.selected + direction + count) % count,
+          );
+        }
+        return;
+      }
       if (event.key !== 'Escape') return;
       if (expandedRef.current) collapseDestination();
       else if (galaxyIdRef.current === 'webring') travelRef.current('home');
@@ -560,6 +647,18 @@ export function GalaxyIndex({
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
   }, []);
+
+  useEffect(() => {
+    if (solarPhase !== 'system' && solarPhase !== 'galaxy') return;
+    // Keyboard entry starts from the hidden world list; land on the tray.
+    if (
+      solarPhase === 'system' &&
+      document.activeElement?.closest('nav[aria-label="Website worlds"]')
+    )
+      stageRef.current?.parentElement
+        ?.querySelector<HTMLButtonElement>('.solar-sun-button')
+        ?.focus({ preventScroll: true });
+  }, [solarPhase]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -585,6 +684,7 @@ export function GalaxyIndex({
     const portraitBurstTarget = stage;
 
     let renderer: THREE.WebGLRenderer;
+    let fallbackFrame: number;
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: false,
@@ -594,7 +694,8 @@ export function GalaxyIndex({
         powerPreference: 'high-performance',
       });
     } catch {
-      return;
+      fallbackFrame = requestAnimationFrame(() => setGraphicsUnavailable(true));
+      return () => cancelAnimationFrame(fallbackFrame);
     }
 
     const isCompact = window.matchMedia('(max-width: 720px)').matches;
@@ -1063,7 +1164,117 @@ export function GalaxyIndex({
       return true;
     };
 
+    let pendingSolarSelection: number | null | undefined;
+    const solarCoreScratch = new THREE.Vector3();
+    let applyingSolarRoute = false;
+    const solar = new SolarSystemScene(
+      scene,
+      camera,
+      renderer,
+      stage,
+      (phase, selected) => {
+        setSolarPhase(phase);
+        setSolarSelected(selected);
+        if (solar.system) setSolarSystem(solar.system);
+        if (phase === 'system' || phase === 'planet') {
+          if (pendingSolarSelection !== undefined) {
+            const requested = pendingSolarSelection;
+            pendingSolarSelection = undefined;
+            if (selected !== requested) {
+              solar.select(requested);
+              return;
+            }
+          }
+          if (!applyingSolarRoute && solar.system) {
+            const hash = systemHref(
+              solar.system.id,
+              selected === null ? undefined : solar.system.planets[selected].id,
+            );
+            if (window.location.hash !== hash)
+              window.history.pushState(null, '', hash);
+          }
+        }
+        if (phase === 'galaxy')
+          requestAnimationFrame(() => {
+            if (solarRef.current !== solar) return;
+            if (!parseSystemRoute(window.location.hash)) {
+              const familyId = solar.system?.id.replace(/-\d+$/, '');
+              sceneShell
+                .querySelector<HTMLButtonElement>(
+                  `[aria-label="Website worlds"] [data-world-id="${familyId}"]`,
+                )
+                ?.focus({ preventScroll: true });
+            }
+            onHistory();
+          });
+      },
+      setSolarHovered,
+    );
+    solarRef.current = solar;
+    solar.onExitRequest = () => {
+      solar.exit();
+      if (window.location.hash !== '#galaxy')
+        window.history.pushState(null, '', '#galaxy');
+    };
+    const solarWarmFrame = requestAnimationFrame(() => {
+      if (!groxEncounter && !solar.active) solar.prepare(solarSystems[0]);
+    });
+    enterSolarRef.current = (
+      systemId,
+      planetIndex = null,
+      updateHistory = true,
+    ) => {
+      const system = getSolarSystem(systemId);
+      if (!system || groxActive) return;
+      const hash = systemHref(
+        system.id,
+        planetIndex === null ? undefined : system.planets[planetIndex]?.id,
+      );
+      if (updateHistory && window.location.hash !== hash)
+        window.history.pushState(null, '', hash);
+      if (galaxyIdRef.current !== 'home' || travellingRef.current) {
+        travelRef.current('home', false, false);
+        return;
+      }
+      pendingSolarSelection = planetIndex;
+      if (solar.active && solar.system?.id === system.id) {
+        if (!solar.navigating) {
+          pendingSolarSelection = undefined;
+          applyingSolarRoute = !updateHistory;
+          solar.select(planetIndex);
+          applyingSolarRoute = false;
+        }
+        return;
+      }
+      const entryStar = new THREE.Vector3();
+      const markerIndex = galaxyDestinations.findIndex(
+        (world) =>
+          world.systemId?.replace(/-\d+$/, '') ===
+          system.id.replace(/-\d+$/, ''),
+      );
+      galaxyScenes.home.nodes[Math.max(0, markerIndex)].marker.getWorldPosition(
+        entryStar,
+      );
+      const galaxyCenter = new THREE.Vector3();
+      galaxyScenes.home.galaxy.getWorldPosition(galaxyCenter);
+      if (!solar.active) {
+        // Every way in (random world, a link, history) closes an open galaxy
+        // detail, as a family star's own entry does; it must not reopen later.
+        expandedPreviewIndexRef.current = null;
+        expandedRef.current = false;
+        cameraModeRef.current = 'default';
+        setExpandedPreviewIndex(null);
+        setExpanded(false);
+      }
+      setSolarSystem(system);
+      setSolarPaused(false);
+      applyingSolarRoute = !updateHistory;
+      solar.enter(system, entryStar, galaxyCenter);
+      applyingSolarRoute = false;
+    };
+
     travelRef.current = (id, inspect = false, updateHistory = true) => {
+      if (solar.active) return;
       if (!galaxies[id].worlds.length) return;
       if (id === galaxyIdRef.current) {
         if (inspect && travellingRef.current) inspectOnArrival = true;
@@ -1115,6 +1326,18 @@ export function GalaxyIndex({
     };
 
     const onHistory = () => {
+      const route = parseSystemRoute(window.location.hash);
+      if (route) {
+        enterSolarRef.current(route.system.id, route.planetIndex, false);
+        return;
+      }
+      if (window.location.hash.startsWith('#system/'))
+        window.history.replaceState(null, '', '#galaxy');
+      pendingSolarSelection = undefined;
+      if (solar.active) {
+        solar.exit();
+        return;
+      }
       if (!groxActive)
         travelRef.current(
           window.location.hash === '#webring' ? 'webring' : 'home',
@@ -1123,8 +1346,8 @@ export function GalaxyIndex({
         );
     };
     window.addEventListener('popstate', onHistory);
-    if (!groxEncounter && window.location.hash === '#webring')
-      travelRef.current('webring', false, false);
+    window.addEventListener('hashchange', onHistory);
+    if (!groxEncounter) onHistory();
 
     portraitBurstTarget.dataset.portraitBursts = '0';
 
@@ -1196,6 +1419,10 @@ export function GalaxyIndex({
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerDown(event);
+        return;
+      }
       if (travellingRef.current || event.button !== 0) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (pointers.size === 2) {
@@ -1221,6 +1448,10 @@ export function GalaxyIndex({
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerMove(event);
+        return;
+      }
       updatePointer(event);
       if (pointers.has(event.pointerId))
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -1229,10 +1460,11 @@ export function GalaxyIndex({
         const distance = Math.hypot(first.x - second.x, first.y - second.y);
         if (pinchDistance > 0 && distance > 0) {
           cameraModeRef.current = 'manual';
+          // The wheel's own limits, so switching input never jumps the view.
           cameraDistance = THREE.MathUtils.clamp(
             (cameraDistance * pinchDistance) / distance,
-            15.5,
-            36,
+            expandedRef.current ? 15.5 : 18,
+            expandedRef.current ? 24 : 31,
           );
         }
         pinchDistance = distance;
@@ -1264,6 +1496,10 @@ export function GalaxyIndex({
     };
 
     const endPointer = (event: PointerEvent) => {
+      if (solar.active) {
+        solar.pointerUp(event);
+        return;
+      }
       const wasPinching = pointers.size >= 2;
       pointers.delete(event.pointerId);
       if (wasPinching) {
@@ -1296,7 +1532,17 @@ export function GalaxyIndex({
       pointerId = -1;
     };
 
-    const onPointerLeave = () => {
+    const onPointerLeave = (event: PointerEvent) => {
+      if (solar.active) {
+        if (
+          !(event.relatedTarget instanceof Element) ||
+          !event.relatedTarget.closest(
+            '[data-solar-preview], [data-solar-hover]',
+          )
+        )
+          solar.setHover(null);
+        return;
+      }
       if (!isDragging) {
         pointer.set(4, 4);
         renderer.domElement.style.cursor = 'grab';
@@ -1307,9 +1553,42 @@ export function GalaxyIndex({
       }
     };
 
+    let diveIntent = 0,
+      diveAt = 0,
+      diveTarget: string | undefined;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      if (solar.active) {
+        solar.wheel(event.deltaY, event.clientX, event.clientY, {
+          pinch: event.ctrlKey,
+          lines: event.deltaMode === WheelEvent.DOM_DELTA_LINE,
+        });
+        return;
+      }
       if (travellingRef.current) return;
+      // Spore-style descent: keep scrolling in over a family star to dive in.
+      if (event.deltaY < 0 && galaxyIdRef.current === 'home') {
+        // The wheel may arrive over a preview card; aim from its own position.
+        const bounds = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+        pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+        const index = destinationAtPointer();
+        const systemId = index >= 0 ? sceneWorlds[index]?.systemId : undefined;
+        const now = performance.now();
+        if (!systemId || systemId !== diveTarget || now - diveAt > 450)
+          diveIntent = 0;
+        diveTarget = systemId;
+        diveAt = now;
+        if (systemId) {
+          diveIntent += Math.min(-event.deltaY, 120);
+          if (diveIntent >= 320) {
+            diveIntent = 0;
+            previewDestination(index);
+            enterSolarRef.current(systemId);
+            return;
+          }
+        }
+      } else diveIntent = 0;
       cameraModeRef.current = 'manual';
       cameraDistance = THREE.MathUtils.clamp(
         cameraDistance + event.deltaY * 0.01,
@@ -1324,6 +1603,21 @@ export function GalaxyIndex({
     renderer.domElement.addEventListener('pointercancel', endPointer);
     renderer.domElement.addEventListener('pointerleave', onPointerLeave);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+    // Hover previews sit over their stars; scrolling on one still steers the
+    // scene. In a system the whole HUD does: no dead spots, and a trackpad
+    // pinch over the console zooms the system rather than the page.
+    const onPreviewWheel = (event: WheelEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest(
+          solar.active
+            ? '.world-preview, .solar-hud'
+            : '.world-preview, [data-solar-preview]',
+        )
+      )
+        onWheel(event);
+    };
+    sceneShell.addEventListener('wheel', onPreviewWheel, { passive: false });
 
     resetGalaxyRef.current = () => {
       if (galaxyIdRef.current !== 'home') {
@@ -1338,7 +1632,7 @@ export function GalaxyIndex({
       cameraDistance = defaultCameraDistance;
       galaxy.rotation.x = -0.08;
       galaxyScenes.home.tilt = -0.08;
-      galaxy.rotation.y = destinations[0].angle - Math.PI / 2;
+      galaxy.rotation.y = galaxyDestinations[0].angle - Math.PI / 2;
       galaxyPoints.rotation.y = 0;
       galaxyMist.rotation.y = 0.018;
       cameraLookTarget.set(0.7, 0, 0);
@@ -1346,7 +1640,7 @@ export function GalaxyIndex({
       previewIndexRef.current = 0;
       expandedRef.current = false;
       cameraModeRef.current = 'default';
-      focusRotationRef.current = destinations[0].angle - Math.PI / 2;
+      focusRotationRef.current = galaxyDestinations[0].angle - Math.PI / 2;
       setActiveIndex(0);
       setPreviewIndex(0);
       setExpanded(false);
@@ -1368,6 +1662,7 @@ export function GalaxyIndex({
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      solar.resize();
       distantParallax.resize(width, height, defaultCameraDistance, rightInset);
       if (groxEncounter && groxArrived && !animationFrame)
         animationFrame = requestAnimationFrame(animate);
@@ -1392,122 +1687,12 @@ export function GalaxyIndex({
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
-    function animate(time: number) {
-      animationFrame = 0;
-      if (disposed || !isVisible || document.visibilityState === 'hidden') {
-        return;
-      }
-      if (syncTravelState) {
-        setTravelling(travellingRef.current);
-        syncTravelState = false;
-      }
-
-      const elapsedMs =
-        previousTime === 0 ? 16.667 : Math.min(time - previousTime, 33.334);
-      const delta = elapsedMs / 16.667;
-      previousTime = time;
-      frame += 1;
-
-      if (travellingRef.current) {
-        travelElapsed += elapsedMs;
-        const t = Math.min(1, travelElapsed / (reduceMotion ? 350 : 1650));
-        const eased = t * t * (3 - 2 * t);
-        travelProgress = THREE.MathUtils.lerp(travelStart, travelTarget, eased);
-        if (t === 1) {
-          travellingRef.current = false;
-          setTravelling(false);
-          if (inspectOnArrival) expandDestination(0);
-        }
-      }
-
-      if (!isDragging && !groxActive) {
-        const focusRotation = focusRotationRef.current;
-        if (focusRotation !== null && Math.abs(angularVelocity) < 0.02) {
-          const rotationDelta = Math.atan2(
-            Math.sin(focusRotation - galaxy.rotation.y),
-            Math.cos(focusRotation - galaxy.rotation.y),
-          );
-          galaxy.rotation.y += rotationDelta * 0.045 * delta;
-          if (Math.abs(rotationDelta) < 0.0018) {
-            galaxy.rotation.y = focusRotation;
-            focusRotationRef.current = null;
-          }
-        } else {
-          const appliedRotation = angularVelocity * delta;
-          galaxy.rotation.y += appliedRotation;
-          fastSpinTravel += Math.abs(appliedRotation);
-          angularVelocity *= Math.pow(0.968, delta);
-          tiltVelocity *= Math.pow(0.93, delta);
-          if (ambientMotionRef.current && Math.abs(angularVelocity) < 0.0012) {
-            const ambientMotionScale = reduceMotion ? 0.55 : 1;
-            galaxy.rotation.y += 0.00018 * ambientMotionScale * delta;
-          }
-        }
-      }
-
-      if (galaxyIdRef.current === 'home' && fastSpinTravel >= Math.PI * 8) {
-        burstPortraits();
-        fastSpinTravel = 0;
-      }
-
-      if (dockGalaxyIconRef.current) {
-        const dockPhase =
-          dockSpin.step(elapsedMs / 1000, reduceMotion) +
-          dockHover.step(elapsedMs / 1000, reduceMotion);
-        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
-      }
-
-      burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
-      if (cameraModeRef.current !== 'manual') {
-        const desiredCameraDistance = expandedRef.current
-          ? expandedCameraDistance
-          : defaultCameraDistance;
-        cameraDistance +=
-          (desiredCameraDistance - cameraDistance) * 0.065 * delta;
-      }
-      const flightDolly = reduceMotion
-        ? 0
-        : Math.sin(travelProgress * Math.PI) * 3;
-      camera.position.y +=
-        ((cameraDistance - flightDolly) * 0.37 - camera.position.y) * 0.055;
-      camera.position.z +=
-        ((cameraDistance - flightDolly) * 0.93 - camera.position.z) * 0.055;
-      if (ambientMotionRef.current) {
-        const ambientMotionScale = reduceMotion ? 0.55 : 1;
-        backdrop.rotation.y -= 0.00006 * ambientMotionScale * delta;
-        distantGalaxies.forEach((points, index) => {
-          const rotationSpeed =
-            index === 0 ? 0.00022 : index % 2 === 0 ? 0.000035 : -0.000028;
-          points.rotation.z += rotationSpeed * ambientMotionScale * delta;
-        });
-      }
-      glowMaterial.opacity +=
-        (coreExposureRef.current - glowMaterial.opacity) * 0.075 * delta;
-      softGlow.material.opacity +=
-        (coreExposureRef.current * 0.3 - softGlow.material.opacity) *
-        0.075 *
-        delta;
-
-      const selectedIndex = activeIndexRef.current;
-      cameraFollowPosition.copy(nodes[selectedIndex].position);
-      galaxy.localToWorld(cameraFollowPosition);
-      const followAmount = travellingRef.current
-        ? 0
-        : isDragging
-          ? 0.025
-          : 0.075;
-      const desiredLookX = 0.7 + cameraFollowPosition.x * followAmount;
-      const desiredLookY = travellingRef.current
-        ? 0
-        : cameraFollowPosition.y * 0.04;
-      const desiredLookZ = travellingRef.current
-        ? 0
-        : cameraFollowPosition.z * 0.025;
-      cameraLookTarget.x += (desiredLookX - cameraLookTarget.x) * 0.028 * delta;
-      cameraLookTarget.y += (desiredLookY - cameraLookTarget.y) * 0.028 * delta;
-      cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * 0.028 * delta;
-      camera.lookAt(cameraLookTarget);
-
+    // Place both galaxies for the current travel state. The first solar frame
+    // also runs this, so a system opened by address never flies over an
+    // unplaced web-ring galaxy stacked on the home galaxy.
+    let galaxiesPlaced = false;
+    function layoutGalaxies(delta: number) {
+      galaxiesPlaced = true;
       // Let the distant galaxy share the scene's camera parallax instead of
       // cancelling it by re-pinning the galaxy to fixed screen coordinates.
       distantParallax.update(camera, ringPosition, reduceMotion);
@@ -1570,6 +1755,177 @@ export function GalaxyIndex({
           });
         });
       }
+      return { portalX, portalY };
+    }
+
+    function animate(time: number) {
+      animationFrame = 0;
+      if (disposed || !isVisible || document.visibilityState === 'hidden') {
+        return;
+      }
+      if (syncTravelState) {
+        setTravelling(travellingRef.current);
+        syncTravelState = false;
+      }
+
+      const frameMs = previousTime === 0 ? 16.667 : time - previousTime;
+      const elapsedMs = Math.min(frameMs, 33.334);
+      const delta = elapsedMs / 16.667;
+      previousTime = time;
+      frame += 1;
+
+      if (solar.active) {
+        if (!galaxiesPlaced) layoutGalaxies(delta);
+        solar.update(frameMs, reduceMotion);
+        // Markers and the core's glare are galaxy-scale chrome: diving past
+        // them should not smear a lens sprite across the whole view.
+        const keep = 1 - solar.galaxyVeil;
+        const home = galaxyScenes.home;
+        home.nodes.forEach(({ marker, sparkle, signalWaves }) => {
+          marker.material.opacity = Math.min(
+            marker.material.opacity,
+            0.98 * keep,
+          );
+          sparkle.material.opacity = Math.min(sparkle.material.opacity, keep);
+          signalWaves.forEach((wave) => {
+            wave.material.opacity = Math.min(wave.material.opacity, keep);
+          });
+        });
+        // The core glows are huge billboards that blow out, then clip, as the
+        // camera nears them. Tie them to the camera's distance from the core
+        // relative to the preserved galaxy view only: continuous both ways,
+        // and exactly the galaxy's own values once the camera is home.
+        home.galaxy.getWorldPosition(solarCoreScratch);
+        const coreDistance = camera.position.distanceTo(solarCoreScratch);
+        const homeDistance =
+          solar.savedPosition?.distanceTo(solarCoreScratch) ?? coreDistance;
+        const coreKeep =
+          THREE.MathUtils.smoothstep(
+            coreDistance / Math.max(1e-3, homeDistance),
+            0.7,
+            0.995,
+          ) * THREE.MathUtils.smoothstep(coreDistance, 5, 9);
+        home.glowMaterial.opacity = coreExposureRef.current * coreKeep;
+        home.softGlow.material.opacity =
+          coreExposureRef.current * 0.3 * coreKeep;
+        home.galaxyMaterial.uniforms.uPointScale.value = 0.75 + 0.25 * coreKeep;
+        const starsKeep = 1 - solar.galaxyFade;
+        home.galaxyMistMaterial.uniforms.uOpacity.value =
+          0.32 * (0.4 + 0.6 * coreKeep) * starsKeep;
+        home.galaxyMaterial.uniforms.uOpacity.value =
+          starsKeep * (0.8 + 0.2 * coreKeep);
+        renderer.render(scene, camera);
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
+
+      if (travellingRef.current) {
+        travelElapsed += elapsedMs;
+        const t = Math.min(1, travelElapsed / (reduceMotion ? 350 : 1650));
+        const eased = t * t * (3 - 2 * t);
+        travelProgress = THREE.MathUtils.lerp(travelStart, travelTarget, eased);
+        if (t === 1) {
+          travellingRef.current = false;
+          setTravelling(false);
+          if (inspectOnArrival) expandDestination(0);
+          if (parseSystemRoute(window.location.hash)) onHistory();
+        }
+      }
+
+      if (!isDragging && !groxActive) {
+        const focusRotation = focusRotationRef.current;
+        if (focusRotation !== null && Math.abs(angularVelocity) < 0.02) {
+          const rotationDelta = Math.atan2(
+            Math.sin(focusRotation - galaxy.rotation.y),
+            Math.cos(focusRotation - galaxy.rotation.y),
+          );
+          galaxy.rotation.y += rotationDelta * 0.045 * delta;
+          if (Math.abs(rotationDelta) < 0.0018) {
+            galaxy.rotation.y = focusRotation;
+            focusRotationRef.current = null;
+          }
+        } else {
+          const appliedRotation = angularVelocity * delta;
+          galaxy.rotation.y += appliedRotation;
+          fastSpinTravel += Math.abs(appliedRotation);
+          angularVelocity *= Math.pow(0.968, delta);
+          tiltVelocity *= Math.pow(0.93, delta);
+          if (ambientMotionRef.current && Math.abs(angularVelocity) < 0.0012) {
+            const ambientMotionScale = reduceMotion ? 0.55 : 1;
+            galaxy.rotation.y += 0.00018 * ambientMotionScale * delta;
+          }
+        }
+      }
+
+      if (galaxyIdRef.current === 'home' && fastSpinTravel >= Math.PI * 8) {
+        burstPortraits();
+        fastSpinTravel = 0;
+      }
+
+      if (dockGalaxyIconRef.current) {
+        const dockPhase =
+          dockSpin.step(elapsedMs / 1000, reduceMotion) +
+          dockHover.step(elapsedMs / 1000, reduceMotion);
+        dockGalaxyIconRef.current.style.transform = `rotate(${-galaxy.rotation.y + dockPhase}rad)`;
+      }
+
+      burstCooldown = Math.max(0, burstCooldown - elapsedMs / 1000);
+      if (cameraModeRef.current !== 'manual') {
+        const desiredCameraDistance = expandedRef.current
+          ? expandedCameraDistance
+          : defaultCameraDistance;
+        cameraDistance +=
+          (desiredCameraDistance - cameraDistance) * frameEase(0.065, delta);
+      }
+      const flightDolly = reduceMotion
+        ? 0
+        : Math.sin(travelProgress * Math.PI) * 3;
+      // Position and aim share one frame-rate-independent rate, so the view
+      // moves as one piece instead of sliding first and turning to catch up.
+      const cameraEase = frameEase(0.055, delta);
+      camera.position.y +=
+        ((cameraDistance - flightDolly) * 0.37 - camera.position.y) *
+        cameraEase;
+      camera.position.z +=
+        ((cameraDistance - flightDolly) * 0.93 - camera.position.z) *
+        cameraEase;
+      if (ambientMotionRef.current) {
+        const ambientMotionScale = reduceMotion ? 0.55 : 1;
+        backdrop.rotation.y -= 0.00006 * ambientMotionScale * delta;
+        distantGalaxies.forEach((points, index) => {
+          const rotationSpeed =
+            index === 0 ? 0.00022 : index % 2 === 0 ? 0.000035 : -0.000028;
+          points.rotation.z += rotationSpeed * ambientMotionScale * delta;
+        });
+      }
+      glowMaterial.opacity +=
+        (coreExposureRef.current - glowMaterial.opacity) * 0.075 * delta;
+      softGlow.material.opacity +=
+        (coreExposureRef.current * 0.3 - softGlow.material.opacity) *
+        0.075 *
+        delta;
+
+      const selectedIndex = activeIndexRef.current;
+      cameraFollowPosition.copy(nodes[selectedIndex].position);
+      galaxy.localToWorld(cameraFollowPosition);
+      const followAmount = travellingRef.current
+        ? 0
+        : isDragging
+          ? 0.025
+          : 0.075;
+      const desiredLookX = 0.7 + cameraFollowPosition.x * followAmount;
+      const desiredLookY = travellingRef.current
+        ? 0
+        : cameraFollowPosition.y * 0.04;
+      const desiredLookZ = travellingRef.current
+        ? 0
+        : cameraFollowPosition.z * 0.025;
+      cameraLookTarget.x += (desiredLookX - cameraLookTarget.x) * cameraEase;
+      cameraLookTarget.y += (desiredLookY - cameraLookTarget.y) * cameraEase;
+      cameraLookTarget.z += (desiredLookZ - cameraLookTarget.z) * cameraEase;
+      camera.lookAt(cameraLookTarget);
+
+      const { portalX, portalY } = layoutGalaxies(delta);
       if (groxBeacon && groxActive) {
         if (groxRetreating) groxRetreatElapsed += elapsedMs;
         else groxElapsed += elapsedMs;
@@ -1667,6 +2023,11 @@ export function GalaxyIndex({
       if (!isDragging && frame % 2 === 0) {
         const nextIndex = destinationAtPointer();
         if (nextIndex >= 0) {
+          if (nextIndex !== hoveredIndex) {
+            const systemId = sceneWorlds[nextIndex].systemId;
+            const system = systemId && getSolarSystem(systemId);
+            if (system) solar.prepare(system);
+          }
           hasHoveredWorld = true;
           if (!previewVisibleRef.current) {
             previewVisibleRef.current = true;
@@ -1950,6 +2311,10 @@ export function GalaxyIndex({
 
     return () => {
       disposed = true;
+      solar.dispose();
+      cancelAnimationFrame(solarWarmFrame);
+      solarRef.current = null;
+      enterSolarRef.current = () => undefined;
       if (animationFrame) cancelAnimationFrame(animationFrame);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       reducedMotionQuery.removeEventListener('change', onReducedMotionChange);
@@ -1961,6 +2326,7 @@ export function GalaxyIndex({
       renderer.domElement.removeEventListener('pointercancel', endPointer);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      sceneShell.removeEventListener('wheel', onPreviewWheel);
       window.clearTimeout(portraitPreloadTimer);
       resetGalaxyRef.current = () => undefined;
       spinGalaxyRef.current = () => undefined;
@@ -1990,6 +2356,7 @@ export function GalaxyIndex({
         });
       });
       window.removeEventListener('popstate', onHistory);
+      window.removeEventListener('hashchange', onHistory);
       travelRef.current = () => undefined;
       renderer.dispose();
       renderer.domElement.remove();
@@ -2025,6 +2392,7 @@ export function GalaxyIndex({
       style={{ '--ui-motion-speed': UI_MOTION_SPEED } as CSSProperties}
       data-galaxy={galaxyId}
       data-travelling={travelling}
+      data-solar-active={solarActive}
       data-arms={galaxies[galaxyId].arms}
       onPointerOver={(event) => {
         const menu = (event.target as Element).closest('.spore-menu-item');
@@ -2046,6 +2414,33 @@ export function GalaxyIndex({
     >
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
+      {solarActive && (
+        <SolarSystemHud
+          key={solarSystem.id}
+          system={solarSystem}
+          systems={solarSystems}
+          paused={solarPaused}
+          onSystemChange={(id) => enterSolarRef.current(id)}
+          phase={solarPhase}
+          selected={solarSelected}
+          hovered={solarHovered}
+          onHover={(index) => solarRef.current?.setHover(index)}
+          onSystemIntent={(id) => {
+            const system = getSolarSystem(id);
+            if (system) solarRef.current?.prepare(system);
+          }}
+          onSelect={(index) => solarRef.current?.select(index)}
+          onExit={leaveSolar}
+          onRandom={expandRandomDestination}
+          randomDisabled={travelling || solarNavigating}
+          onScopePick={(x, y) => solarRef.current?.pickScope(x, y) ?? null}
+          onPause={(paused) => {
+            setSolarPaused(paused);
+            solarRef.current?.setPaused(paused);
+          }}
+          onZoom={(factor) => solarRef.current?.zoom(factor)}
+        />
+      )}
 
       <button
         ref={ringPortalRef}
@@ -2095,11 +2490,17 @@ export function GalaxyIndex({
       </button>
 
       <p className="galaxy-location" aria-live="polite">
-        {travelling
-          ? 'crossing the stars…'
-          : galaxyId === 'home'
-            ? 'my corner of the universe'
-            : 'web ring · friends & discoveries'}
+        {solarActive
+          ? solarPhase === 'entering'
+            ? `diving toward ${solarSystem.starName.toLowerCase()}…`
+            : solarPhase === 'leaving'
+              ? 'rising back to the galaxy…'
+              : `${solarSystem.name.toLowerCase()} · ${solarSystem.starName.toLowerCase()} system`
+          : travelling
+            ? 'crossing the stars…'
+            : galaxyId === 'home'
+              ? 'my corner of the universe'
+              : 'web ring · friends & discoveries'}
       </p>
 
       <header className="spore-corner" aria-label="Main menu">
@@ -2110,7 +2511,8 @@ export function GalaxyIndex({
           aria-label="Alireza Afshan — return home"
           onClick={(event) => {
             event.preventDefault();
-            resetGalaxyRef.current();
+            if (solarRef.current?.active) leaveSolar();
+            else resetGalaxyRef.current();
           }}
         >
           <span>alireza</span>
@@ -2119,7 +2521,7 @@ export function GalaxyIndex({
         <nav className="spore-menu" aria-label="Primary">
           <button
             type="button"
-            disabled={travelling}
+            disabled={travelling || solarNavigating}
             className="spore-menu-item"
             onClick={expandRandomDestination}
           >
@@ -2130,45 +2532,50 @@ export function GalaxyIndex({
               {galaxyId === 'home' ? 'random world' : 'random neighbor'}
             </span>
           </button>
-          <button
-            type="button"
-            className="spore-menu-item"
-            disabled={travelling}
-            onClick={() =>
-              galaxyIdRef.current === 'home'
-                ? expandDestination(0)
-                : travelRef.current('home', true)
-            }
-          >
-            <span className="menu-motion-light" aria-hidden="true" />
-            <span className="menu-motion-ripple" aria-hidden="true" />
-            <MenuIcon name="about" />
-            <span className="menu-motion-label">about</span>
-          </button>
-          <a
-            className="spore-menu-item"
-            href="https://github.com/YesterdaysLemon"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="menu-motion-light" aria-hidden="true" />
-            <span className="menu-motion-ripple" aria-hidden="true" />
-            <MenuIcon name="github" />
-            <span className="menu-motion-label">github</span>
-          </a>
+          {/* The canopy sits out a system visit; the ship's own HUD takes over. */}
+          {!solarActive && (
+            <>
+              <button
+                type="button"
+                className="spore-menu-item"
+                disabled={travelling}
+                onClick={() =>
+                  galaxyIdRef.current === 'home'
+                    ? expandDestination(0)
+                    : travelRef.current('home', true)
+                }
+              >
+                <span className="menu-motion-light" aria-hidden="true" />
+                <span className="menu-motion-ripple" aria-hidden="true" />
+                <MenuIcon name="about" />
+                <span className="menu-motion-label">about</span>
+              </button>
+              <a
+                className="spore-menu-item"
+                href="https://github.com/YesterdaysLemon"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="menu-motion-light" aria-hidden="true" />
+                <span className="menu-motion-ripple" aria-hidden="true" />
+                <MenuIcon name="github" />
+                <span className="menu-motion-label">github</span>
+              </a>
+            </>
+          )}
         </nav>
       </header>
 
       <CommsPresence
         kind="preview"
-        world={!travelling ? floatingPreview : null}
+        world={!travelling && !solarActive ? floatingPreview : null}
         anchorRef={previewRef}
         hint={expanded}
         onAction={() => expandDestination(floatingPreviewIndex!)}
       />
       <CommsPresence
         kind="detail"
-        world={expanded ? active : null}
+        world={expanded && !solarActive ? active : null}
         anchorRef={detailRef}
         onAction={collapseDestination}
       />
@@ -2192,10 +2599,17 @@ export function GalaxyIndex({
                   : 'Only world in this galaxy'
                 : 'Spin the galaxy faster'
             }
+            // The dock sits out a system visit; its icon holds still as it leaves.
             data-action={expanded ? 'next' : 'spin'}
-            disabled={travelling || (expanded && currentWorlds.length < 2)}
+            disabled={
+              travelling ||
+              solarNavigating ||
+              (expanded && currentWorlds.length < 2)
+            }
             className="dock-orb"
-            onClick={advanceOrSpin}
+            onClick={() => {
+              advanceOrSpin();
+            }}
             onPointerEnter={(event) => {
               if (event.pointerType === 'mouse' || event.pointerType === 'pen')
                 hoverGalaxyRef.current();
@@ -2329,18 +2743,18 @@ export function GalaxyIndex({
         ))}
       </nav>
 
-      <p className="sr-only" aria-live="polite">
+      <p className="sr-only" aria-live="polite" hidden={solarActive}>
         {expanded
           ? `Selected world: ${active.name}. ${active.description}`
           : `Previewing world: ${preview.name}.`}
       </p>
 
-      <noscript>
+      <CatalogContainer>
         <section className="noscript-catalog" aria-label="Website worlds">
           <h1>Alireza&apos;s Galaxy</h1>
           <p>A small constellation of websites and experiments.</p>
           <ul>
-            {destinations.map((destination) => (
+            {worldCatalog.map((destination) => (
               <li key={destination.id}>
                 <a
                   href={destination.url}
@@ -2369,7 +2783,7 @@ export function GalaxyIndex({
             ))}
           </ul>
         </section>
-      </noscript>
+      </CatalogContainer>
     </main>
   );
 }

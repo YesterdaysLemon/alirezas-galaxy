@@ -3,7 +3,7 @@ import { syncCommsIdentity, watchCommsAssets } from '../../lib/comms-readiness';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { WorldPreview } from '../../components/world-comms';
-import { destinations } from '../../data/worlds';
+import { galaxyDestinations } from '../../data/galaxies';
 
 class Icon extends EventTarget {
   complete = false;
@@ -35,7 +35,7 @@ describe('comms readiness gate', () => {
   it('starts server markup behind the hydration gate', () => {
     const html = renderToStaticMarkup(
       createElement(WorldPreview, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         previewRef: { current: null },
         hint: false,
         onInspect() {},

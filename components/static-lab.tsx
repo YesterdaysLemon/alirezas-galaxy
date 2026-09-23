@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { WorldPreview } from './world-comms';
-import { destinations } from '@/data/worlds';
+import { galaxyDestinations } from '@/data/galaxies';
 import {
   staticEffects,
   staticRevealDelay,
@@ -125,7 +125,7 @@ export function StaticLab() {
                 ON YOUR HOVER CARD · CLICK TO REPLAY
               </span>
               <WorldPreview
-                world={destinations[0]}
+                world={galaxyDestinations[0]}
                 previewRef={previewRef}
                 hint={false}
                 contentReady={ready}
