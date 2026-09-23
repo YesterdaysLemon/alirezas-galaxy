@@ -19,7 +19,7 @@ const envelope = (planet: PlanetRecipe) =>
   planet.radius * (planet.moons ? 3.35 : planet.rings ? 2.5 : 1.1);
 
 describe('catalog-driven solar systems', () => {
-  it('keeps planet routes tied to identity and scenic terrain without a website', () => {
+  it('keeps planet routes tied to identity, with every world a real project', () => {
     for (const system of solarSystems) {
       expect(parseSystemRoute(systemHref(system.id))).toEqual({
         system,
@@ -30,17 +30,13 @@ describe('catalog-driven solar systems', () => {
           system,
           planetIndex,
         });
-        if (planet.projectId)
-          expect(planet.url).toBe(
-            worldCatalog.find((world) => world.id === planet.projectId)?.url,
-          );
+        // Scenic placeholders are retired: systems are made of projects.
+        expect(planet.projectId).toBe(planet.id);
+        expect(planet.url).toBe(
+          worldCatalog.find((world) => world.id === planet.projectId)?.url,
+        );
       });
     }
-    const nacre = getSolarSystem('patterns-and-life')!.planets.find(
-      (planet) => planet.id === 'nacre',
-    )!;
-    expect(nacre.projectId).toBeUndefined();
-    expect(nacre.url).toBeUndefined();
     for (const route of [
       '#system/missing',
       '#system/patterns-and-life/missing',

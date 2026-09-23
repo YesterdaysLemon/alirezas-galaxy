@@ -58,7 +58,8 @@ The portfolio alone uses `home`/`0`; authored families are `patterns-and-life`,
 `curiosity-and-play`, `tools-and-infrastructure` and `ideas-and-inquiry`. New public discoveries receive
 the next unallocated `frontier` slot in deterministic project-ID order.
 
-Slots 0–5 belong to the family's root system, 6–11 to `<family>-2`, and so on.
+Slots 0–7 belong to the family's root system, 8–15 to `<family>-2`, and so on;
+each slot is a lane at a fixed orbit, so systems grow outward.
 Empty slots do not collapse; absent systems do not renumber later companions.
 Renames, domain changes, discovery ordering and health transitions leave membership
 unchanged. Terrain is keyed by immutable project ID rather than display name or URL.

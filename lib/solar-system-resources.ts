@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
+import type {
+  PlanetRecipe,
+  SolarSystem,
+  SystemBelt,
+} from '../data/solar-systems';
 import {
   adoptPlanetBuffers,
   seededRandom,
@@ -289,7 +293,7 @@ export class SolarSystemResources {
     }
     for (const belt of system.belts) {
       await preparationTurn(signal);
-      this.addAsteroids(belt.inner, belt.outer, belt.count, belt.seed);
+      this.addAsteroids(belt);
     }
     await this.warm();
     if (!signal.aborted) this.ready = true;
@@ -578,18 +582,18 @@ export class SolarSystemResources {
     this.orbitMaterials.push(orbit.material);
   }
 
-  private addAsteroids(
-    inner: number,
-    outer: number,
-    count: number,
-    seed: number,
-  ) {
+  /**
+   * Asteroid belts are dense, thin and rocky; Kuiper belts are sparse, thick
+   * and icy, with a few larger bodies, ringing the whole system.
+   */
+  private addAsteroids({ kind, inner, outer, count, seed }: SystemBelt) {
     const random = seededRandom(seed);
+    const kuiper = kind === 'kuiper';
     const belt = new THREE.InstancedMesh(
       new THREE.IcosahedronGeometry(1, 0),
       new THREE.MeshStandardMaterial({
-        color: 0x938781,
-        roughness: 1,
+        color: kuiper ? 0xe6eef5 : 0x938781,
+        roughness: kuiper ? 0.7 : 1,
         flatShading: true,
       }),
       count,
@@ -601,10 +605,16 @@ export class SolarSystemResources {
         radius = inner + random() * (outer - inner);
       dummy.position.set(
         Math.cos(angle) * radius,
-        (random() - 0.5) * 0.32,
+        (random() - 0.5) * (kuiper ? 2.4 : 0.32),
         Math.sin(angle) * radius,
       );
-      const size = 0.025 + Math.pow(random(), 3) * 0.12;
+      // Farther belts are seen from farther away; keep their rocks legible.
+      const reach = 0.6 + outer / 32;
+      const size =
+        reach *
+        (kuiper
+          ? 0.05 + Math.pow(random(), 5) * 0.22
+          : 0.03 + Math.pow(random(), 3) * 0.13);
       dummy.scale.set(
         size,
         size * (0.6 + random() * 0.6),
@@ -613,7 +623,9 @@ export class SolarSystemResources {
       dummy.rotation.set(random() * 6, random() * 6, random() * 6);
       dummy.updateMatrix();
       belt.setMatrixAt(i, dummy.matrix);
-      color.setHSL(0.08 + random() * 0.1, 0.12, 0.32 + random() * 0.35);
+      if (kuiper)
+        color.setHSL(0.55 + random() * 0.1, 0.18, 0.62 + random() * 0.3);
+      else color.setHSL(0.08 + random() * 0.1, 0.12, 0.32 + random() * 0.35);
       belt.setColorAt(i, color);
     }
     this.group.add(belt);

@@ -48,12 +48,54 @@ export type SolarSystem = {
   star: { color: string; classification: string; radius: number };
   nebula: [string, string];
   planets: PlanetRecipe[];
-  belts: { inner: number; outer: number; count: number; seed: number }[];
+  belts: SystemBelt[];
+  /** Outer reach of the belts: the whole system. */
   extent: number;
+  /** Outer reach of the worlds alone: what an overview frames. */
+  frame: number;
+};
+
+/**
+ * Scenery earned by growth. A Kuiper belt of sparse ice rings every system; an
+ * inner asteroid belt marks the frost line inside the first gas giant, or, in
+ * some systems without one, a seeded gap among the rocky worlds.
+ */
+export type SystemBelt = {
+  kind: 'asteroid' | 'kuiper';
+  inner: number;
+  outer: number;
+  count: number;
+  seed: number;
 };
 
 // orbitSlot is a permanent family-wide address, not the index of a live list.
-export const PROJECT_SLOTS_PER_SYSTEM = 6;
+// A system grows one lane at a time, outward, until a sister system opens.
+export const PROJECT_SLOTS_PER_SYSTEM = 8;
+const STAR_RADIUS = 3.8;
+
+/**
+ * Lanes widen outward, like a real system's spacing, so an outer lane can hold
+ * a ringed giant while inner lanes suit rocky worlds. A lane's orbit depends
+ * only on its index: growth and removals never move another world.
+ */
+export function laneOrbit(lane: number) {
+  return 7.5 + lane * 6.2 + lane * lane * 0.55;
+}
+
+/** The widest envelope a world in this lane may have without touching a neighbour's. */
+function laneEnvelope(lane: number) {
+  const inward =
+    lane === 0
+      ? (laneOrbit(0) - STAR_RADIUS * 1.4) * 2
+      : laneOrbit(lane) - laneOrbit(lane - 1);
+  const outward = laneOrbit(lane + 1) - laneOrbit(lane);
+  return Math.min(inward, outward) / 2 - 0.35;
+}
+
+/** Radius multiple a world's moons or rings reach. */
+export function envelopeScale(planet: Pick<PlanetRecipe, 'moons' | 'rings'>) {
+  return planet.moons ? 3.35 : planet.rings ? 2.5 : 1.1;
+}
 export const systemFamilies = [
   {
     id: 'patterns-and-life',
@@ -319,23 +361,6 @@ function terrainFor(id: string): TerrainRecipe {
   };
 }
 
-const nacre: PlanetRecipe = {
-  id: 'nacre',
-  name: 'Nacre',
-  kind: 'Ringed gas giant',
-  description:
-    'An uninhabited outer giant. Pearlescent cloud bands, a broad ring system, and two cold moons.',
-  seed: 66013,
-  terrain: 'gas',
-  colors: ['#665b8d', '#a492ae', '#e1b59b', '#f5dfba'],
-  atmosphere: '#e5d3ff',
-  radius: 3,
-  orbit: 64,
-  phase: 0.3,
-  moons: 2,
-  rings: true,
-};
-
 export function buildSolarSystems(
   catalog: readonly CatalogWorld[],
 ): SolarSystem[] {
@@ -381,40 +406,84 @@ export function buildSolarSystems(
       ([a], [b]) => a - b,
     )) {
       const id = chunk === 0 ? family.id : `${family.id}-${chunk + 1}`;
+      const seed = identitySeed(id);
       const planets: PlanetRecipe[] = members
         .sort((a, b) => a.orbitSlot - b.orbitSlot)
-        .map((world) => ({
-          ...terrainFor(world.id),
-          id: world.id,
-          projectId: world.id,
-          name: world.name,
-          kind: world.kind,
-          description: world.description,
-          url: world.url,
-          iconSrc: world.iconSrc,
-          status: world.status,
-          orbit: 6 + (world.orbitSlot % PROJECT_SLOTS_PER_SYSTEM) * 8,
-        }));
-      if (id === 'patterns-and-life') planets.push({ ...nacre });
-      // Outer belts never cross rings or satellites, even in a sparse companion.
-      const envelope = Math.max(
-        ...planets.map(
-          (planet) =>
-            planet.orbit +
-            planet.radius * (planet.moons ? 3.8 : planet.rings ? 2.5 : 1.2),
-        ),
+        .map((world) => {
+          const lane = world.orbitSlot % PROJECT_SLOTS_PER_SYSTEM;
+          const terrain = terrainFor(world.id);
+          const giant = terrain.terrain === 'gas';
+          // Gas giants are big, and ringed when their seed says so; every world
+          // is fitted to its lane so moons and rings stay clear of neighbours.
+          const wanted = {
+            ...terrain,
+            radius: giant ? Math.max(2.2, terrain.radius * 2) : terrain.radius,
+            rings: terrain.rings ?? (giant && terrain.seed % 2 === 0),
+            moons: terrain.moons ?? (giant ? 2 : undefined),
+          };
+          const room = laneEnvelope(lane) / envelopeScale(wanted);
+          return {
+            ...wanted,
+            radius: Math.round(Math.min(wanted.radius, room) * 100) / 100,
+            id: world.id,
+            projectId: world.id,
+            name: world.name,
+            kind: world.kind,
+            description: world.description,
+            url: world.url,
+            iconSrc: world.iconSrc,
+            status: world.status,
+            orbit: laneOrbit(lane),
+          };
+        });
+      const reach = (planet: PlanetRecipe) =>
+        planet.radius * envelopeScale(planet) + 0.3;
+      const frame = Math.max(
+        ...planets.map((planet) => planet.orbit + reach(planet)),
       );
-      const seed = identitySeed(id);
-      const belt = {
-        inner: envelope + 3,
-        outer: envelope + 5,
-        count: 180,
+      const belts: SystemBelt[] = [];
+      // Frost line: just inside the first gas giant, if the gap allows.
+      const bands = planets.map((planet, index) => ({
+        inner:
+          index === 0
+            ? STAR_RADIUS * 1.8
+            : planets[index - 1].orbit + reach(planets[index - 1]),
+        outer: planet.orbit - reach(planet),
+        giant: planet.terrain === 'gas',
+      }));
+      const frost = bands.find(
+        (band) => band.giant && band.outer - band.inner > 2.2,
+      );
+      const inner =
+        frost ??
+        // Some systems without giants still carry a seeded inner belt.
+        (planets.length >= 3 && seed % 3 !== 0
+          ? bands
+              .slice(1, Math.ceil(planets.length / 2) + 1)
+              .filter((band) => band.outer - band.inner > 2.2)
+              .sort((a, b) => b.outer - b.inner - (a.outer - a.inner))[0]
+          : undefined);
+      if (inner) {
+        const width = Math.min(3, (inner.outer - inner.inner) * 0.45);
+        const middle = (inner.inner + inner.outer) / 2;
+        belts.push({
+          kind: 'asteroid',
+          inner: middle - width / 2,
+          outer: middle + width / 2,
+          count: Math.round(260 + middle * 4),
+          seed: seed ^ 0x183,
+        });
+      }
+      // The Kuiper belt rings the whole system, sparse and icy.
+      const kuiperInner = frame + 5;
+      const kuiperOuter = kuiperInner + 6 + frame * 0.12;
+      belts.push({
+        kind: 'kuiper',
+        inner: kuiperInner,
+        outer: kuiperOuter,
+        count: Math.round(160 + kuiperOuter * 3),
         seed: seed ^ 0x51b7,
-      };
-      const belts =
-        id === 'patterns-and-life'
-          ? [{ inner: 51, outer: 52, count: 460, seed: seed ^ 0x183 }, belt]
-          : [belt];
+      });
       systems.push({
         id,
         name: chunk === 0 ? family.name : `${family.name} · ${chunk + 1}`,
@@ -425,12 +494,13 @@ export function buildSolarSystems(
         star: {
           color: family.color,
           classification: family.classification,
-          radius: 3.8,
+          radius: STAR_RADIUS,
         },
         nebula: [...family.nebula],
         planets,
         belts,
-        extent: belt.outer + 3,
+        extent: kuiperOuter + 3,
+        frame,
       });
     }
   }

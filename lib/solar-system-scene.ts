@@ -611,7 +611,8 @@ export class SolarSystemScene {
   private overviewDistance() {
     // A sparse companion system still frames at a common scale, so its star
     // keeps the same size on screen instead of swallowing the view.
-    const extent = Math.max(44, this.system?.extent ?? 40);
+    // Frame the worlds; the Kuiper belt rings them just past the edges.
+    const extent = Math.max(44, (this.system?.frame ?? 40) * 1.08);
     // Frame the tilted orbital plane rather than the sphere containing its belts.
     return extent * 1.38 * Math.max(1, 0.8 / this.camera.aspect);
   }
@@ -1472,8 +1473,13 @@ export class SolarSystemScene {
         0,
         Math.PI * 2,
       );
-      g.setLineDash([px * 1.5, px * 2.5]);
-      g.strokeStyle = 'rgba(210,190,160,0.28)';
+      g.setLineDash(
+        belt.kind === 'kuiper' ? [px, px * 3.5] : [px * 1.5, px * 2.5],
+      );
+      g.strokeStyle =
+        belt.kind === 'kuiper'
+          ? 'rgba(170,215,240,0.3)'
+          : 'rgba(210,190,160,0.32)';
       g.stroke();
       g.setLineDash([]);
     }

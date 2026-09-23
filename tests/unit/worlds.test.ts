@@ -7,6 +7,7 @@ import {
   buildSolarSystems,
   getSolarSystem,
   systemFamilies,
+  PROJECT_SLOTS_PER_SYSTEM,
 } from '@/data/solar-systems';
 import { serializeWorlds, renderLlmsText } from '@/data/site';
 import { MIN_WORLD_SPACING, worldCatalog, worldDistance } from '@/data/worlds';
@@ -86,7 +87,7 @@ describe('public catalog and bounded galaxy', () => {
     expect(markers).toHaveLength(1 + systemFamilies.length);
     expect(
       systems.filter((system) => system.id.startsWith('frontier')),
-    ).toHaveLength(15);
+    ).toHaveLength(Math.ceil(90 / PROJECT_SLOTS_PER_SYSTEM));
     for (let first = 0; first < markers.length; first++) {
       for (let second = first + 1; second < markers.length; second++) {
         expect(
@@ -97,6 +98,9 @@ describe('public catalog and bounded galaxy', () => {
     const sparse = expanded.filter(
       (world) => world.systemId === 'frontier' && world.orbitSlot >= 12,
     );
-    expect(buildGalaxyDestinations(sparse)[0].systemId).toBe('frontier-3');
+    // The family star opens its first populated system, however far out.
+    expect(buildGalaxyDestinations(sparse)[0].systemId).toBe(
+      `frontier-${Math.floor(12 / PROJECT_SLOTS_PER_SYSTEM) + 1}`,
+    );
   });
 });

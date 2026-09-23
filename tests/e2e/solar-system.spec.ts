@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+// Entering a system is a deliberate ~3.3 s cinematic (dive, then haze), plus
+// terrain preparation on a cold load; allow for it where tests wait to arrive.
+const ARRIVAL = { timeout: 10_000 };
+
 test('galaxy to system to planet and back keeps one canvas and working project links', async ({
   page,
 }) => {
@@ -13,7 +17,7 @@ test('galaxy to system to planet and back keeps one canvas and working project l
   await entry.focus();
   await entry.press('Enter');
   const stage = page.locator('[data-galaxy-stage]');
-  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system', ARRIVAL);
   await expect(page.locator('canvas[data-galaxy-canvas]')).toHaveCount(1);
   await page
     .getByRole('button', { name: 'Explore Plato', exact: true })
@@ -34,15 +38,13 @@ test('galaxy to system to planet and back keeps one canvas and working project l
   await expect(
     page.getByRole('article', { name: 'Planet: Proof Bonsai' }),
   ).toBeVisible();
+  // The outermost lane is a real project too; scenic placeholders retired.
   await page
-    .getByRole('button', { name: 'Explore Nacre', exact: true })
+    .getByRole('button', { name: 'Explore Openwater', exact: true })
     .click();
   await expect(
-    page.getByRole('article', { name: 'Planet: Nacre' }),
-  ).toContainText('Uninhabited');
-  await expect(
-    page.getByRole('article', { name: 'Planet: Nacre' }).getByRole('link'),
-  ).toHaveCount(0);
+    page.getByRole('link', { name: 'Visit Openwater', exact: true }),
+  ).toHaveAttribute('href', 'https://openwater.alirezaafshan.com');
   await page.keyboard.press('Escape');
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page.keyboard.press('Escape');
@@ -69,7 +71,7 @@ test('deep links, history, narrow controls, and reduced motion complete the same
   await entry.focus();
   await entry.press('Enter');
   const stage = page.locator('[data-galaxy-stage]');
-  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system', ARRIVAL);
   await page
     .getByRole('button', { name: 'Explore Aquarium', exact: true })
     .click();
@@ -140,7 +142,7 @@ test('planet hover cards identify a world without navigating and remain clickabl
   await page.goto('/#system/patterns-and-life');
   await expect(
     page.getByRole('button', { name: 'Explore Plato', exact: true }),
-  ).toBeEnabled();
+  ).toBeEnabled(ARRIVAL);
   // Worlds carry no standing labels; the card records where its world is.
   const worldPoint = async () => {
     await page
@@ -235,7 +237,7 @@ test('changing destination during entry keeps the latest route and restores gala
     .press('Enter');
   await expect(
     page.getByRole('button', { name: 'Explore Herald', exact: true }),
-  ).toBeEnabled();
+  ).toBeEnabled(ARRIVAL);
   await expect(page).toHaveURL(/#system\/curiosity-and-play$/);
 });
 
@@ -258,7 +260,7 @@ test('scrolling dives into a family star and back out to the galaxy', async ({
   const box = (await star.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   for (let step = 0; step < 5; step++) await page.mouse.wheel(0, -100);
-  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system', ARRIVAL);
   await expect(page).toHaveURL(/#system\/patterns-and-life$/);
   await page.mouse.move(640, 300);
   for (let step = 0; step < 6; step++) await page.mouse.wheel(0, 120);
@@ -278,7 +280,7 @@ test('the ship HUD keeps the top clear and runs the menu, zoom and pause', async
   const stage = page.locator('[data-galaxy-stage]');
   await expect(
     page.getByRole('button', { name: 'Explore Plato', exact: true }),
-  ).toBeEnabled();
+  ).toBeEnabled(ARRIVAL);
   // The galaxy canopy steps aside; nothing of the HUD sits in the top half.
   await expect(page.locator('.spore-corner')).toBeHidden();
   const viewport = page.viewportSize()!;

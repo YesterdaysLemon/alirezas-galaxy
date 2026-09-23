@@ -28,7 +28,7 @@ type Pending = {
 
 const POOL_SIZE = Math.max(
   1,
-  Math.min(3, Math.floor((globalThis.navigator?.hardwareConcurrency ?? 2) / 2)),
+  Math.min(4, Math.floor((globalThis.navigator?.hardwareConcurrency ?? 2) / 2)),
 );
 
 /**
