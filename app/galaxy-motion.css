@@ -265,52 +265,6 @@
     filter: none;
   }
 }
-@keyframes galaxy-static-resolve {
-  0% {
-    opacity: 0.55;
-    background-position:
-      0 0,
-      0 0,
-      0 100%;
-  }
-  18% {
-    opacity: 0.55;
-    background-position:
-      13px -17px,
-      -19px 11px,
-      0 80%;
-  }
-  32% {
-    opacity: 0.5;
-    background-position:
-      -5px 9px,
-      8px -4px,
-      0 60%;
-  }
-  48% {
-    opacity: 0.45;
-    background-position:
-      7px -11px,
-      -5px 8px,
-      0 40%;
-  }
-  65% {
-    opacity: 0.25;
-    background-position:
-      -13px 17px,
-      19px -11px,
-      0 20%;
-  }
-  84%,
-  100% {
-    opacity: 0;
-    background-position:
-      5px -9px,
-      -8px 4px,
-      0 0;
-  }
-}
-
 /* M1 + M3: the highlight arrives before the label; one ripple crosses it. */
 .spore-shell .spore-menu-item {
   isolation: isolate;
@@ -384,17 +338,6 @@
     transform: translateX(4px);
   }
 }
-@keyframes galaxy-glass-ripple {
-  from {
-    opacity: 0.7;
-    transform: translate(-50%, -50%) scale(0.1);
-  }
-  to {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(4);
-  }
-}
-
 /* R3 + C1: illumination on the reply, rotation inside the close socket. */
 .spore-shell .world-play,
 .spore-shell .world-source {
@@ -453,17 +396,6 @@
   transform: rotate(210deg);
   opacity: 0.55;
 }
-@keyframes galaxy-orbital-sweep {
-  from {
-    transform: rotate(0);
-    opacity: 0.7;
-  }
-  to {
-    transform: rotate(210deg);
-    opacity: 0.45;
-  }
-}
-
 /* Expanded comms use the same socket -> hinged leaves -> resolved signal. */
 .spore-shell .world-detail {
   animation: none;

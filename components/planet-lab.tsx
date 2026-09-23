@@ -126,9 +126,7 @@ function recipeSnippet(planet: PlanetRecipe, draft: Draft) {
     ...(draft.rings ? ['  rings: true,'] : []),
     `  surface: { ${surface} },`,
   ];
-  return planet.projectId
-    ? `// authoredTerrain in data/solar-systems.ts\n'${planet.id}': {\n${lines.map((l) => `  ${l}`).join('\n')}\n},`
-    : `// the scenic ${planet.name} recipe in data/solar-systems.ts\n{\n${lines.join('\n')}\n}`;
+  return `// authoredTerrain in data/solar-systems.ts\n'${planet.id}': {\n${lines.map((l) => `  ${l}`).join('\n')}\n},`;
 }
 
 function Mark({ planet, size }: { planet: PlanetRecipe; size: number }) {

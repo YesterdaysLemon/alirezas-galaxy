@@ -656,17 +656,6 @@ button {
   stroke: #c9ffc0;
 }
 
-.dock-tuner .tuner-cycle-arrow {
-  stroke: #8dff68;
-}
-
-.dock-tuner .tuner-cycle-signal {
-  fill: #8dff68;
-  stroke: rgba(225, 255, 211, 0.9);
-  stroke-width: 0.8;
-  filter: drop-shadow(0 0 2px rgba(123, 255, 91, 0.78));
-}
-
 .spore-dock a:hover,
 .spore-dock a:focus-visible,
 .spore-dock button:hover,
@@ -867,38 +856,3 @@ button {
   }
 }
 
-.lost-signal {
-  display: grid;
-  min-height: 100svh;
-  padding: 24px;
-  color: #effaff;
-  text-align: center;
-  background:
-    radial-gradient(
-      circle at 50% 42%,
-      rgba(95, 51, 205, 0.34),
-      transparent 28%
-    ),
-    #02030a;
-  place-content: center;
-}
-
-.lost-signal p {
-  margin: 0;
-  color: #8edfff;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.lost-signal h1 {
-  margin: 8px 0 20px;
-  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
-  font-size: clamp(30px, 6vw, 64px);
-}
-
-.lost-signal a {
-  color: #fff071;
-  font-weight: 900;
-}

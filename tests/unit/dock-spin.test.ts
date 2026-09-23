@@ -54,7 +54,9 @@ describe('galaxy dock flywheel', () => {
   });
 
   it('composes the temporary phase with the live renderer angle, not a CSS hover twist', async () => {
-    const source = await readFile('components/galaxy-index.tsx', 'utf8');
+    const source =
+      (await readFile('components/galaxy-index.tsx', 'utf8')) +
+      (await readFile('components/galaxy-dock.tsx', 'utf8'));
     const css = await readFile('app/galaxy-motion.css', 'utf8');
     expect(source).toContain('${-galaxy.rotation.y + dockPhase}rad');
     expect(source.replace(/\s+/g, ' ')).toContain(

@@ -3,7 +3,6 @@
 .world-preview,
 .world-detail {
   --comms-metal: #8ba6b3;
-  --comms-ink: #041a24;
   --comms-green: #92ff63;
   position: absolute;
   top: 0;

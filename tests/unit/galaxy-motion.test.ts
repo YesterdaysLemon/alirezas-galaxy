@@ -7,7 +7,14 @@ import { galaxyDestinations } from '../../data/galaxies';
 import { UI_MOTION_SPEED, uiDuration } from '../../lib/ui-motion';
 
 const motionCss = await readFile('app/galaxy-motion.css', 'utf8');
-const galaxySource = await readFile('components/galaxy-index.tsx', 'utf8');
+// The galaxy scene and the chrome it renders, read as one source.
+const galaxySource = (
+  await Promise.all(
+    ['components/galaxy-index.tsx', 'components/galaxy-dock.tsx'].map((file) =>
+      readFile(file, 'utf8'),
+    ),
+  )
+).join('\n');
 
 describe('selected galaxy motion integration', () => {
   it('shares a 1.65x UI rate across opening, hover, exit and ripple timing', async () => {
@@ -150,7 +157,7 @@ describe('selected galaxy motion integration', () => {
     expect(galaxySource).toContain('className="dock-flywheel"');
     expect(galaxySource).toContain('dockGalaxyIconRef.current.style.transform');
     expect(galaxySource).toContain(
-      'previewElement.style.transform = `translate3d(${previewX}px',
+      'previewElement.style.transform = `translate3d(${previewPlacement.x}px',
     );
   });
   it('provides a motion-free path without hiding readable content', () => {

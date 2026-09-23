@@ -21,12 +21,12 @@ export type SurfaceTuning = {
 /** Art is fictional; all project-facing metadata comes from the public catalog. */
 export type PlanetRecipe = {
   id: string;
-  projectId?: string;
+  projectId: string;
   name: string;
   shortName?: string;
   kind: string;
   description: string;
-  url?: string;
+  url: string;
   iconSrc?: string;
   status?: Destination['status'];
   seed: number;
@@ -114,7 +114,6 @@ export type SystemFamily = {
  */
 export const systemFamilies = familyData.active as SystemFamily[];
 /** Curated, not-yet-active families a classifier may open. */
-export const familyThemes = familyData.themes as SystemFamily[];
 export const MAX_ACTIVE_FAMILIES = familyData.maxActive;
 
 type TerrainRecipe = Pick<
@@ -559,6 +558,11 @@ export function buildSolarSystems(
 }
 
 export const solarSystems: SolarSystem[] = buildSolarSystems(worldCatalog);
+
+/** Every project world's address, for picking one at random. */
+export const projectOrbits = solarSystems.flatMap((system) =>
+  system.planets.map((_, index) => ({ systemId: system.id, index })),
+);
 
 export function getSolarSystem(id: string): SolarSystem | undefined {
   return solarSystems.find((system) => system.id === id);
