@@ -6,11 +6,12 @@ test('galaxy to system to planet and back keeps one canvas and working project l
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/#galaxy');
-  const entry = page.getByRole('button', {
-    name: 'Enter Patterns and Life solar system',
-  });
-  await expect(entry).toBeEnabled();
-  await entry.click();
+  const entry = page
+    .getByRole('navigation', { name: 'Website worlds' })
+    .locator('[data-world-id="patterns-and-life"]');
+  await expect(page.locator('canvas[data-galaxy-canvas]')).toBeVisible();
+  await entry.focus();
+  await entry.press('Enter');
   const stage = page.locator('[data-galaxy-stage]');
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await expect(page.locator('canvas[data-galaxy-canvas]')).toHaveCount(1);
@@ -46,7 +47,7 @@ test('galaxy to system to planet and back keeps one canvas and working project l
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page.keyboard.press('Escape');
   await expect(stage).toHaveAttribute('data-solar-phase', 'galaxy');
-  await expect(entry).toBeVisible();
+  await expect(entry).toBeFocused();
   await expect(page.locator('canvas[data-galaxy-canvas]')).toHaveCount(1);
   await page.getByRole('button', { name: 'about', exact: true }).click();
   await expect(
@@ -61,9 +62,12 @@ test('deep links, history, narrow controls, and reduced motion complete the same
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/#galaxy');
-  await page
-    .getByRole('button', { name: 'Enter Patterns and Life solar system' })
-    .click();
+  const entry = page
+    .getByRole('navigation', { name: 'Website worlds' })
+    .locator('[data-world-id="patterns-and-life"]');
+  await expect(page.locator('canvas[data-galaxy-canvas]')).toBeVisible();
+  await entry.focus();
+  await entry.press('Enter');
   const stage = page.locator('[data-galaxy-stage]');
   await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page
@@ -79,11 +83,157 @@ test('deep links, history, narrow controls, and reduced motion complete the same
     390,
   );
   await page.goBack();
-  await expect(stage).toHaveAttribute('data-solar-phase', 'galaxy');
+  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
   await page.goForward();
-  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(inspector).toBeVisible();
   await page.reload();
-  await expect(stage).toHaveAttribute('data-solar-phase', 'system');
+  await expect(inspector).toBeVisible();
   await page.getByRole('button', { name: 'Return to the galaxy' }).click();
   await expect(stage).toHaveAttribute('data-solar-phase', 'galaxy');
+});
+
+test('planet addresses and browser history switch systems without losing the galaxy', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/#system/patterns-and-life/plato');
+  await expect(
+    page.getByRole('article', { name: 'Planet: Plato' }),
+  ).toBeVisible();
+  const canvas = page.locator('canvas[data-galaxy-canvas]');
+  const original = await canvas.elementHandle();
+  await page.evaluate(() => {
+    location.hash = '#system/tools-and-infrastructure/valet';
+  });
+  await expect(
+    page.getByRole('article', { name: 'Planet: Valet' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Visit Valet', exact: true }),
+  ).toHaveAttribute('href', 'https://valet.alirezaafshan.com');
+  await page.goBack();
+  await expect(
+    page.getByRole('article', { name: 'Planet: Plato' }),
+  ).toBeVisible();
+  expect(
+    await original!.evaluate(
+      (element) =>
+        element === document.querySelector('canvas[data-galaxy-canvas]'),
+    ),
+  ).toBe(true);
+  await page.evaluate(() => {
+    location.hash = '#system/not-a-system';
+  });
+  await expect(page.locator('[data-galaxy-stage]')).toHaveAttribute(
+    'data-solar-phase',
+    'galaxy',
+  );
+  await expect(
+    page.getByRole('button', { name: 'about', exact: true }),
+  ).toBeVisible();
+});
+
+test('planet hover cards identify a world without navigating and remain clickable', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/#system/patterns-and-life');
+  await expect(
+    page.getByRole('button', { name: 'Explore Plato', exact: true }),
+  ).toBeEnabled();
+  await page.mouse.move(page.viewportSize()!.width - 20, 120);
+  const hotspot = (await page
+    .locator('[data-planet-label="plato"] i')
+    .boundingBox())!;
+  await page.mouse.move(
+    hotspot.x + hotspot.width / 2,
+    hotspot.y + hotspot.height / 2,
+  );
+  const card = page.locator('[data-solar-preview]').getByRole('button');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('plato.alirezaafshan.com');
+  await expect(page).toHaveURL(/#system\/patterns-and-life$/);
+  const planetBounds = (await page
+    .locator('[data-planet-label="plato"] i')
+    .boundingBox())!;
+  const previewBounds = (await page
+    .locator('[data-solar-preview]')
+    .boundingBox())!;
+  const from = {
+    x: planetBounds.x + planetBounds.width / 2,
+    y: planetBounds.y + planetBounds.height / 2,
+  };
+  const to = {
+    x: Math.max(
+      previewBounds.x + 2,
+      Math.min(from.x, previewBounds.x + previewBounds.width - 2),
+    ),
+    y: Math.max(
+      previewBounds.y + 2,
+      Math.min(from.y, previewBounds.y + previewBounds.height - 2),
+    ),
+  };
+  const steps = Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 5);
+  for (let step = 1; step <= steps; step++) {
+    await page.mouse.move(
+      from.x + ((to.x - from.x) * step) / steps,
+      from.y + ((to.y - from.y) * step) / steps,
+    );
+    await expect(card).toBeVisible();
+  }
+  await card.hover();
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(
+    page.getByRole('article', { name: 'Planet: Plato' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Visit Plato', exact: true }),
+  ).toHaveAttribute('href', 'https://plato.alirezaafshan.com');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 667, height: 375 });
+  await page
+    .locator('canvas[data-galaxy-canvas]')
+    .hover({ position: { x: 255, y: 135 } });
+  await expect(card).toBeVisible();
+  const landscapeCard = (await card.boundingBox())!;
+  const inspector = (await page
+    .getByRole('article', { name: 'Planet: Plato' })
+    .boundingBox())!;
+  expect(
+    landscapeCard.x < inspector.x + inspector.width &&
+      landscapeCard.x + landscapeCard.width > inspector.x &&
+      landscapeCard.y < inspector.y + inspector.height &&
+      landscapeCard.y + landscapeCard.height > inspector.y,
+  ).toBe(false);
+});
+
+test('changing destination during entry keeps the latest route and restores galaxy focus', async ({
+  page,
+}) => {
+  await page.goto('/#galaxy');
+  const navigation = page.getByRole('navigation', { name: 'Website worlds' });
+  const entry = navigation.locator('[data-world-id="patterns-and-life"]');
+  await expect(page.locator('canvas[data-galaxy-canvas]')).toBeVisible();
+  await entry.focus();
+  await entry.press('Enter');
+  await page.evaluate(() => {
+    location.hash = '#system/tools-and-infrastructure/valet';
+  });
+  await expect(
+    page.getByRole('article', { name: 'Planet: Valet' }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/#system\/tools-and-infrastructure\/valet$/);
+  await page.getByRole('button', { name: 'Return to the galaxy' }).click();
+  await expect(
+    navigation.locator('[data-world-id="tools-and-infrastructure"]'),
+  ).toBeFocused();
+  await expect(page).toHaveURL(/#galaxy$/);
+  await navigation
+    .locator('[data-world-id="curiosity-and-play"]')
+    .press('Enter');
+  await expect(
+    page.getByRole('button', { name: 'Explore Herald', exact: true }),
+  ).toBeEnabled();
+  await expect(page).toHaveURL(/#system\/curiosity-and-play$/);
 });

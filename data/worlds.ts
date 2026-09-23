@@ -10,6 +10,8 @@ export type Destination = {
   hosting: 'first-party' | 'external';
   status: 'live' | 'sleeping' | 'preview' | 'archived';
   iconSrc?: string;
+  systemId?: string;
+  orbitSlot?: number;
   glyph: string;
   color: number;
   radius: number;
@@ -17,8 +19,14 @@ export type Destination = {
   size: number;
 };
 
-type WorldSeed = Omit<Destination, 'color' | 'radius' | 'angle' | 'size'> &
+export type WorldSeed = Omit<
+  Destination,
+  'color' | 'radius' | 'angle' | 'size'
+> &
   Partial<Pick<Destination, 'color' | 'radius' | 'angle' | 'size'>>;
+
+/** Published addresses are permanent; home/0 is the direct portfolio marker. */
+export type CatalogWorld = WorldSeed & { systemId: string; orbitSlot: number };
 
 const TAU = Math.PI * 2;
 const GALAXY_ARMS = 5;
@@ -59,7 +67,7 @@ function materializeWorld(
   placedWorlds: Destination[],
   arms = GALAXY_ARMS,
 ): Destination {
-  const identity = `${world.name}:${world.url}`;
+  const identity = world.id;
   const seedRadius = world.radius ?? 5.2 + hashUnit(identity, 11) * 5.8;
   const arm = index % arms;
   const armAngle = (arm / arms) * TAU;
@@ -140,11 +148,9 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-// Add one object here to map a new website. Orbit, arm, color, and marker size
-// are generated deterministically when omitted. Supplied coordinates are seed
-// preferences and still pass through the same interaction-spacing rule as every
-// other world. The first entry is the default homeworld.
-export const worldCatalog: WorldSeed[] = generatedWorlds as WorldSeed[];
+// This is the complete public catalog, not the bounded galaxy marker layout.
+// Only family markers and the direct homeworld pass through generateWorlds.
+export const worldCatalog = generatedWorlds as CatalogWorld[];
 
 export function generateWorlds(catalog: WorldSeed[], arms = GALAXY_ARMS) {
   return catalog.reduce<Destination[]>((placedWorlds, world, index) => {
@@ -152,5 +158,3 @@ export function generateWorlds(catalog: WorldSeed[], arms = GALAXY_ARMS) {
     return placedWorlds;
   }, []);
 }
-
-export const destinations = generateWorlds(worldCatalog);

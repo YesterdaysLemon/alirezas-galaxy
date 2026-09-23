@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { destinations } from '../../data/worlds';
 import { webring } from '../../data/webring';
 
 async function settleDetail(page: import('@playwright/test').Page) {
@@ -27,7 +26,7 @@ test.use({
   isMobile: true,
 });
 
-test('the dock advances through inspected worlds and resumes spinning when closed', async ({
+test('the dock enters the next system and resumes spinning on galaxy return', async ({
   page,
   browserName,
 }) => {
@@ -42,20 +41,19 @@ test('the dock advances through inspected worlds and resumes spinning when close
   await page.screenshot({
     path: `output/playwright/iphone-world-card-${browserName}.png`,
   });
-  for (let index = 1; index <= destinations.length; index += 1) {
-    await dock.tap();
-    await expect(
-      page.locator('.world-detail:not([data-phase="leaving"])'),
-    ).toHaveAttribute(
-      'data-world-id',
-      destinations[index % destinations.length].id,
-    );
-  }
+  await dock.tap();
+  await expect(
+    page.getByRole('region', { name: 'Solar system navigation' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Return to the galaxy' }).tap();
+  await expect(page.locator('[data-galaxy-stage]')).toHaveAttribute(
+    'data-solar-phase',
+    'galaxy',
+  );
   await expect(page.locator('[data-galaxy-stage]')).toHaveAttribute(
     'data-portrait-bursts',
     '0',
   );
-  await page.getByRole('button', { name: 'Close world details' }).tap();
   await expect(dock).toHaveAttribute('data-action', 'spin');
   await expect(dock).toHaveAttribute('aria-label', 'Spin the galaxy faster');
   await expect(dock.locator('img')).toBeVisible();

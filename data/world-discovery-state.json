@@ -2,71 +2,106 @@
   "portfolio": {
     "url": "https://portfolio.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "home",
+    "orbitSlot": 0
   },
   "celegans-lab": {
     "url": "https://worm.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 0
   },
   "proof-bonsai": {
     "url": "https://proof-bonsai.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 2
   },
   "aquarium": {
     "url": "https://fish.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 3
   },
   "bird-of-the-day": {
     "url": "https://birds.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 0
   },
   "android-hell": {
     "url": "https://androidhell.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 2
   },
   "conspiracy": {
     "url": "https://conspiracy.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 3
   },
   "codex-continuity": {
     "url": "https://continuity.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 0
   },
   "sponsor-my-microduck": {
     "url": "https://sponsormymicroduck.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 1
   },
   "agar-protocol": {
     "url": "https://agar.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 4
   },
   "deploy-manager": {
     "url": "https://deploy.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 1
   },
   "valet": {
     "url": "https://valet.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 2
   },
   "animator": {
     "url": "https://animator.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 4
   },
   "herald": {
     "url": "https://herald.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": null
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 5
+  },
+  "plato": {
+    "url": "https://plato.alirezaafshan.com",
+    "everHealthy": false,
+    "failedSince": null,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 1
   }
 }

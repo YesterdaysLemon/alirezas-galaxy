@@ -18,11 +18,23 @@ import {
 import * as THREE from 'three';
 import { portraitUrls } from '@/data/portraits';
 import { getQuoteOfTheDay, quotationCollection } from '@/data/transmissions';
-import { destinations } from '@/data/worlds';
+import { worldCatalog } from '@/data/worlds';
 import { webring } from '@/data/webring';
-import { galaxies, type GalaxyId } from '@/data/galaxies';
+import { galaxies, galaxyDestinations, type GalaxyId } from '@/data/galaxies';
+import {
+  solarSystems,
+  getSolarSystem,
+  systemHref,
+  parseSystemRoute,
+} from '@/data/solar-systems';
 import { SolarSystemScene, type SolarPhase } from '@/lib/solar-system-scene';
 import { SolarSystemHud } from './solar-system-hud';
+
+const projectOrbits = solarSystems.flatMap((system) =>
+  system.planets.flatMap((planet, index) =>
+    planet.projectId ? [{ systemId: system.id, index }] : [],
+  ),
+);
 
 const pointsVertexShader = /* glsl */ `
   uniform float uPixelRatio;
@@ -423,8 +435,8 @@ function MenuIcon({ name }: { name: MenuIconName }) {
   );
 }
 
-function randomNonzeroOffset(itemCount: number) {
-  return 1 + Math.floor(Math.random() * (itemCount - 1));
+function randomIndex(itemCount: number) {
+  return Math.floor(Math.random() * itemCount);
 }
 
 export function GalaxyIndex({
@@ -448,16 +460,25 @@ export function GalaxyIndex({
   }, [onGroxArrival, onGroxReturn]);
   const stageRef = useRef<HTMLDivElement>(null);
   const solarRef = useRef<SolarSystemScene | null>(null);
-  const enterSolarRef = useRef<(history?: boolean) => void>(() => undefined);
-  const solarGatewayRef = useRef<HTMLButtonElement>(null);
-  const [solarReady, setSolarReady] = useState(false);
+  const enterSolarRef = useRef<
+    (
+      systemId: string,
+      planetIndex?: number | null,
+      updateHistory?: boolean,
+    ) => void
+  >(() => undefined);
+  const [graphicsUnavailable, setGraphicsUnavailable] = useState(false);
+  const CatalogContainer = graphicsUnavailable ? 'div' : 'noscript';
   const [solarPhase, setSolarPhase] = useState<SolarPhase>('galaxy');
   const [solarSelected, setSolarSelected] = useState<number | null>(null);
+  const [solarHovered, setSolarHovered] = useState<number | null>(null);
+  const [solarSystem, setSolarSystem] = useState(solarSystems[0]);
+  const [solarPaused, setSolarPaused] = useState(false);
   const solarActive = solarPhase !== 'galaxy';
   const leaveSolar = () => {
     solarRef.current?.exit();
-    if (window.location.hash === '#system/patterns-and-life')
-      window.history.replaceState(null, '', '#galaxy');
+    if (window.location.hash !== '#galaxy')
+      window.history.pushState(null, '', '#galaxy');
   };
   const detailRef = useRef<HTMLElement>(null);
   const previewRef = useRef<HTMLButtonElement>(null);
@@ -482,7 +503,7 @@ export function GalaxyIndex({
   const hoverGalaxyRef = useRef<() => void>(() => undefined);
   const dockGalaxyIconRef = useRef<HTMLImageElement>(null);
   const focusRotationRef = useRef<number | null>(
-    destinations[0].angle - Math.PI / 2,
+    galaxyDestinations[0].angle - Math.PI / 2,
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -521,10 +542,20 @@ export function GalaxyIndex({
     setPreviewVisible(true);
     previewIndexRef.current = index;
     setPreviewIndex(index);
+    const systemId = galaxies[galaxyIdRef.current].worlds[index]?.systemId;
+    const system = systemId && getSolarSystem(systemId);
+    if (system) solarRef.current?.prepare(system);
   };
 
   const expandDestination = (index: number) => {
     if (travellingRef.current) return;
+    const destination = galaxies[galaxyIdRef.current].worlds[index];
+    if (destination.systemId) {
+      previewDestination(index);
+      collapseDestination();
+      enterSolarRef.current(destination.systemId);
+      return;
+    }
     activeIndexRef.current = index;
     previewIndexRef.current = index;
     expandedPreviewIndexRef.current = null;
@@ -539,11 +570,16 @@ export function GalaxyIndex({
   };
 
   const expandRandomDestination = () => {
+    if (galaxyIdRef.current === 'home' && projectOrbits.length) {
+      const destination = projectOrbits[randomIndex(projectOrbits.length)];
+      enterSolarRef.current(destination.systemId, destination.index);
+      return;
+    }
     const currentIndex = expandedRef.current
       ? activeIndexRef.current
       : previewIndexRef.current;
     const count = galaxies[galaxyIdRef.current].worlds.length;
-    const offset = randomNonzeroOffset(count);
+    const offset = 1 + randomIndex(count - 1);
     expandDestination((currentIndex + offset) % count);
   };
 
@@ -568,6 +604,12 @@ export function GalaxyIndex({
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
       const solar = solarRef.current;
+      if (
+        event.defaultPrevented ||
+        (event.target instanceof Element &&
+          event.target.closest('input, textarea, select, [role="dialog"]'))
+      )
+        return;
       if (solar?.active) {
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -578,11 +620,15 @@ export function GalaxyIndex({
           !solar.navigating
         ) {
           event.preventDefault();
+          const count = solar.system?.planets.length ?? 0;
+          if (!count) return;
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
           solar.select(
-            ((solar.selected ?? -1) +
-              (event.key === 'ArrowRight' ? 1 : 5) +
-              6) %
-              6,
+            solar.selected === null
+              ? direction === 1
+                ? 0
+                : count - 1
+              : (solar.selected + direction + count) % count,
           );
         }
         return;
@@ -627,6 +673,7 @@ export function GalaxyIndex({
     const portraitBurstTarget = stage;
 
     let renderer: THREE.WebGLRenderer;
+    let fallbackFrame: number;
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: false,
@@ -636,7 +683,8 @@ export function GalaxyIndex({
         powerPreference: 'high-performance',
       });
     } catch {
-      return;
+      fallbackFrame = requestAnimationFrame(() => setGraphicsUnavailable(true));
+      return () => cancelAnimationFrame(fallbackFrame);
     }
 
     const isCompact = window.matchMedia('(max-width: 720px)').matches;
@@ -1105,32 +1153,96 @@ export function GalaxyIndex({
       return true;
     };
 
+    let pendingSolarSelection: number | null | undefined;
+    let applyingSolarRoute = false;
     const solar = new SolarSystemScene(
       scene,
       camera,
-      renderer.domElement,
+      renderer,
       stage,
       (phase, selected) => {
         setSolarPhase(phase);
         setSolarSelected(selected);
+        if (solar.system) setSolarSystem(solar.system);
+        if (phase === 'system' || phase === 'planet') {
+          if (pendingSolarSelection !== undefined) {
+            const requested = pendingSolarSelection;
+            pendingSolarSelection = undefined;
+            if (selected !== requested) {
+              solar.select(requested);
+              return;
+            }
+          }
+          if (!applyingSolarRoute && solar.system) {
+            const hash = systemHref(
+              solar.system.id,
+              selected === null ? undefined : solar.system.planets[selected].id,
+            );
+            if (window.location.hash !== hash)
+              window.history.pushState(null, '', hash);
+          }
+        }
         if (phase === 'galaxy')
           requestAnimationFrame(() => {
-            solarGatewayRef.current?.focus({ preventScroll: true });
-            if (window.location.hash === '#webring')
-              travelRef.current('webring', false, false);
+            if (solarRef.current !== solar) return;
+            if (!parseSystemRoute(window.location.hash)) {
+              const familyId = solar.system?.id.replace(/-\d+$/, '');
+              sceneShell
+                .querySelector<HTMLButtonElement>(
+                  `[aria-label="Website worlds"] [data-world-id="${familyId}"]`,
+                )
+                ?.focus({ preventScroll: true });
+            }
+            onHistory();
           });
       },
+      setSolarHovered,
     );
     solarRef.current = solar;
-    const solarReadyFrame = requestAnimationFrame(() => setSolarReady(true));
-    enterSolarRef.current = (updateHistory = true) => {
-      if (travellingRef.current || groxActive || galaxyIdRef.current !== 'home')
+    const solarWarmFrame = requestAnimationFrame(() => {
+      if (!groxEncounter && !solar.active) solar.prepare(solarSystems[0]);
+    });
+    enterSolarRef.current = (
+      systemId,
+      planetIndex = null,
+      updateHistory = true,
+    ) => {
+      const system = getSolarSystem(systemId);
+      if (!system || groxActive) return;
+      const hash = systemHref(
+        system.id,
+        planetIndex === null ? undefined : system.planets[planetIndex]?.id,
+      );
+      if (updateHistory && window.location.hash !== hash)
+        window.history.pushState(null, '', hash);
+      if (galaxyIdRef.current !== 'home' || travellingRef.current) {
+        travelRef.current('home', false, false);
         return;
+      }
+      pendingSolarSelection = planetIndex;
+      if (solar.active && solar.system?.id === system.id) {
+        if (!solar.navigating) {
+          pendingSolarSelection = undefined;
+          applyingSolarRoute = !updateHistory;
+          solar.select(planetIndex);
+          applyingSolarRoute = false;
+        }
+        return;
+      }
       const entryStar = new THREE.Vector3();
-      galaxyScenes.home.nodes[1].marker.getWorldPosition(entryStar);
-      solar.enter(entryStar);
-      if (updateHistory && window.location.hash !== '#system/patterns-and-life')
-        window.history.pushState(null, '', '#system/patterns-and-life');
+      const markerIndex = galaxyDestinations.findIndex(
+        (world) =>
+          world.systemId?.replace(/-\d+$/, '') ===
+          system.id.replace(/-\d+$/, ''),
+      );
+      galaxyScenes.home.nodes[Math.max(0, markerIndex)].marker.getWorldPosition(
+        entryStar,
+      );
+      setSolarSystem(system);
+      setSolarPaused(false);
+      applyingSolarRoute = !updateHistory;
+      solar.enter(system, entryStar);
+      applyingSolarRoute = false;
     };
 
     travelRef.current = (id, inspect = false, updateHistory = true) => {
@@ -1186,10 +1298,14 @@ export function GalaxyIndex({
     };
 
     const onHistory = () => {
-      if (window.location.hash === '#system/patterns-and-life') {
-        enterSolarRef.current(false);
+      const route = parseSystemRoute(window.location.hash);
+      if (route) {
+        enterSolarRef.current(route.system.id, route.planetIndex, false);
         return;
       }
+      if (window.location.hash.startsWith('#system/'))
+        window.history.replaceState(null, '', '#galaxy');
+      pendingSolarSelection = undefined;
       if (solar.active) {
         solar.exit();
         return;
@@ -1202,10 +1318,8 @@ export function GalaxyIndex({
         );
     };
     window.addEventListener('popstate', onHistory);
-    if (!groxEncounter && window.location.hash === '#webring')
-      travelRef.current('webring', false, false);
-    if (!groxEncounter && window.location.hash === '#system/patterns-and-life')
-      enterSolarRef.current(false);
+    window.addEventListener('hashchange', onHistory);
+    if (!groxEncounter) onHistory();
 
     portraitBurstTarget.dataset.portraitBursts = '0';
 
@@ -1389,8 +1503,17 @@ export function GalaxyIndex({
       pointerId = -1;
     };
 
-    const onPointerLeave = () => {
-      if (solar.active) return;
+    const onPointerLeave = (event: PointerEvent) => {
+      if (solar.active) {
+        if (
+          !(event.relatedTarget instanceof Element) ||
+          !event.relatedTarget.closest(
+            '[data-solar-preview], [data-solar-hover]',
+          )
+        )
+          solar.setHover(null);
+        return;
+      }
       if (!isDragging) {
         pointer.set(4, 4);
         renderer.domElement.style.cursor = 'grab';
@@ -1436,7 +1559,7 @@ export function GalaxyIndex({
       cameraDistance = defaultCameraDistance;
       galaxy.rotation.x = -0.08;
       galaxyScenes.home.tilt = -0.08;
-      galaxy.rotation.y = destinations[0].angle - Math.PI / 2;
+      galaxy.rotation.y = galaxyDestinations[0].angle - Math.PI / 2;
       galaxyPoints.rotation.y = 0;
       galaxyMist.rotation.y = 0.018;
       cameraLookTarget.set(0.7, 0, 0);
@@ -1444,7 +1567,7 @@ export function GalaxyIndex({
       previewIndexRef.current = 0;
       expandedRef.current = false;
       cameraModeRef.current = 'default';
-      focusRotationRef.current = destinations[0].angle - Math.PI / 2;
+      focusRotationRef.current = galaxyDestinations[0].angle - Math.PI / 2;
       setActiveIndex(0);
       setPreviewIndex(0);
       setExpanded(false);
@@ -1501,14 +1624,14 @@ export function GalaxyIndex({
         syncTravelState = false;
       }
 
-      const elapsedMs =
-        previousTime === 0 ? 16.667 : Math.min(time - previousTime, 33.334);
+      const frameMs = previousTime === 0 ? 16.667 : time - previousTime;
+      const elapsedMs = Math.min(frameMs, 33.334);
       const delta = elapsedMs / 16.667;
       previousTime = time;
       frame += 1;
 
       if (solar.active) {
-        solar.update(elapsedMs, reduceMotion);
+        solar.update(frameMs, reduceMotion);
         renderer.render(scene, camera);
         animationFrame = requestAnimationFrame(animate);
         return;
@@ -1523,6 +1646,7 @@ export function GalaxyIndex({
           travellingRef.current = false;
           setTravelling(false);
           if (inspectOnArrival) expandDestination(0);
+          if (parseSystemRoute(window.location.hash)) onHistory();
         }
       }
 
@@ -1750,7 +1874,7 @@ export function GalaxyIndex({
         );
         chromeRects = Array.from(
           sceneShell.querySelectorAll(
-            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .solar-gateway, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
+            '.spore-corner a, .spore-corner button, .spore-dock a, .spore-dock button, .galaxy-signal, .world-detail:not([data-phase="leaving"])',
           ),
           (element) => element.getBoundingClientRect(),
         );
@@ -1773,6 +1897,11 @@ export function GalaxyIndex({
       if (!isDragging && frame % 2 === 0) {
         const nextIndex = destinationAtPointer();
         if (nextIndex >= 0) {
+          if (nextIndex !== hoveredIndex) {
+            const systemId = sceneWorlds[nextIndex].systemId;
+            const system = systemId && getSolarSystem(systemId);
+            if (system) solar.prepare(system);
+          }
           hasHoveredWorld = true;
           if (!previewVisibleRef.current) {
             previewVisibleRef.current = true;
@@ -2057,7 +2186,7 @@ export function GalaxyIndex({
     return () => {
       disposed = true;
       solar.dispose();
-      cancelAnimationFrame(solarReadyFrame);
+      cancelAnimationFrame(solarWarmFrame);
       solarRef.current = null;
       enterSolarRef.current = () => undefined;
       if (animationFrame) cancelAnimationFrame(animationFrame);
@@ -2100,6 +2229,7 @@ export function GalaxyIndex({
         });
       });
       window.removeEventListener('popstate', onHistory);
+      window.removeEventListener('hashchange', onHistory);
       travelRef.current = () => undefined;
       renderer.dispose();
       renderer.domElement.remove();
@@ -2157,30 +2287,27 @@ export function GalaxyIndex({
     >
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
-      <div aria-hidden="true" className="solar-warp" />
-      <button
-        ref={solarGatewayRef}
-        type="button"
-        className="solar-gateway"
-        disabled={!solarReady || travelling || galaxyId !== 'home'}
-        onClick={() => enterSolarRef.current()}
-        aria-label="Enter Patterns and Life solar system"
-      >
-        <span className="solar-gateway-star" aria-hidden="true" />
-        <span>
-          <small>Explore a solar system</small>
-          <strong>
-            Patterns & Life <span aria-hidden="true">›</span>
-          </strong>
-        </span>
-      </button>
       {solarActive && (
         <SolarSystemHud
+          key={solarSystem.id}
+          system={solarSystem}
+          systems={solarSystems}
+          paused={solarPaused}
+          onSystemChange={(id) => enterSolarRef.current(id)}
           phase={solarPhase}
           selected={solarSelected}
+          hovered={solarHovered}
+          onHover={(index) => solarRef.current?.setHover(index)}
+          onSystemIntent={(id) => {
+            const system = getSolarSystem(id);
+            if (system) solarRef.current?.prepare(system);
+          }}
           onSelect={(index) => solarRef.current?.select(index)}
           onExit={leaveSolar}
-          onPause={(paused) => solarRef.current?.setPaused(paused)}
+          onPause={(paused) => {
+            setSolarPaused(paused);
+            solarRef.current?.setPaused(paused);
+          }}
           onZoom={(factor) => solarRef.current?.zoom(factor)}
         />
       )}
@@ -2473,12 +2600,12 @@ export function GalaxyIndex({
           : `Previewing world: ${preview.name}.`}
       </p>
 
-      <noscript>
+      <CatalogContainer>
         <section className="noscript-catalog" aria-label="Website worlds">
           <h1>Alireza&apos;s Galaxy</h1>
           <p>A small constellation of websites and experiments.</p>
           <ul>
-            {destinations.map((destination) => (
+            {worldCatalog.map((destination) => (
               <li key={destination.id}>
                 <a
                   href={destination.url}
@@ -2507,7 +2634,7 @@ export function GalaxyIndex({
             ))}
           </ul>
         </section>
-      </noscript>
+      </CatalogContainer>
     </main>
   );
 }

@@ -51,10 +51,13 @@ retained for immediate routing rollback.
 
 ## What is in the base
 
-- Owned project destinations, with the portfolio selected by default
+- A direct portfolio homeworld and family stars leading into project solar systems
+- Patterns & Life, Curiosity & Play, and Tools & Infrastructure, with room to grow
+- Sculpted worlds, orbital navigation, a system chart, and direct planet URLs
+- Continuous dust-clearing system entry in the existing canvas, without a page load
 - A distant-galaxy web ring for friends, collaborations, and interesting sites
 - Favicon or project-glyph callouts that follow the currently previewed world
-- Hover-to-preview browsing with screen-sized mouse and touch targets
+- Shared portrait/name/domain hover cards for galaxy stars and solar planets
 - Click-to-zoom world details with Launch shown only after confirmation
 - A Spore communications-style portrait bay, message screen, and reply controls
 - Heavier pointer/touch drag, long inertial spin, and wheel zoom
@@ -73,6 +76,13 @@ background galaxies, capped device pixel ratio, adaptive particle counts, and
 throttled screen-space picking against the world markers. Rendering pauses when the page
 is hidden or offscreen.
 
+Solar terrain is prepared in a worker with a cooperative fallback. A bounded
+active/recent-plus-intent cache and incremental GPU warming keep preparation out
+of the camera flight. Original baked metal/glass skins and cached software-drawn
+planet miniatures avoid cold-flight raster stalls. See
+[`docs/SOLAR-SYSTEMS.md`](docs/SOLAR-SYSTEMS.md) for the rendering and regeneration
+contracts.
+
 ## Personalize it
 
 `data/world-comms.ts` holds short, authored project introductions and opt-in
@@ -82,12 +92,14 @@ lives in `components/world-comms.tsx` and `app/world-comms.css`.
 
 Destinations are refreshed daily from the public project registry and explicit
 Deploy Manager public URLs; see [daily discovery](docs/world-discovery.md).
-Add authored metadata in `data/world-registry.json`. `data/worlds.ts` places each website;
-its orbit, spiral arm, color, and marker size are generated deterministically
-when omitted, and any of those values can still be art-directed per world. The
-first slice uses the public GitHub avatar as its portrait texture. Before the
-final release, replace that URL with optimized 256 px WebP or AVIF selfie crops;
-`public/selfies/README.md` records the asset contract.
+Add authored metadata and permanent `systemId`/`orbitSlot` membership in
+`data/world-registry.json`. `data/worlds.ts` exposes every public project;
+`data/galaxies.ts` limits galaxy markers independently of catalog size.
+`data/solar-systems.ts` groups six stable project slots per system, creating
+companions without reshuffling existing worlds. New discoveries enter Frontier.
+Renames, domain moves and temporary outages preserve addresses and terrain.
+See [solar systems](docs/SOLAR-SYSTEMS.md) for navigation and rendering details.
+`public/selfies/README.md` records the portrait asset contract.
 
 The portfolio destination targets `portfolio.alirezaafshan.com`; the galaxy
 is the root site at `alirezaafshan.com`.

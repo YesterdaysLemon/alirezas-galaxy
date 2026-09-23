@@ -44,19 +44,11 @@ test('projects with private repositories do not advertise a source reply', async
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
-  await expect(page.locator('[data-galaxy-canvas]')).toBeVisible();
-  const world = page
-    .getByRole('navigation', { name: 'Website worlds' })
-    .getByRole('button', { name: /^Android Hell:/ });
-  await world.focus();
-  await world.press('Enter');
-  const panel = page.getByRole('region', {
-    name: 'Selected world: Android Hell',
-  });
-  await expect(panel.locator('.world-replies a')).toHaveCount(1);
+  await page.goto('/#system/curiosity-and-play/android-hell');
+  const panel = page.getByRole('article', { name: 'Planet: Android Hell' });
+  await expect(panel).toBeVisible();
   await expect(panel.getByRole('link', { name: /View source/ })).toHaveCount(0);
   await expect(
-    panel.getByRole('link', { name: 'Launch Android Hell' }),
-  ).toBeVisible();
+    panel.getByRole('link', { name: 'Visit Android Hell' }),
+  ).toHaveAttribute('href', 'https://androidhell.alirezaafshan.com');
 });

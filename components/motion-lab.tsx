@@ -9,7 +9,7 @@ import {
   type CSSProperties,
 } from 'react';
 import Link from 'next/link';
-import { destinations } from '@/data/worlds';
+import { galaxyDestinations } from '@/data/galaxies';
 import { WorldComms } from '@/components/world-comms';
 import { CommsPresence } from '@/components/comms-presence';
 import {
@@ -66,7 +66,7 @@ function Specimen({ family }: { family: MotionFamily }) {
       >
         <span className="world-preview-orbit">
           <span className="world-preview-face">
-            <img src={destinations[0].iconSrc} alt="" />
+            <img src={galaxyDestinations[0].iconSrc} alt="" />
             {family === 'entry' && <span className="ml-entry-static" />}
           </span>
         </span>
@@ -149,7 +149,7 @@ function ModalSpecimen() {
   const detailRef = useRef<HTMLElement>(null);
   return (
     <WorldComms
-      world={destinations[0]}
+      world={galaxyDestinations[0]}
       detailRef={detailRef}
       onClose={() => undefined}
     />
@@ -177,7 +177,7 @@ function HandoffBench({ reduced }: { reduced: boolean }) {
           if (!opened) setSelected(null);
         }}
       >
-        {destinations.slice(0, 3).map((world, index) => (
+        {galaxyDestinations.slice(0, 3).map((world, index) => (
           <button
             key={world.id}
             type="button"
@@ -205,14 +205,18 @@ function HandoffBench({ reduced }: { reduced: boolean }) {
         <CommsPresence
           kind="preview"
           reducedMotion={reduced}
-          world={!opened && selected !== null ? destinations[selected] : null}
+          world={
+            !opened && selected !== null ? galaxyDestinations[selected] : null
+          }
           anchorRef={previewRef}
           onAction={() => setOpened(true)}
         />
         <CommsPresence
           kind="detail"
           reducedMotion={reduced}
-          world={opened && selected !== null ? destinations[selected] : null}
+          world={
+            opened && selected !== null ? galaxyDestinations[selected] : null
+          }
           anchorRef={detailRef}
           onAction={() => {
             setOpened(false);

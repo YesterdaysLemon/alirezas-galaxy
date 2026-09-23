@@ -58,7 +58,7 @@ export function watchCommsAssets(root: HTMLElement, onReady: () => void) {
         if (image.complete) loaded();
       }),
   );
-  Promise.all([minimumStatic, ...pending]).then(() => {
+  void Promise.all([minimumStatic, ...pending]).then(() => {
     if (!cancelled) onReady();
   });
   return () => {

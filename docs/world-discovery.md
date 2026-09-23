@@ -27,11 +27,15 @@ explicit preview remains a preview. Oyster House is explicitly denied after the
 agent runtime was retired and its host repurposed as a private CI runner.
 State records the first failure, not every poll, so unchanged runs create no commits.
 Source errors and invalid schemas abort without replacing the last-known-good files.
-An eighteen-world cap plus actual placement/unit/build checks blocks overflow.
+Publication has no eighteen-world cap. Galaxy capacity is bounded separately: one
+star per populated family, with six permanent project slots per solar system.
+Full catalog, stable-address, orbital-clearance, placement and build checks guard growth.
 All discovery happens before deployment, adding no browser requests or polling.
 
-`data/worlds.generated.json` feeds both the galaxy and machine-readable catalogs.
-`data/world-discovery-state.json` stores only public URLs and health transition state.
+`data/worlds.generated.json` feeds the full `worldCatalog`, system membership and
+machine-readable catalogs; galaxy markers are a separate bounded projection.
+`data/world-discovery-state.json` stores public URLs, health transitions and permanent
+membership addresses, including tombstones for retired or denied projects.
 The job validates the full unit suite and build before committing. A conflicting
 push fails safely instead of overwriting other work. Catalog changes explicitly
 dispatch `Container` because GITHUB_TOKEN pushes do not start push workflows.
@@ -41,3 +45,21 @@ dispatching Container on main; a failed refresh can be rerun from Actions.
 
 Run locally: `node scripts/refresh-worlds.mjs`, then `npm run test:unit` and
 `npm run build`. Review the two generated JSON files before committing.
+
+## Stable membership
+
+Every registry project has a `systemId` family and nonnegative integer `orbitSlot`.
+The portfolio alone uses `home`/`0`; authored families are `patterns-and-life`,
+`curiosity-and-play`, and `tools-and-infrastructure`. New public discoveries receive
+the next unallocated `frontier` slot in deterministic project-ID order.
+
+Slots 0–5 belong to the family's root system, 6–11 to `<family>-2`, and so on.
+Empty slots do not collapse; absent systems do not renumber later companions.
+Renames, domain changes, discovery ordering and health transitions leave membership
+unchanged. Terrain is keyed by immutable project ID rather than display name or URL.
+Registry addresses override persisted membership only for intentional curation;
+duplicate addresses abort the refresh. Choose an unused slot when moving a project.
+
+Retired and denied project IDs retain their addresses indefinitely. Recovery reuses
+the project's address; unrelated newcomers never fill its slot. Keep IDs stable,
+and do not clear state tombstones as routine housekeeping.

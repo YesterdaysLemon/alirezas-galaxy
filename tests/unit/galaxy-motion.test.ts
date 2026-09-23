@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { WorldPreview, WorldComms } from '../../components/world-comms';
-import { destinations } from '../../data/worlds';
+import { galaxyDestinations } from '../../data/galaxies';
 import { UI_MOTION_SPEED, uiDuration } from '../../lib/ui-motion';
 
 const motionCss = await readFile('app/galaxy-motion.css', 'utf8');
@@ -57,7 +57,7 @@ describe('selected galaxy motion integration', () => {
   it('keeps preview arrival and hover artwork inside one stable button', () => {
     const markup = renderToStaticMarkup(
       createElement(WorldPreview, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         previewRef: { current: null },
         hint: false,
         onInspect: () => undefined,
@@ -98,7 +98,7 @@ describe('selected galaxy motion integration', () => {
   it('retains passive hints and the real modal close control', () => {
     const hint = renderToStaticMarkup(
       createElement(WorldPreview, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         previewRef: { current: null },
         hint: true,
         onInspect: () => undefined,
@@ -108,7 +108,7 @@ describe('selected galaxy motion integration', () => {
     expect(hint).toContain('tabindex="-1"');
     const panel = renderToStaticMarkup(
       createElement(WorldComms, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         detailRef: { current: null },
         onClose: () => undefined,
       }),
@@ -121,7 +121,7 @@ describe('selected galaxy motion integration', () => {
   it('keeps outgoing cards inert and hidden even when React rerenders their props', () => {
     const preview = renderToStaticMarkup(
       createElement(WorldPreview, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         previewRef: { current: null },
         hint: false,
         leaving: true,
@@ -130,7 +130,7 @@ describe('selected galaxy motion integration', () => {
     );
     const detail = renderToStaticMarkup(
       createElement(WorldComms, {
-        world: destinations[0],
+        world: galaxyDestinations[0],
         detailRef: { current: null },
         leaving: true,
         onClose: () => undefined,

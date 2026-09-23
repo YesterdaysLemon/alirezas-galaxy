@@ -13,7 +13,9 @@
     "color": 7397375,
     "radius": 8.6,
     "angle": 1.73,
-    "size": 1.22
+    "size": 1.22,
+    "systemId": "home",
+    "orbitSlot": 0
   },
   {
     "id": "celegans-lab",
@@ -29,7 +31,22 @@
     "color": 10158059,
     "radius": 5.05,
     "angle": 2.82,
-    "size": 0.86
+    "size": 0.86,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 0
+  },
+  {
+    "id": "plato",
+    "name": "Plato",
+    "kind": "Patterns and possible minds",
+    "url": "https://plato.alirezaafshan.com",
+    "description": "Patterns, possible minds, and falsifiable experiments.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "P",
+    "systemId": "patterns-and-life",
+    "orbitSlot": 1
   },
   {
     "id": "proof-bonsai",
@@ -44,7 +61,9 @@
     "color": 16770685,
     "radius": 8.15,
     "angle": 0.16,
-    "size": 0.93
+    "size": 0.93,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 2
   },
   {
     "id": "aquarium",
@@ -59,7 +78,9 @@
     "color": 7514367,
     "radius": 8.9,
     "angle": 4.28,
-    "size": 0.78
+    "size": 0.78,
+    "systemId": "patterns-and-life",
+    "orbitSlot": 3
   },
   {
     "id": "bird-of-the-day",
@@ -74,7 +95,9 @@
     "color": 16754404,
     "radius": 10.65,
     "angle": 5.52,
-    "size": 0.76
+    "size": 0.76,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 0
   },
   {
     "id": "android-hell",
@@ -86,7 +109,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://androidhell.alirezaafshan.com/favicon.svg",
-    "glyph": "🔥"
+    "glyph": "🔥",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 2
   },
   {
     "id": "conspiracy",
@@ -97,7 +122,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "⌁"
+    "glyph": "⌁",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 3
   },
   {
     "id": "codex-continuity",
@@ -109,7 +136,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://continuity.alirezaafshan.com/icon.svg",
-    "glyph": "↻"
+    "glyph": "↻",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 0
   },
   {
     "id": "sponsor-my-microduck",
@@ -122,7 +151,9 @@
     "status": "live",
     "iconSrc": "https://sponsormymicroduck.alirezaafshan.com/favicon.svg",
     "glyph": "🦆",
-    "color": 16767051
+    "color": 16767051,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 1
   },
   {
     "id": "agar-protocol",
@@ -134,7 +165,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://agar.alirezaafshan.com/agar-mark-02.svg",
-    "glyph": "◉"
+    "glyph": "◉",
+    "systemId": "patterns-and-life",
+    "orbitSlot": 4
   },
   {
     "id": "deploy-manager",
@@ -146,7 +179,9 @@
     "hosting": "first-party",
     "status": "live",
     "iconSrc": "https://deploy.alirezaafshan.com/favicon.svg",
-    "glyph": "↟"
+    "glyph": "↟",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 1
   },
   {
     "id": "valet",
@@ -157,7 +192,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "V"
+    "glyph": "V",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 2
   },
   {
     "id": "animator",
@@ -168,7 +205,9 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "✎"
+    "glyph": "✎",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 4
   },
   {
     "id": "herald",
@@ -179,6 +218,8 @@
     "relationship": "owned",
     "hosting": "first-party",
     "status": "live",
-    "glyph": "♜"
+    "glyph": "♜",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 5
   }
 ]
