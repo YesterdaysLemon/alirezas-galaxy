@@ -48,5 +48,105 @@
       "systemId": "tools-and-infrastructure",
       "orbitSlot": 6
     }
+  },
+  {
+    "id": "next-token-machine",
+    "classifiedAt": "2026-09-24T15:16:34.952Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "248412806fcd87d1a14fe9cd976368af33b22944ffdfc72a9811d19b35fdb0f6",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.6,
+        "probabilities": {
+          "none-of-these": 0.03,
+          "patterns-and-life": 0.11,
+          "ideas-and-inquiry": 0.17,
+          "curiosity-and-play": 0.68,
+          "tools-and-infrastructure": 0.01
+        }
+      },
+      "kind": {
+        "choice": "folds",
+        "confidence": 0.56,
+        "probabilities": {
+          "culture": 0.35,
+          "gas": 0.01,
+          "folds": 0.64,
+          "desert": 0,
+          "garden": 0,
+          "ocean": 0
+        }
+      },
+      "theme": {
+        "choice": "machines-and-minds",
+        "confidence": 0.99,
+        "probabilities": {
+          "machines-and-minds": 1,
+          "worlds-and-games": 0,
+          "sound-and-stage": 0,
+          "money-and-markets": 0,
+          "bodies-and-health": 0,
+          "images-and-motion": 0,
+          "places-and-maps": 0,
+          "words-and-stories": 0
+        }
+      }
+    },
+    "decision": {
+      "place": "family",
+      "systemId": "curiosity-and-play",
+      "orbitSlot": 11
+    }
+  },
+  {
+    "id": "talking-cure",
+    "classifiedAt": "2026-09-24T15:16:34.952Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "bacd133b79d2dee9cfee8872e1f64fcca3dbddc3a2972d146b30416fd1b2322f",
+    "answers": {
+      "family": {
+        "choice": "ideas-and-inquiry",
+        "confidence": 0.97,
+        "probabilities": {
+          "curiosity-and-play": 0.01,
+          "ideas-and-inquiry": 0.97,
+          "tools-and-infrastructure": 0,
+          "none-of-these": 0.01,
+          "patterns-and-life": 0.01
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.56,
+        "probabilities": {
+          "garden": 0.01,
+          "ocean": 0,
+          "desert": 0.01,
+          "folds": 0.21,
+          "culture": 0.63,
+          "gas": 0.14
+        }
+      },
+      "theme": {
+        "choice": "machines-and-minds",
+        "confidence": 1,
+        "probabilities": {
+          "images-and-motion": 0,
+          "worlds-and-games": 0,
+          "machines-and-minds": 1,
+          "bodies-and-health": 0,
+          "places-and-maps": 0,
+          "money-and-markets": 0,
+          "words-and-stories": 0,
+          "sound-and-stage": 0
+        }
+      }
+    },
+    "decision": {
+      "place": "family",
+      "systemId": "ideas-and-inquiry",
+      "orbitSlot": 3
+    }
   }
 ]

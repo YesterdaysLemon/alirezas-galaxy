@@ -417,6 +417,32 @@
     "orbitSlot": 2
   },
   {
+    "id": "next-token-machine",
+    "name": "Next-Token Machine",
+    "kind": "Public project",
+    "url": "https://tokenloop.alirezaafshan.com",
+    "description": "How an LLM writes, one token at a time, as an animated pixel-art machine.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 11
+  },
+  {
+    "id": "talking-cure",
+    "name": "The Talking Cure",
+    "kind": "Public project",
+    "url": "https://cure.alirezaafshan.com",
+    "description": "An experimental journal of machine speech, complete interviews, and philosophical readings.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 3
+  },
+  {
     "id": "urep-attendance",
     "name": "UREP Attendance",
     "kind": "Public project",

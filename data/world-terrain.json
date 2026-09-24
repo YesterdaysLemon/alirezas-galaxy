@@ -1,5 +1,11 @@
 {
   "urep-attendance": {
     "terrain": "folds"
+  },
+  "next-token-machine": {
+    "terrain": "folds"
+  },
+  "talking-cure": {
+    "terrain": "culture"
   }
 }

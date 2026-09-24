@@ -201,5 +201,19 @@
     "failedSince": null,
     "systemId": "tools-and-infrastructure",
     "orbitSlot": 6
+  },
+  "next-token-machine": {
+    "url": "https://tokenloop.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 11
+  },
+  "talking-cure": {
+    "url": "https://cure.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 3
   }
 }
