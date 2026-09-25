@@ -148,5 +148,105 @@
       "systemId": "ideas-and-inquiry",
       "orbitSlot": 3
     }
+  },
+  {
+    "id": "coolimages",
+    "classifiedAt": "2026-09-25T15:21:21.671Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "c640b651c237d64fcf2d9e047002dd3e494427ce33e3aaec2d25ebe4d12d0695",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.86,
+        "probabilities": {
+          "curiosity-and-play": 0.89,
+          "patterns-and-life": 0,
+          "none-of-these": 0.11,
+          "ideas-and-inquiry": 0,
+          "tools-and-infrastructure": 0
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.59,
+        "probabilities": {
+          "folds": 0.02,
+          "garden": 0.04,
+          "gas": 0.28,
+          "desert": 0,
+          "culture": 0.66,
+          "ocean": 0
+        }
+      },
+      "theme": {
+        "choice": "images-and-motion",
+        "confidence": 0.61,
+        "probabilities": {
+          "sound-and-stage": 0,
+          "worlds-and-games": 0.32,
+          "images-and-motion": 0.67,
+          "machines-and-minds": 0,
+          "words-and-stories": 0,
+          "places-and-maps": 0.01,
+          "bodies-and-health": 0,
+          "money-and-markets": 0
+        }
+      }
+    },
+    "decision": {
+      "place": "family",
+      "systemId": "curiosity-and-play",
+      "orbitSlot": 12
+    }
+  },
+  {
+    "id": "zombies",
+    "classifiedAt": "2026-09-25T15:21:21.671Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "c1a84b8b93c9c5f68129af5275181be512c44f26d40364d76b2a14f9eea8f627",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.48,
+        "probabilities": {
+          "tools-and-infrastructure": 0,
+          "curiosity-and-play": 0.58,
+          "ideas-and-inquiry": 0,
+          "patterns-and-life": 0.01,
+          "none-of-these": 0.41
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.38,
+        "probabilities": {
+          "desert": 0.34,
+          "garden": 0.01,
+          "folds": 0.16,
+          "gas": 0.01,
+          "culture": 0.48,
+          "ocean": 0
+        }
+      },
+      "theme": {
+        "choice": "worlds-and-games",
+        "confidence": 1,
+        "probabilities": {
+          "machines-and-minds": 0,
+          "money-and-markets": 0,
+          "places-and-maps": 0,
+          "bodies-and-health": 0,
+          "sound-and-stage": 0,
+          "images-and-motion": 0,
+          "worlds-and-games": 1,
+          "words-and-stories": 0
+        }
+      }
+    },
+    "decision": {
+      "place": "family",
+      "systemId": "curiosity-and-play",
+      "orbitSlot": 13
+    }
   }
 ]

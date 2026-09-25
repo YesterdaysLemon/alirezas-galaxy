@@ -417,6 +417,19 @@
     "orbitSlot": 2
   },
   {
+    "id": "coolimages",
+    "name": "Coolimages Museum",
+    "kind": "Public project",
+    "url": "https://coolimages.alirezaafshan.com",
+    "description": "A walkable, Eyewitness-style 3D museum of a saved-images folder.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 12
+  },
+  {
     "id": "next-token-machine",
     "name": "Next-Token Machine",
     "kind": "Public project",
@@ -454,5 +467,18 @@
     "glyph": "✦",
     "systemId": "tools-and-infrastructure",
     "orbitSlot": 6
+  },
+  {
+    "id": "zombies",
+    "name": "Nightfall Bunker",
+    "kind": "Public project",
+    "url": "https://zombies.alirezaafshan.com",
+    "description": "Co-op round-based zombie survival in a boarded-up airfield bunker, with lobbies placed at the edge.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 13
   }
 ]

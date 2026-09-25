@@ -215,5 +215,19 @@
     "failedSince": null,
     "systemId": "ideas-and-inquiry",
     "orbitSlot": 3
+  },
+  "coolimages": {
+    "url": "https://coolimages.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 12
+  },
+  "zombies": {
+    "url": "https://zombies.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "curiosity-and-play",
+    "orbitSlot": 13
   }
 }
