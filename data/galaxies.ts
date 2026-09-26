@@ -4,6 +4,7 @@ import {
   type CatalogWorld,
   type Destination,
   type WorldSeed,
+  worldCount,
 } from './worlds';
 import {
   buildSolarSystems,
@@ -33,17 +34,23 @@ export function buildGalaxyDestinations(
     if (!members.length) continue;
     const first = members[0];
     const projectCount = members.reduce(
-      (count, system) =>
-        count + system.planets.filter((planet) => planet.projectId).length,
+      (count, system) => count + system.planets.length,
       0,
     );
+    // The star opens its first system; say so when a sister system holds more.
+    const shown = first.planets.length;
+    const beyond = members
+      .slice(1)
+      .map((system) => `${system.planets.length} at ${system.starName}`);
     markers.push({
       id: family.id,
       name: family.name,
-      kind: `${projectCount} ${projectCount === 1 ? 'world' : 'worlds'} around ${family.starName}`,
+      kind: `${worldCount(shown)} around ${family.starName}${
+        beyond.length ? ` · ${beyond.join(' · ')}` : ''
+      }`,
       systemId: first.id,
       url: `https://alirezaafshan.com/${systemHref(first.id)}`,
-      description: `${family.subtitle} ${projectCount} public worlds across ${members.length} ${members.length === 1 ? 'system' : 'systems'}.`,
+      description: `${family.subtitle} ${worldCount(projectCount)}${members.length > 1 ? ` across ${members.length} systems` : ''}.`,
       relationship: 'owned',
       hosting: 'first-party',
       status: 'live',

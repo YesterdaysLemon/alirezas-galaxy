@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Viewport } from './framing';
+import type { ScreenRect, Viewport } from './framing';
 
 /** Slop, in pixels, around the hover card and the path to it. */
 const BRIDGE = 24;
@@ -15,6 +15,8 @@ const INSET = 8;
 export class HudOverlay {
   /** The HUD's radar canvas, when mounted; the radar draws into it. */
   scope: HTMLCanvasElement | null = null;
+  /** The ship HUD's solid parts, in canvas pixels, as last measured. */
+  hudRects: ScreenRect[] = [];
   private preview: HTMLElement | null = null;
   private elementsDirty = true;
   private layoutDirty = true;
@@ -128,6 +130,21 @@ export class HudOverlay {
         bounds.top - rect.top - INSET,
       );
       watched.push(part);
+    }
+    // The parts the overview keeps its orbits clear of. Not the whole helm:
+    // its menu opens over the view without reframing it.
+    this.hudRects = [];
+    for (const part of this.host.querySelectorAll<HTMLElement>(
+      '.solar-nametab, .solar-scope, .solar-bar, .solar-readout, .solar-tray',
+    )) {
+      const bounds = part.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) continue;
+      this.hudRects.push({
+        left: Math.round(bounds.left - rect.left),
+        top: Math.round(bounds.top - rect.top),
+        right: Math.round(bounds.right - rect.left),
+        bottom: Math.round(bounds.bottom - rect.top),
+      });
     }
     const comms = this.host.querySelector<HTMLElement>('.solar-comms');
     this.commsBounds = comms?.getBoundingClientRect() ?? null;

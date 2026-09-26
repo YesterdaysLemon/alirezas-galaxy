@@ -264,8 +264,8 @@
     "iconSrc": "https://morphogenesis.alirezaafshan.com/favicon.svg",
     "glyph": "✿",
     "color": 16752592,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 8
+    "systemId": "worlds-and-games",
+    "orbitSlot": 0
   },
   {
     "id": "openwater",
@@ -279,8 +279,8 @@
     "iconSrc": "https://openwater.alirezaafshan.com/favicon.svg",
     "glyph": "≈",
     "color": 6277119,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 9
+    "systemId": "worlds-and-games",
+    "orbitSlot": 1
   },
   {
     "id": "between-worlds",
@@ -294,8 +294,8 @@
     "iconSrc": "https://between-worlds.alirezaafshan.com/favicon.svg",
     "glyph": "⬡",
     "color": 9098495,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 10
+    "systemId": "places-and-maps",
+    "orbitSlot": 0
   },
   {
     "id": "cube",
@@ -426,8 +426,8 @@
     "hosting": "first-party",
     "status": "live",
     "glyph": "✦",
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 12
+    "systemId": "frontier",
+    "orbitSlot": 0
   },
   {
     "id": "next-token-machine",
@@ -439,8 +439,8 @@
     "hosting": "first-party",
     "status": "live",
     "glyph": "✦",
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 11
+    "systemId": "machines-and-minds",
+    "orbitSlot": 0
   },
   {
     "id": "talking-cure",
@@ -478,7 +478,7 @@
     "hosting": "first-party",
     "status": "live",
     "glyph": "✦",
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 13
+    "systemId": "worlds-and-games",
+    "orbitSlot": 2
   }
 ]

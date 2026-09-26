@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { PlanetRecipe, SolarSystem } from '../../data/solar-systems';
-import { halfViewHeight, wrapAngle } from './math';
+import { halfViewHeight, orbitDirection, wrapAngle } from './math';
 
 export type Viewport = { width: number; height: number };
 
@@ -43,6 +43,97 @@ export function overviewDistance(system: SolarSystem | null, aspect: number) {
   const extent = Math.max(44, (system?.frame ?? 40) * 1.08);
   // Frame the tilted orbital plane rather than the sphere containing its belts.
   return extent * 1.38 * Math.max(1, 0.8 / aspect);
+}
+
+/** A HUD part's box, in canvas pixels. */
+export type ScreenRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+/** Upward shifts the overview may use, as fractions of the view's half-height. */
+const OVERVIEW_LIFTS = [0, 0.06, 0.12, 0.18, 0.24];
+/** Gap, in pixels, kept between the outermost orbit and the HUD or the edges. */
+const HUD_CLEARANCE = 10;
+const EDGE_CLEARANCE = 6;
+
+const fitCamera = new THREE.PerspectiveCamera();
+const fitPoint = new THREE.Vector3();
+const fitTarget = new THREE.Vector3();
+
+/**
+ * The overview pose that shows the outermost orbit's whole circle clear of
+ * the view's edges and the ship HUD's parts: the nearest camera distance at
+ * or beyond `minDistance`, lifting the system a little into the empty top of
+ * the view when that lets it sit closer. The circle is symmetric, so the fit
+ * holds at every heading.
+ * @returns the distance, and the lift as a fraction of the view's half-height
+ */
+export function fitOverview(options: {
+  radius: number;
+  minDistance: number;
+  pitch: number;
+  camera: THREE.PerspectiveCamera;
+  viewport: Viewport;
+  obstacles: readonly ScreenRect[];
+}) {
+  const { radius, minDistance, pitch, camera, viewport, obstacles } = options;
+  const { width, height } = viewport;
+  if (!width || !height) return { distance: minDistance, lift: 0 };
+  fitCamera.fov = camera.fov;
+  fitCamera.aspect = camera.aspect;
+  fitCamera.near = 0.01;
+  fitCamera.far = minDistance * 10;
+  fitCamera.updateProjectionMatrix();
+  const clear = (distance: number, lift: number) => {
+    // As the rig applies a lift: the target drops along the camera's up axis.
+    const drop = lift * distance * halfViewHeight(camera);
+    fitTarget.set(0, -Math.cos(pitch) * drop, Math.sin(pitch) * drop);
+    orbitDirection(0, pitch, fitCamera.position)
+      .multiplyScalar(distance)
+      .add(fitTarget);
+    fitCamera.lookAt(fitTarget);
+    fitCamera.updateMatrixWorld();
+    for (let step = 0; step < 48; step++) {
+      const angle = (step / 48) * Math.PI * 2;
+      fitPoint
+        .set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+        .project(fitCamera);
+      const x = ((fitPoint.x + 1) * width) / 2,
+        y = ((1 - fitPoint.y) * height) / 2;
+      if (
+        x < EDGE_CLEARANCE ||
+        x > width - EDGE_CLEARANCE ||
+        y < EDGE_CLEARANCE ||
+        y > height - EDGE_CLEARANCE
+      )
+        return false;
+      for (const rect of obstacles)
+        if (
+          x > rect.left - HUD_CLEARANCE &&
+          x < rect.right + HUD_CLEARANCE &&
+          y > rect.top - HUD_CLEARANCE &&
+          y < rect.bottom + HUD_CLEARANCE
+        )
+          return false;
+    }
+    return true;
+  };
+  let best = { distance: minDistance * 2.2, lift: 0 };
+  for (const lift of OVERVIEW_LIFTS) {
+    let distance = minDistance;
+    while (distance < best.distance && !clear(distance, lift))
+      distance *= 1.025;
+    // A higher view must earn its lift by letting the system sit closer.
+    if (
+      distance < best.distance * 0.96 ||
+      (lift === 0 && distance <= best.distance)
+    )
+      best = { distance, lift };
+  }
+  return best;
 }
 
 /**

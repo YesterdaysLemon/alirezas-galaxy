@@ -122,22 +122,31 @@
     "url": "https://morphogenesis.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 8
+    "systemId": "worlds-and-games",
+    "orbitSlot": 0,
+    "formerAddresses": [
+      "curiosity-and-play/8"
+    ]
   },
   "openwater": {
     "url": "https://openwater.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 9
+    "systemId": "worlds-and-games",
+    "orbitSlot": 1,
+    "formerAddresses": [
+      "curiosity-and-play/9"
+    ]
   },
   "between-worlds": {
     "url": "https://between-worlds.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 10
+    "systemId": "places-and-maps",
+    "orbitSlot": 0,
+    "formerAddresses": [
+      "curiosity-and-play/10"
+    ]
   },
   "cube": {
     "url": "https://cube.alirezaafshan.com",
@@ -206,8 +215,12 @@
     "url": "https://tokenloop.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 11
+    "systemId": "machines-and-minds",
+    "orbitSlot": 0,
+    "formerAddresses": [
+      "curiosity-and-play/11"
+    ],
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
   },
   "talking-cure": {
     "url": "https://cure.alirezaafshan.com",
@@ -220,14 +233,22 @@
     "url": "https://coolimages.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 12
+    "systemId": "frontier",
+    "orbitSlot": 0,
+    "formerAddresses": [
+      "curiosity-and-play/12"
+    ],
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
   },
   "zombies": {
     "url": "https://zombies.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "curiosity-and-play",
-    "orbitSlot": 13
+    "systemId": "worlds-and-games",
+    "orbitSlot": 2,
+    "formerAddresses": [
+      "curiosity-and-play/13"
+    ],
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
   }
 }

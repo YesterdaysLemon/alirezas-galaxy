@@ -1,10 +1,19 @@
-// Autonomous placement of new public worlds with Jev (TypeSafe AI).
+// Autonomous placement of public worlds with Jev (TypeSafe AI).
 //
 // Jev answers typed questions only: a Choice returns the highest-weight option
-// and a probability for every option. One request asks three questions about a
-// new world: which family it joins (or none), which curated theme should open
-// as a new family if none fits, and which kind of world it is. Confident
-// answers are applied without review; anything else falls back to Frontier.
+// and a probability for every option. One request asks four questions about a
+// world: which family it joins (or none), which curated theme should open as a
+// new family if none fits, which kind of planet it becomes, and which kind of
+// project it is. Confident answers are applied without review; anything else
+// falls back to Frontier.
+//
+// A family's star shows one system of FAMILY_LANES worlds. A family with no
+// free lane is full: a world that belongs there opens its theme as a new
+// family instead, so every world stays under a visible star. Worlds that
+// overflowed into a family's hidden sister system are re-asked whenever the
+// families change, and move as soon as a visible home exists. Moved worlds
+// keep their former addresses, which are never handed out again.
+//
 // Keys come from the environment and are never logged; response bodies and
 // error text are never printed.
 import { createHash } from 'node:crypto';
@@ -16,6 +25,10 @@ export const FAMILY_THRESHOLD = 0.45;
 /** "None fits" must be this sure, and its theme at least THEME_THRESHOLD. */
 export const NEW_FAMILY_THRESHOLD = 0.5;
 export const THEME_THRESHOLD = 0.3;
+/** A project kind is shown only at or above this weight. */
+export const LABEL_THRESHOLD = 0.35;
+/** Worlds per system; data/solar-systems.ts PROJECT_SLOTS_PER_SYSTEM agrees. */
+export const FAMILY_LANES = 8;
 
 export const TERRAINS = {
   ocean: 'An ocean world: water, sailing, fish, weather, calm and depth.',
@@ -30,11 +43,49 @@ export const TERRAINS = {
   gas: 'A great banded gas giant: loud, large, musical, spectacular.',
 };
 
+/**
+ * What a discovered project is, for its comms card. Curated worlds carry
+ * their own hand-written kinds; discovered ones pick from these.
+ */
+export const LABELS = {
+  'browser-game': 'Browser game',
+  simulation: 'Live simulation',
+  explainer: 'Animated explainer',
+  essay: 'Interactive essay',
+  journal: 'Research journal',
+  museum: 'Walkable museum',
+  tool: 'Working tool',
+  infrastructure: 'Infrastructure',
+  studio: 'Creative studio',
+  music: 'Music and sound',
+  visual: 'Visual experiment',
+  atlas: 'Map and atlas',
+};
+
+const LABEL_CRITERIA = {
+  'browser-game': 'A game people play in the browser.',
+  simulation: 'A running simulation of a system, organism or world.',
+  explainer: 'An animated or interactive explanation of how something works.',
+  essay: 'An essay or argument with interactive parts.',
+  journal: 'A journal, study or collection of research writing.',
+  museum: 'A walkable or browsable collection, museum or archive.',
+  tool: 'A practical tool people use to get something done.',
+  infrastructure: 'Infrastructure or services that keep other work running.',
+  studio: 'A place to make things: an editor, workshop or studio.',
+  music: 'Music, sound or performance.',
+  visual: 'A visual or graphics experiment.',
+  atlas: 'A map, atlas or geographic exploration.',
+};
+
 const NONE = 'none-of-these';
 
 function describeFamily(family, worlds) {
   const members = worlds
-    .filter((world) => world.systemId === family.id)
+    .filter(
+      (world) =>
+        world.systemId === family.id ||
+        world.systemId?.startsWith(`${family.id}-`),
+    )
     .map((world) => `${world.name} (${world.description})`)
     .slice(0, 12);
   return `${family.name}: ${family.subtitle}${
@@ -108,6 +159,11 @@ export function jevRequest(project, summary, families, themes, worlds) {
       instructions:
         'Which kind of fictional world best suits this project as a planet in the galaxy?',
       criteria: TERRAINS,
+    },
+    label: {
+      type: 'choice',
+      instructions: 'What kind of project is this, for a short label?',
+      criteria: LABEL_CRITERIA,
     },
   };
   if (themes.length)
@@ -201,34 +257,77 @@ export async function askJev(request, key, fetchImpl = fetch) {
 
 /**
  * Turn Jev's answers into a placement. Pure, so it can be tested and audited.
- * @returns {{ place: 'family' | 'new-family' | 'frontier', familyId?: string, themeId?: string, terrain: string }}
+ * A confident pick of a full family opens the world's theme instead.
+ * @param {{ canOpenFamily: boolean, isFull?: (familyId: string) => boolean }} options
+ * @returns {{ place: 'family' | 'new-family' | 'frontier', familyId?: string, themeId?: string, terrain: string, label?: string, reason?: 'family-full' }}
  */
-export function decide(answers, { canOpenFamily }) {
+export function decide(answers, { canOpenFamily, isFull = () => false }) {
   const family = answers.family;
   const terrain = answers.kind.choice;
+  const label =
+    answers.label &&
+    answers.label.probabilities[answers.label.choice] >= LABEL_THRESHOLD
+      ? LABELS[answers.label.choice]
+      : undefined;
   const weight = family.probabilities[family.choice];
-  if (family.choice !== NONE && weight >= FAMILY_THRESHOLD)
-    return { place: 'family', familyId: family.choice, terrain };
+  const confident = family.choice !== NONE && weight >= FAMILY_THRESHOLD;
+  if (confident && !isFull(family.choice))
+    return { place: 'family', familyId: family.choice, terrain, label };
+  const full = confident;
   const theme = answers.theme;
   if (
-    family.choice === NONE &&
-    weight >= NEW_FAMILY_THRESHOLD &&
+    (full || (family.choice === NONE && weight >= NEW_FAMILY_THRESHOLD)) &&
     canOpenFamily &&
     theme &&
     theme.probabilities[theme.choice] >= THEME_THRESHOLD
   )
-    return { place: 'new-family', themeId: theme.choice, terrain };
-  return { place: 'frontier', terrain };
+    return {
+      place: 'new-family',
+      themeId: theme.choice,
+      terrain,
+      label,
+      ...(full ? { reason: 'family-full' } : {}),
+    };
+  return {
+    place: 'frontier',
+    terrain,
+    label,
+    ...(full ? { reason: 'family-full' } : {}),
+  };
 }
 
-/** Next never-used slot in a family: past every member and tombstone. */
+/**
+ * Next never-used slot in a family: past every member, tombstone and former
+ * address (an entry's `formerAddresses`, as "system/slot" strings).
+ */
 export function nextSlot(familyId, addresses) {
   let next = 0;
-  for (const address of addresses)
+  for (const address of usedAddresses(addresses))
     if (address.systemId === familyId)
       next = Math.max(next, address.orbitSlot + 1);
   return next;
 }
+
+/** Every address ever used: current ones and each entry's former addresses. */
+export function usedAddresses(entries) {
+  const used = [];
+  for (const entry of entries) {
+    if (Number.isSafeInteger(entry.orbitSlot))
+      used.push({ systemId: entry.systemId, orbitSlot: entry.orbitSlot });
+    for (const former of entry.formerAddresses ?? []) {
+      const [systemId, slot] = former.split('/');
+      used.push({ systemId, orbitSlot: Number(slot) });
+    }
+  }
+  return used;
+}
+
+/** A family is full once its visible system has no never-used lane. */
+export const familyIsFull = (familyId, addresses) =>
+  nextSlot(familyId, addresses) >= FAMILY_LANES;
+
+/** The family a system address belongs to: "tools-and-infrastructure-2" → "tools-and-infrastructure". */
+export const familyOf = (systemId) => systemId.replace(/-\d+$/, '');
 
 const sha256 = (value) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -246,66 +345,231 @@ export async function classifyNewWorlds({
   fetchImpl = fetch,
   now = Date.now(),
 }) {
+  const session = placementSession({ familyData, catalog, addresses, now });
+  for (const project of newWorlds) {
+    const { entry, decision } = await session.ask(project, key, fetchImpl);
+    const address = session.place(project, decision, entry);
+    session.log.push({
+      ...entry,
+      decision: { ...decisionSummary(decision), ...address },
+    });
+  }
+  return session.result();
+}
+
+const decisionSummary = (decision) => ({
+  place: decision.place,
+  ...(decision.reason ? { reason: decision.reason } : {}),
+});
+
+/**
+ * Shared bookkeeping for one refresh: the evolving family list, every address
+ * ever used, the catalog Jev sees, and what was decided.
+ */
+function placementSession({ familyData, catalog, addresses, now }) {
   const families = structuredClone(familyData);
-  const known = [...addresses];
+  const known = usedAddresses(addresses);
   const worlds = [...catalog];
   const placements = new Map();
   const terrain = {};
   const log = [];
-  for (const project of newWorlds) {
-    const summary = await homepageSummary(project.url, fetchImpl);
-    const request = jevRequest(
-      project,
-      summary,
-      families.active,
-      families.themes,
-      worlds,
-    );
+  return {
+    families,
+    log,
+    known,
+    async ask(project, key, fetchImpl) {
+      const summary = await homepageSummary(project.url, fetchImpl);
+      const request = jevRequest(
+        project,
+        summary,
+        families.active,
+        families.themes,
+        worlds.filter((world) => world.id !== project.id),
+      );
+      const entry = {
+        id: project.id,
+        classifiedAt: new Date(now).toISOString(),
+        model: JEV_MODEL,
+        requestSha256: sha256(request),
+      };
+      let decision;
+      try {
+        const answers = await askJev(request, key, fetchImpl);
+        decision = decide(answers, {
+          canOpenFamily: families.active.length < families.maxActive,
+          isFull: (familyId) => familyIsFull(familyId, known),
+        });
+        entry.answers = Object.fromEntries(
+          Object.entries(answers).map(([name, answer]) => [
+            name,
+            {
+              choice: answer.choice,
+              confidence: answer.confidence,
+              probabilities: answer.probabilities,
+            },
+          ]),
+        );
+      } catch (error) {
+        decision = { place: 'frontier' };
+        entry.error = error instanceof Error ? error.message : 'Jev failed';
+      }
+      return { entry, decision };
+    },
+    /**
+     * Apply a decision: open a family if asked, and take its next lane. A
+     * world's look is chosen once, at its first placement; `keepLook` moves
+     * it without repainting the planet.
+     */
+    place(project, decision, entry, { keepLook = false } = {}) {
+      let familyId = decision.familyId ?? 'frontier';
+      if (decision.place === 'new-family') {
+        const theme = families.themes.find((t) => t.id === decision.themeId);
+        families.themes = families.themes.filter((t) => t !== theme);
+        // New families join before Frontier, which always stays last.
+        families.active.splice(families.active.length - 1, 0, theme);
+        familyId = theme.id;
+        entry.openedFamily = theme.id;
+      }
+      const address = {
+        systemId: familyId,
+        orbitSlot: nextSlot(familyId, known),
+      };
+      known.push(address);
+      placements.set(project.id, address);
+      const index = worlds.findIndex((world) => world.id === project.id);
+      if (index >= 0) worlds.splice(index, 1);
+      worlds.push({ ...project, ...address });
+      const look =
+        decision.terrain && !keepLook ? { terrain: decision.terrain } : {};
+      if (look.terrain || decision.label)
+        terrain[project.id] = {
+          ...look,
+          ...(decision.label ? { label: decision.label } : {}),
+        };
+      return address;
+    },
+    result() {
+      return { placements, terrain, families, log };
+    },
+  };
+}
+
+/**
+ * Name what already-placed discovered worlds are, without touching where they
+ * live: a request with only the label question. Each world is asked once; an
+ * unsure answer is recorded as `label: null` so it is not asked again.
+ * @returns {Promise<{ labels: Record<string, string | null>, log: object[] }>}
+ */
+export async function labelWorlds({
+  worlds,
+  key,
+  fetchImpl = fetch,
+  now = Date.now(),
+}) {
+  const labels = {};
+  const log = [];
+  for (const world of worlds) {
+    const summary = await homepageSummary(world.url, fetchImpl);
+    const full = jevRequest(world, summary, [], [], []);
+    const request = { ...full, questions: { label: full.questions.label } };
     const entry = {
-      id: project.id,
+      id: world.id,
       classifiedAt: new Date(now).toISOString(),
       model: JEV_MODEL,
       requestSha256: sha256(request),
+      labelOnly: true,
     };
-    let decision;
     try {
-      const answers = await askJev(request, key, fetchImpl);
-      decision = decide(answers, {
-        canOpenFamily: families.active.length < families.maxActive,
-      });
-      entry.answers = Object.fromEntries(
-        Object.entries(answers).map(([name, answer]) => [
-          name,
-          {
-            choice: answer.choice,
-            confidence: answer.confidence,
-            probabilities: answer.probabilities,
-          },
-        ]),
-      );
+      const { label } = await askJev(request, key, fetchImpl);
+      const confident = label.probabilities[label.choice] >= LABEL_THRESHOLD;
+      labels[world.id] = confident ? LABELS[label.choice] : null;
+      entry.answers = {
+        label: {
+          choice: label.choice,
+          confidence: label.confidence,
+          probabilities: label.probabilities,
+        },
+      };
+      entry.decision = { label: labels[world.id] };
     } catch (error) {
-      decision = { place: 'frontier' };
       entry.error = error instanceof Error ? error.message : 'Jev failed';
     }
-    let familyId = decision.familyId ?? 'frontier';
-    if (decision.place === 'new-family') {
-      const theme = families.themes.find((t) => t.id === decision.themeId);
-      families.themes = families.themes.filter((t) => t !== theme);
-      // New families join before Frontier, which always stays last.
-      families.active.splice(families.active.length - 1, 0, theme);
-      familyId = theme.id;
-      entry.openedFamily = theme.id;
-    }
-    const address = {
-      systemId: familyId,
-      orbitSlot: nextSlot(familyId, known),
-    };
-    known.push(address);
-    placements.set(project.id, address);
-    worlds.push({ ...project, ...address });
-    if (decision.terrain) terrain[project.id] = { terrain: decision.terrain };
-    entry.decision = { place: decision.place, ...address };
     log.push(entry);
   }
-  return { placements, terrain, families, log };
+  return { labels, log };
+}
+
+/** Worlds that overflowed into a family's sister system: slot past its lanes. */
+export const overflowing = (world) =>
+  Number.isSafeInteger(world.orbitSlot) && world.orbitSlot >= FAMILY_LANES;
+
+/**
+ * Worlds still looking for a home: those hidden in a sister system, and those
+ * on Frontier, where uncertain worlds wait until a family fits them.
+ */
+export const awaitingHome = (world) =>
+  overflowing(world) || familyOf(world.systemId ?? '') === 'frontier';
+
+/**
+ * What the families look like to an overflowing world: re-asking is only
+ * worthwhile once this changes.
+ */
+export function familySignature(familyData, addresses) {
+  return familyData.active
+    .map((family) =>
+      familyIsFull(family.id, addresses) ? `${family.id}:full` : family.id,
+    )
+    .concat(familyData.active.length < familyData.maxActive ? ['room'] : [])
+    .join(',');
+}
+
+/**
+ * Re-ask Jev about worlds awaiting a home, and move each to the home its
+ * answer gives: a family with a free lane, a newly opened family, or, for a
+ * world hidden in a sister system, Frontier's visible star. A Frontier world
+ * that would only land on Frontier again stays put. Moves record the old
+ * address, which is never reused.
+ * @returns {Promise<{ moves: Map<string, {from: string, to: {systemId: string, orbitSlot: number}}>, families: any, terrain: any, log: any[], signature: string }>}
+ */
+export async function rehomeOverflow({
+  worlds,
+  familyData,
+  catalog,
+  addresses,
+  key,
+  fetchImpl = fetch,
+  now = Date.now(),
+}) {
+  const session = placementSession({ familyData, catalog, addresses, now });
+  const moves = new Map();
+  for (const world of worlds) {
+    if (!awaitingHome(world)) continue;
+    const { entry, decision } = await session.ask(world, key, fetchImpl);
+    const from = `${world.systemId}/${world.orbitSlot}`;
+    const stays =
+      decision.place === 'frontier' && familyOf(world.systemId) === 'frontier';
+    if (stays) {
+      session.log.push({
+        ...entry,
+        rehome: true,
+        decision: { ...decisionSummary(decision), stayed: from },
+      });
+      continue;
+    }
+    const to = session.place(world, decision, entry, { keepLook: true });
+    moves.set(world.id, { from, to });
+    session.log.push({
+      ...entry,
+      rehome: true,
+      decision: { ...decisionSummary(decision), from, ...to },
+    });
+  }
+  const { families, terrain, log } = session.result();
+  return {
+    moves,
+    families,
+    terrain,
+    log,
+    signature: familySignature(families, session.known),
+  };
 }
