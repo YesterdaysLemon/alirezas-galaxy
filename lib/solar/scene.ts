@@ -4,6 +4,7 @@ import { orbitAngle, type SolarSystem } from '../../data/solar-systems';
 import { PlanetPreparation, preparationTurn } from '../planet-preparation';
 import { CameraRig } from './camera-rig';
 import { SolarFlight } from './flight';
+import type { ScreenRect } from './framing';
 import { HudOverlay } from './hud-overlay';
 import {
   DRAG_PIXELS,
@@ -47,6 +48,12 @@ export class SolarSystemScene {
   private readonly rig: CameraRig;
   private readonly overlay: HudOverlay;
   private readonly radar = new SolarRadar();
+  /**
+   * The HUD the overview frames around: adopted only once arrived, when the
+   * whole HUD is mounted, and kept across visits so later entries dive
+   * straight to the settled framing.
+   */
+  private readonly hud = { rects: [] as ScreenRect[], version: 0 };
   private readonly radarFrame: Omit<RadarFrame, 'system'> & {
     system: SolarSystem | null;
   };
@@ -92,6 +99,7 @@ export class SolarSystemScene {
       () => {
         this.radar.attach(this.overlay.scope);
         this.radar.measure();
+        if (this.active && !this.navigating) this.adoptHud();
       },
     );
     // oxlint-disable-next-line typescript/no-this-alias -- the host's getters read live scene state.
@@ -111,6 +119,9 @@ export class SolarSystemScene {
       },
       get viewport() {
         return solar.overlay.viewport;
+      },
+      get hud() {
+        return solar.hud;
       },
       pick: (clientX, clientY) => this.pick(clientX, clientY),
       releaseWorld: () => {
@@ -215,6 +226,26 @@ export class SolarSystemScene {
       )
         console.error('Solar flight preparation failed', error);
     }
+  }
+
+  /** Reframe around the HUD when its parts have moved. */
+  private adoptHud() {
+    const next = this.overlay.hudRects;
+    const same =
+      next.length === this.hud.rects.length &&
+      next.every((rect, index) => {
+        const was = this.hud.rects[index];
+        return (
+          rect.left === was.left &&
+          rect.top === was.top &&
+          rect.right === was.right &&
+          rect.bottom === was.bottom
+        );
+      });
+    if (same) return;
+    this.hud.rects = next;
+    this.hud.version += 1;
+    this.rig.refit();
   }
 
   private report(phase: SolarPhase) {

@@ -3,9 +3,11 @@ import type { SolarSystem } from '../../data/solar-systems';
 import {
   clearStarPose,
   closeUpOffset,
+  fitOverview,
   focusDistance,
   overviewDistance,
   overviewPitch,
+  type ScreenRect,
   type Viewport,
 } from './framing';
 import {
@@ -29,6 +31,11 @@ export interface RigHost {
   /** True once the camera works in local system units. */
   readonly handedOff: boolean;
   readonly viewport: Viewport;
+  /** The ship HUD's parts; `version` changes whenever they move. */
+  readonly hud: {
+    readonly rects: readonly ScreenRect[];
+    readonly version: number;
+  };
   /** The world under a screen point, if any. */
   pick(clientX: number, clientY: number): number | null;
   /** Zooming out left the selected world for the system view. */
@@ -82,6 +89,13 @@ export class CameraRig {
   private readonly ground = new THREE.Vector3();
   private readonly offset = new THREE.Vector3();
   private readonly desiredTarget = new THREE.Vector3();
+  /** The overview fit, recomputed only when the system, view or HUD changes. */
+  private fit = { distance: 1, lift: 0 };
+  private fitSystem: SolarSystem | null | undefined = undefined;
+  private fitVersion = -1;
+  private fitWidth = 0;
+  private fitHeight = 0;
+  private fitAspect = 0;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -95,7 +109,35 @@ export class CameraRig {
   }
 
   overviewDistance() {
-    return overviewDistance(this.host.system, this.camera.aspect);
+    return this.overviewFit().distance;
+  }
+
+  /** How the overview frames the whole system around the ship HUD. */
+  private overviewFit() {
+    const { system, viewport, hud } = this.host;
+    const aspect = this.camera.aspect;
+    if (
+      this.fitSystem !== system ||
+      this.fitVersion !== hud.version ||
+      this.fitWidth !== viewport.width ||
+      this.fitHeight !== viewport.height ||
+      this.fitAspect !== aspect
+    ) {
+      this.fit = fitOverview({
+        radius: system?.frame ?? 40,
+        minDistance: overviewDistance(system, aspect),
+        pitch: overviewPitch(aspect),
+        camera: this.camera,
+        viewport,
+        obstacles: hud.rects,
+      });
+      this.fitSystem = system;
+      this.fitVersion = hud.version;
+      this.fitWidth = viewport.width;
+      this.fitHeight = viewport.height;
+      this.fitAspect = aspect;
+    }
+    return this.fit;
   }
 
   private focusDistance(body: SolarBody) {
@@ -170,6 +212,13 @@ export class CameraRig {
     this.zoomBase = base;
   }
 
+  /** The HUD settled in new places: ease to the new framing, keeping the zoom. */
+  refit() {
+    const base = this.layoutDistance();
+    this.distance *= base / Math.max(1e-6, this.zoomBase);
+    this.zoomBase = base;
+  }
+
   drag(dx: number, dy: number) {
     this.yaw -= dx * 0.006;
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.004, 0.12, 1.3);
@@ -178,12 +227,28 @@ export class CameraRig {
   move(dt: number, reduceMotion: boolean) {
     const { selected, bodies, viewport } = this.host;
     const body = selected === null ? null : bodies[selected];
+    let horizontal = 0,
+      vertical = 0;
     if (body) {
+      // The world sits left of center; its comms casing docks right.
       this.desiredTarget.copy(body.root.position);
+      ({ horizontal, vertical } = closeUpOffset(viewport));
+    } else {
+      // The whole system rises a little into the empty top of the view, clear
+      // of the HUD, and settles back to center as the reader zooms in.
+      this.desiredTarget.copy(this.focus);
+      const fit = this.overviewFit();
+      vertical =
+        -fit.lift *
+        THREE.MathUtils.smoothstep(
+          this.viewDistance,
+          fit.distance * 0.45,
+          fit.distance * 0.95,
+        );
+    }
+    if (horizontal || vertical) {
       const halfHeight = this.viewDistance * halfViewHeight(this.camera);
-      const { horizontal, vertical } = closeUpOffset(viewport);
-      // Shift in camera-plane coordinates, so framing survives dragging around
-      // a world. The world sits left of center; its comms casing docks right.
+      // Shift in camera-plane coordinates, so framing survives dragging.
       const sideways = horizontal * halfHeight * this.camera.aspect;
       const lift = vertical * halfHeight;
       this.desiredTarget.x +=
@@ -193,7 +258,7 @@ export class CameraRig {
         Math.sin(this.viewYaw) * sideways +
         Math.cos(this.viewYaw) * Math.sin(this.viewPitch) * lift;
       this.desiredTarget.y += Math.cos(this.viewPitch) * lift;
-    } else this.desiredTarget.copy(this.focus);
+    }
     // Ease heading, tilt and log-distance about an eased subject. Unlike
     // easing the camera's position, this can never cut through the system.
     const blend = reduceMotion ? 1 : 1 - Math.exp(-dt * 4.2);
