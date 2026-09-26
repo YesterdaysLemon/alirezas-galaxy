@@ -1,17 +1,22 @@
 {
   "urep-attendance": {
-    "terrain": "folds"
+    "terrain": "folds",
+    "label": "Working tool"
   },
   "next-token-machine": {
-    "terrain": "folds"
+    "terrain": "folds",
+    "label": "Animated explainer"
   },
   "talking-cure": {
-    "terrain": "culture"
+    "terrain": "culture",
+    "label": "Research journal"
   },
   "coolimages": {
-    "terrain": "culture"
+    "terrain": "culture",
+    "label": "Walkable museum"
   },
   "zombies": {
-    "terrain": "culture"
+    "terrain": "culture",
+    "label": "Browser game"
   }
 }

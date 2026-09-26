@@ -9,29 +9,57 @@ uses Jev (below). No DNS credentials or infrastructure changes are involved.
 
 A new, healthy, opted-in world with no address is placed without review by Jev
 (TypeSafe AI, pinned `jev-1.13.0`), using the `TYPESAFE_API_KEY` repository
-secret. Jev only answers typed questions, so one request asks three Choices:
+secret. Jev only answers typed questions, so one request asks four Choices:
 
 - **family**: each active family (described by its subtitle and current worlds)
   or "none of these";
 - **theme**: which curated, not-yet-active theme in `data/families.json` a new
   family would take;
-- **kind**: which world type (ocean, garden, desert, ice, colony, gas giant).
+- **kind**: which world type (ocean, garden, desert, ice, colony, gas giant);
+- **label**: what the project is, from a short curated list (browser game,
+  animated explainer, research journal, walkable museum, working tool…).
 
-A family pick weighted at least 0.45 takes that family's next never-used lane. A
-"none of these" weighted at least 0.5 opens the chosen theme as a new family
-(its star appears in the galaxy, before Frontier), up to `maxActive` families,
-which the galaxy's marker placement is tested to hold. Anything less certain, a
-failed call, or a missing key places the world on the Frontier, as before. The
-world kind is stored in `data/world-terrain.json`; its palette still varies by
-the world's own seed. Every decision, with all probabilities and a request hash
-but never a key or response body, is appended to `data/world-classifications.json`.
-The job commits these with the catalog only after the unit suite and build pass.
+A family pick weighted at least 0.45 takes that family's next never-used lane,
+if it has one. **Every world lives under a visible star:** a family star opens
+one system of eight lanes, so a family with no never-used lane is *full*. A
+confident pick of a full family, or a "none of these" weighted at least 0.5,
+opens the chosen theme as a new family (its star appears in the galaxy, before
+Frontier), up to `maxActive` families, which the galaxy's marker placement is
+tested to hold. Anything less certain, a failed call, or a missing key places
+the world on the Frontier, whose star shows once it has worlds. The world type
+and label are stored in `data/world-terrain.json`; its palette still varies by
+the world's own seed, and a label above 0.35 replaces the discovered kind
+"Public project" on its comms card. Every decision, with all probabilities and
+a request hash but never a key or response body, is appended to
+`data/world-classifications.json`. The job commits these with the catalog only
+after the unit suite and build pass.
+
+### Settling worlds that are still looking for a home
+
+Two kinds of discovered world are still looking for a home: those on Frontier,
+and those past their family's eighth lane, in a sister system the family star
+does not open (`<family>-2`, only reachable from the ship menu). Each refresh
+re-asks them, but only when the families have changed since they were last
+asked (their `rehomeSignature` in the discovery state). A world moves to the
+home Jev's answer gives: a family with a free lane, a newly opened family, or,
+from a sister system, Frontier. A Frontier world that would only land on
+Frontier again stays put. Moving keeps the world's look; only its address
+changes. The old address is kept in the world's `formerAddresses` and is never
+handed to another world; `nextSlot`, membership validation and a unit test all
+respect it. Reviewed registry worlds are never moved automatically, and a unit
+test keeps them within their family's first eight lanes.
+
+Discovered worlds placed before labels existed are named once by a label-only
+request that cannot move them; an unsure answer is recorded as `label: null`.
 
 Moving a world later is safe: project IDs are unique, so an old
 `#system/<old-system>/<world>` link resolves to wherever the world now lives.
 A calibration on 2026-09-23 against the thirteen worlds curated that day agreed
 on nine; Jev preferred Curiosity & Play for Openwater, Morphogenesis and Between
-Worlds (0.83–0.91), and they were moved there before publication.
+Worlds (0.83–0.91), and they were moved there before publication. That filled
+Curiosity & Play past eight, into a sister system its star never showed; on
+2026-09-26 the six worlds there were re-homed by the rule above, opening Worlds
+& Games, Places & Maps and Machines & Minds, with Coolimages on Frontier.
 
 `data/world-registry.json` is the reviewed public project registry. Its order and
 metadata override discovery and preserve the portfolio as the default homeworld.
@@ -89,7 +117,9 @@ Jev (above), or receive the next unallocated `frontier` slot in deterministic
 project-ID order. Active families and the theme pool live in `data/families.json`.
 
 Slots 0–7 belong to the family's root system, 8–15 to `<family>-2`, and so on;
-each slot is a lane at a fixed orbit, so systems grow outward.
+each slot is a lane at a fixed orbit, so systems grow outward. Sister systems are
+only an overflow that the refresh drains (above); a family's star opens its root
+system, and its label says when a sister system holds more.
 Empty slots do not collapse; absent systems do not renumber later companions.
 Renames, domain changes, discovery ordering and health transitions leave membership
 unchanged. Terrain is keyed by immutable project ID rather than display name or URL.
@@ -98,4 +128,5 @@ duplicate addresses abort the refresh. Choose an unused slot when moving a proje
 
 Retired and denied project IDs retain their addresses indefinitely. Recovery reuses
 the project's address; unrelated newcomers never fill its slot. Keep IDs stable,
-and do not clear state tombstones as routine housekeeping.
+and do not clear state tombstones as routine housekeeping. When moving a reviewed
+world by hand, record its old address in its discovery-state `formerAddresses`.

@@ -248,5 +248,491 @@
       "systemId": "curiosity-and-play",
       "orbitSlot": 13
     }
+  },
+  {
+    "id": "morphogenesis",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "d033b84ac086e587d60b47eca9e81cf472738dc9ad22dff6c227077244eb18b6",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.87,
+        "probabilities": {
+          "ideas-and-inquiry": 0,
+          "curiosity-and-play": 0.9,
+          "patterns-and-life": 0.07,
+          "tools-and-infrastructure": 0.01,
+          "none-of-these": 0.02
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.99,
+        "probabilities": {
+          "ocean": 0,
+          "desert": 0,
+          "culture": 0.99,
+          "gas": 0,
+          "garden": 0.01,
+          "folds": 0
+        }
+      },
+      "label": {
+        "choice": "studio",
+        "confidence": 1,
+        "probabilities": {
+          "music": 0,
+          "studio": 1,
+          "museum": 0,
+          "atlas": 0,
+          "simulation": 0,
+          "explainer": 0,
+          "infrastructure": 0,
+          "browser-game": 0,
+          "visual": 0,
+          "journal": 0,
+          "tool": 0,
+          "essay": 0
+        }
+      },
+      "theme": {
+        "choice": "worlds-and-games",
+        "confidence": 0.67,
+        "probabilities": {
+          "words-and-stories": 0,
+          "money-and-markets": 0,
+          "bodies-and-health": 0,
+          "places-and-maps": 0,
+          "machines-and-minds": 0,
+          "worlds-and-games": 0.71,
+          "sound-and-stage": 0,
+          "images-and-motion": 0.29
+        }
+      }
+    },
+    "openedFamily": "worlds-and-games",
+    "rehome": true,
+    "decision": {
+      "place": "new-family",
+      "reason": "family-full",
+      "from": "curiosity-and-play/8",
+      "systemId": "worlds-and-games",
+      "orbitSlot": 0
+    }
+  },
+  {
+    "id": "openwater",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "c796f3c15d92c51bbf64927af91de97c67fad5836b4e8f3ace73a9a56594c21d",
+    "answers": {
+      "family": {
+        "choice": "worlds-and-games",
+        "confidence": 0.52,
+        "probabilities": {
+          "ideas-and-inquiry": 0,
+          "curiosity-and-play": 0.38,
+          "tools-and-infrastructure": 0,
+          "worlds-and-games": 0.6,
+          "none-of-these": 0.01,
+          "patterns-and-life": 0.01
+        }
+      },
+      "kind": {
+        "choice": "ocean",
+        "confidence": 1,
+        "probabilities": {
+          "ocean": 1,
+          "culture": 0,
+          "gas": 0,
+          "folds": 0,
+          "desert": 0,
+          "garden": 0
+        }
+      },
+      "label": {
+        "choice": "visual",
+        "confidence": 0.72,
+        "probabilities": {
+          "studio": 0,
+          "visual": 0.75,
+          "explainer": 0,
+          "simulation": 0.22,
+          "journal": 0,
+          "infrastructure": 0,
+          "browser-game": 0.03,
+          "atlas": 0,
+          "essay": 0,
+          "tool": 0,
+          "music": 0,
+          "museum": 0
+        }
+      },
+      "theme": {
+        "choice": "images-and-motion",
+        "confidence": 0.86,
+        "probabilities": {
+          "sound-and-stage": 0,
+          "places-and-maps": 0.12,
+          "machines-and-minds": 0,
+          "images-and-motion": 0.88,
+          "bodies-and-health": 0,
+          "words-and-stories": 0,
+          "money-and-markets": 0
+        }
+      }
+    },
+    "rehome": true,
+    "decision": {
+      "place": "family",
+      "from": "curiosity-and-play/9",
+      "systemId": "worlds-and-games",
+      "orbitSlot": 1
+    }
+  },
+  {
+    "id": "between-worlds",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "7a61aa5c97d1b8d3d5a21e43b5aba51b57165c7ecf2d789b2dc4ba8bc517b60f",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.36,
+        "probabilities": {
+          "worlds-and-games": 0.39,
+          "tools-and-infrastructure": 0,
+          "none-of-these": 0.11,
+          "patterns-and-life": 0,
+          "ideas-and-inquiry": 0.04,
+          "curiosity-and-play": 0.46
+        }
+      },
+      "kind": {
+        "choice": "folds",
+        "confidence": 0.99,
+        "probabilities": {
+          "ocean": 0,
+          "garden": 0,
+          "culture": 0,
+          "folds": 1,
+          "gas": 0,
+          "desert": 0
+        }
+      },
+      "label": {
+        "choice": "studio",
+        "confidence": 0.47,
+        "probabilities": {
+          "studio": 0.5199999999999999,
+          "browser-game": 0.009999999999999998,
+          "infrastructure": 0,
+          "explainer": 0.029999999999999992,
+          "visual": 0.14999999999999997,
+          "journal": 0,
+          "essay": 0,
+          "simulation": 0.18999999999999995,
+          "tool": 0.09999999999999998,
+          "music": 0,
+          "atlas": 0,
+          "museum": 0
+        }
+      },
+      "theme": {
+        "choice": "places-and-maps",
+        "confidence": 0.61,
+        "probabilities": {
+          "words-and-stories": 0.01,
+          "money-and-markets": 0,
+          "sound-and-stage": 0,
+          "images-and-motion": 0.31,
+          "bodies-and-health": 0,
+          "machines-and-minds": 0.01,
+          "places-and-maps": 0.67
+        }
+      }
+    },
+    "openedFamily": "places-and-maps",
+    "rehome": true,
+    "decision": {
+      "place": "new-family",
+      "reason": "family-full",
+      "from": "curiosity-and-play/10",
+      "systemId": "places-and-maps",
+      "orbitSlot": 0
+    }
+  },
+  {
+    "id": "coolimages",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "ace2dea69c16771423c7084da831174d4462b0d5adf2fec001b33d2e8b41b29d",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.35,
+        "probabilities": {
+          "ideas-and-inquiry": 0,
+          "tools-and-infrastructure": 0,
+          "curiosity-and-play": 0.44,
+          "none-of-these": 0.04,
+          "patterns-and-life": 0,
+          "worlds-and-games": 0.28,
+          "places-and-maps": 0.24
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.62,
+        "probabilities": {
+          "garden": 0.0202020202020202,
+          "gas": 0.2828282828282828,
+          "desert": 0,
+          "ocean": 0,
+          "culture": 0.6868686868686869,
+          "folds": 0.0101010101010101
+        }
+      },
+      "label": {
+        "choice": "museum",
+        "confidence": 1,
+        "probabilities": {
+          "infrastructure": 0,
+          "studio": 0,
+          "music": 0,
+          "essay": 0,
+          "museum": 1,
+          "tool": 0,
+          "visual": 0,
+          "atlas": 0,
+          "browser-game": 0,
+          "simulation": 0,
+          "explainer": 0,
+          "journal": 0
+        }
+      },
+      "theme": {
+        "choice": "images-and-motion",
+        "confidence": 1,
+        "probabilities": {
+          "images-and-motion": 1,
+          "words-and-stories": 0,
+          "bodies-and-health": 0,
+          "machines-and-minds": 0,
+          "money-and-markets": 0,
+          "sound-and-stage": 0
+        }
+      }
+    },
+    "rehome": true,
+    "decision": {
+      "place": "frontier",
+      "from": "curiosity-and-play/12",
+      "systemId": "frontier",
+      "orbitSlot": 0
+    }
+  },
+  {
+    "id": "next-token-machine",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "7b00afb963815fe8295ef7f39e484462468f8ae431d730a2b7340e371f96742f",
+    "answers": {
+      "family": {
+        "choice": "curiosity-and-play",
+        "confidence": 0.51,
+        "probabilities": {
+          "worlds-and-games": 0.02,
+          "curiosity-and-play": 0.59,
+          "tools-and-infrastructure": 0.02,
+          "places-and-maps": 0,
+          "none-of-these": 0.02,
+          "patterns-and-life": 0.05,
+          "ideas-and-inquiry": 0.3
+        }
+      },
+      "kind": {
+        "choice": "folds",
+        "confidence": 0.57,
+        "probabilities": {
+          "garden": 0,
+          "folds": 0.65,
+          "ocean": 0,
+          "culture": 0.34,
+          "desert": 0,
+          "gas": 0.01
+        }
+      },
+      "label": {
+        "choice": "explainer",
+        "confidence": 1,
+        "probabilities": {
+          "journal": 0,
+          "simulation": 0,
+          "browser-game": 0,
+          "atlas": 0,
+          "studio": 0,
+          "tool": 0,
+          "explainer": 1,
+          "museum": 0,
+          "essay": 0,
+          "visual": 0,
+          "music": 0,
+          "infrastructure": 0
+        }
+      },
+      "theme": {
+        "choice": "machines-and-minds",
+        "confidence": 0.99,
+        "probabilities": {
+          "bodies-and-health": 0,
+          "sound-and-stage": 0,
+          "machines-and-minds": 0.99,
+          "words-and-stories": 0,
+          "money-and-markets": 0,
+          "images-and-motion": 0.01
+        }
+      }
+    },
+    "openedFamily": "machines-and-minds",
+    "rehome": true,
+    "decision": {
+      "place": "new-family",
+      "reason": "family-full",
+      "from": "curiosity-and-play/11",
+      "systemId": "machines-and-minds",
+      "orbitSlot": 0
+    }
+  },
+  {
+    "id": "zombies",
+    "classifiedAt": "2026-09-26T07:38:43.602Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "baf00746abb950cdef6b24d3d5696bf64f6b3b76e249f8c15c2dcb6cf970e55f",
+    "answers": {
+      "family": {
+        "choice": "worlds-and-games",
+        "confidence": 0.98,
+        "probabilities": {
+          "none-of-these": 0.01,
+          "machines-and-minds": 0,
+          "tools-and-infrastructure": 0,
+          "worlds-and-games": 0.98,
+          "patterns-and-life": 0,
+          "ideas-and-inquiry": 0,
+          "curiosity-and-play": 0.01,
+          "places-and-maps": 0
+        }
+      },
+      "kind": {
+        "choice": "culture",
+        "confidence": 0.39,
+        "probabilities": {
+          "ocean": 0,
+          "garden": 0.01,
+          "desert": 0.34,
+          "folds": 0.16,
+          "culture": 0.48,
+          "gas": 0.01
+        }
+      },
+      "label": {
+        "choice": "browser-game",
+        "confidence": 0.97,
+        "probabilities": {
+          "essay": 0,
+          "museum": 0,
+          "simulation": 0.03,
+          "atlas": 0,
+          "studio": 0,
+          "browser-game": 0.97,
+          "journal": 0,
+          "tool": 0,
+          "music": 0,
+          "visual": 0,
+          "explainer": 0,
+          "infrastructure": 0
+        }
+      },
+      "theme": {
+        "choice": "images-and-motion",
+        "confidence": 0.51,
+        "probabilities": {
+          "words-and-stories": 0.37,
+          "sound-and-stage": 0.01,
+          "bodies-and-health": 0.01,
+          "images-and-motion": 0.61,
+          "money-and-markets": 0
+        }
+      }
+    },
+    "rehome": true,
+    "decision": {
+      "place": "family",
+      "from": "curiosity-and-play/13",
+      "systemId": "worlds-and-games",
+      "orbitSlot": 2
+    }
+  },
+  {
+    "id": "talking-cure",
+    "classifiedAt": "2026-09-26T07:41:03.883Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "4206b8286252b4b9b8b7c00d12400a245091bc3cc535f67db788b051f948cd09",
+    "labelOnly": true,
+    "answers": {
+      "label": {
+        "choice": "journal",
+        "confidence": 1,
+        "probabilities": {
+          "infrastructure": 0,
+          "visual": 0,
+          "browser-game": 0,
+          "explainer": 0,
+          "essay": 0,
+          "museum": 0,
+          "tool": 0,
+          "journal": 1,
+          "simulation": 0,
+          "studio": 0,
+          "atlas": 0,
+          "music": 0
+        }
+      }
+    },
+    "decision": {
+      "label": "Research journal"
+    }
+  },
+  {
+    "id": "urep-attendance",
+    "classifiedAt": "2026-09-26T07:41:03.883Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "8f37882668b891775831573d6fe0158fc3b268c80da41d6d3ba478e7a5d81c7b",
+    "labelOnly": true,
+    "answers": {
+      "label": {
+        "choice": "tool",
+        "confidence": 1,
+        "probabilities": {
+          "museum": 0,
+          "simulation": 0,
+          "essay": 0,
+          "explainer": 0,
+          "atlas": 0,
+          "infrastructure": 0,
+          "tool": 1,
+          "visual": 0,
+          "journal": 0,
+          "studio": 0,
+          "music": 0,
+          "browser-game": 0
+        }
+      }
+    },
+    "decision": {
+      "label": "Working tool"
+    }
   }
 ]

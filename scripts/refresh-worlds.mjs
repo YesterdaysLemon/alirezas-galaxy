@@ -1,6 +1,12 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { classifyNewWorlds } from './classify-worlds.mjs';
+import {
+  classifyNewWorlds,
+  awaitingHome,
+  familySignature,
+  labelWorlds,
+  rehomeOverflow,
+} from './classify-worlds.mjs';
 
 export const GRACE_MS = 7 * 86400000;
 const source = 'https://deploy.alirezaafshan.com/api/topology';
@@ -66,14 +72,19 @@ export function assignMembership(projects, previous, state) {
   }
   const occupied = new Map();
   let nextFrontierSlot = 0;
-  for (const [id, project] of assignments) {
-    const key = `${project.systemId}/${project.orbitSlot}`;
+  const take = (key, id) => {
     if (occupied.has(key) && occupied.get(key) !== id)
       throw new Error(`Duplicate system address ${key}`);
     occupied.set(key, id);
-    if (project.systemId === 'frontier')
-      nextFrontierSlot = Math.max(nextFrontierSlot, project.orbitSlot + 1);
-  }
+    const [systemId, slot] = key.split('/');
+    if (systemId === 'frontier')
+      nextFrontierSlot = Math.max(nextFrontierSlot, Number(slot) + 1);
+  };
+  for (const [id, project] of assignments)
+    take(`${project.systemId}/${project.orbitSlot}`, id);
+  // A moved world's old addresses are never handed to anyone else.
+  for (const [id, entry] of Object.entries(state))
+    for (const former of entry.formerAddresses ?? []) take(former, id);
   const byId = new Map(previous.map((project) => [project.id, project]));
   for (const project of projects) byId.set(project.id, project);
   // Code-unit order, so addresses never depend on the runner's locale.
@@ -194,12 +205,15 @@ export function reconcile(
       healthy ||
       prior.everHealthy === true ||
       (Boolean(old) && old.status !== 'preview');
+    const { formerAddresses, rehomeSignature } = state[project.id] ?? {};
     nextState[project.id] = {
       url: project.url,
       everHealthy,
       failedSince,
       systemId,
       orbitSlot,
+      ...(formerAddresses ? { formerAddresses } : {}),
+      ...(rehomeSignature ? { rehomeSignature } : {}),
     };
     const { showPending, ...world } = project;
     if (healthy)
@@ -272,16 +286,24 @@ async function classify(projects, previous, state, health) {
     addresses,
     key,
   });
-  for (const family of families.active) familyIds.add(family.id);
   for (const project of projects) {
     const address = placements.get(project.id);
     if (address) Object.assign(project, address);
   }
+  return saveJevOutcome(families, terrain, log);
+}
+
+/** Record families, appearance and every decision, and summarize them. */
+async function saveJevOutcome(families, terrain, log) {
+  for (const family of families.active) familyIds.add(family.id);
   await saveChanged('data/families.json', families);
-  const knownTerrain = JSON.parse(
+  const known = JSON.parse(
     await readFile('data/world-terrain.json', 'utf8').catch(() => '{}'),
   );
-  await saveChanged('data/world-terrain.json', { ...knownTerrain, ...terrain });
+  // A world keeps the look it already has; new answers only fill gaps.
+  for (const [id, entry] of Object.entries(terrain))
+    known[id] = { ...entry, ...known[id] };
+  await saveChanged('data/world-terrain.json', known);
   const history = JSON.parse(
     await readFile('data/world-classifications.json', 'utf8').catch(() => '[]'),
   );
@@ -291,6 +313,90 @@ async function classify(projects, previous, state, health) {
     ...entry.decision,
     ...(entry.error ? { error: entry.error } : {}),
   }));
+}
+
+/**
+ * Give discovered worlds (kind "Public project") a short kind, once each.
+ * Only the label is asked, so this never moves a world.
+ */
+async function label(projects, health) {
+  const key = process.env.TYPESAFE_API_KEY?.trim();
+  if (!key) return [];
+  const known = JSON.parse(
+    await readFile('data/world-terrain.json', 'utf8').catch(() => '{}'),
+  );
+  const unnamed = projects.filter(
+    (project) =>
+      project.kind === 'Public project' &&
+      health[project.id] === true &&
+      known[project.id]?.label === undefined,
+  );
+  if (!unnamed.length) return [];
+  const { labels, log } = await labelWorlds({ worlds: unnamed, key });
+  for (const [id, value] of Object.entries(labels))
+    known[id] = { ...known[id], label: value };
+  await saveChanged('data/world-terrain.json', known);
+  const history = JSON.parse(
+    await readFile('data/world-classifications.json', 'utf8').catch(() => '[]'),
+  );
+  await saveChanged('data/world-classifications.json', [...history, ...log]);
+  return log.map((entry) => ({ id: entry.id, ...entry.decision }));
+}
+
+/**
+ * Drain the hidden sister systems and settle Frontier. Discovered worlds past
+ * their family's visible lanes, or waiting on Frontier, are re-asked, but only
+ * when the families have changed since they were last asked; each move keeps
+ * the old address as a former address. Reviewed registry worlds are never moved here: their
+ * addresses belong to the registry (a unit test keeps them in view).
+ */
+async function rehome(projects, previous, state, health) {
+  const key = process.env.TYPESAFE_API_KEY?.trim();
+  if (!key) return [];
+  const familyData = JSON.parse(await readFile('data/families.json', 'utf8'));
+  const addresses = [
+    ...Object.values(state),
+    ...previous,
+    ...projects.filter(hasAddress),
+  ];
+  const signature = familySignature(familyData, addresses);
+  const reviewed = new Set(projects.filter(hasAddress).map((p) => p.id));
+  const byId = new Map(previous.map((world) => [world.id, world]));
+  const stuck = Object.entries(state)
+    .map(([id, entry]) => ({ ...byId.get(id), ...entry, id }))
+    .filter(
+      (world) =>
+        hasAddress(world) &&
+        awaitingHome(world) &&
+        !reviewed.has(world.id) &&
+        health[world.id] === true &&
+        world.rehomeSignature !== signature,
+    );
+  if (!stuck.length) return [];
+  const catalog = [...previous, ...projects.filter(hasAddress)];
+  const { moves, families, terrain, log } = await rehomeOverflow({
+    worlds: stuck,
+    familyData,
+    catalog,
+    addresses,
+    key,
+  });
+  const settled = familySignature(families, [
+    ...addresses,
+    ...[...moves.values()].map((move) => move.to),
+  ]);
+  for (const world of stuck) {
+    const entry = state[world.id];
+    const move = moves.get(world.id);
+    if (move) {
+      entry.formerAddresses = [...(entry.formerAddresses ?? []), move.from];
+      Object.assign(entry, move.to);
+      const shown = byId.get(world.id);
+      if (shown) Object.assign(shown, move.to);
+    }
+    entry.rehomeSignature = settled;
+  }
+  return saveJevOutcome(families, terrain, log);
 }
 
 export async function refresh() {
@@ -321,6 +427,8 @@ export async function refresh() {
     );
   }
   const classified = await classify(projects, previous, state, health);
+  const rehomed = await rehome(projects, previous, state, health);
+  const labelled = await label(projects, health);
   const result = reconcile(
     projects,
     previous,
@@ -335,6 +443,8 @@ export async function refresh() {
     JSON.stringify({
       source,
       classified,
+      rehomed,
+      labelled,
       worlds: result.worlds.map((w) => ({ id: w.id, status: w.status })),
       unhealthy: projects.filter((p) => !health[p.id]).map((p) => p.id),
     }),

@@ -1,4 +1,9 @@
 import generatedWorlds from './worlds.generated.json' with { type: 'json' };
+import classified from './world-terrain.json' with { type: 'json' };
+
+/** "1 world", "3 worlds". */
+export const worldCount = (count: number) =>
+  `${count} ${count === 1 ? 'world' : 'worlds'}`;
 
 export type Destination = {
   id: string;
@@ -150,7 +155,14 @@ function clamp(value: number, minimum: number, maximum: number) {
 
 // This is the complete public catalog, not the bounded galaxy marker layout.
 // Only family markers and the direct homeworld pass through generateWorlds.
-export const worldCatalog = generatedWorlds as CatalogWorld[];
+export const worldCatalog = (generatedWorlds as CatalogWorld[]).map((world) => {
+  // Discovered worlds arrive as "Public project"; Jev names what they are.
+  const label = (classified as Record<string, { label?: string }>)[world.id]
+    ?.label;
+  return world.kind === 'Public project' && label
+    ? { ...world, kind: label }
+    : world;
+});
 
 export function generateWorlds(catalog: WorldSeed[], arms = GALAXY_ARMS) {
   return catalog.reduce<Destination[]>((placedWorlds, world, index) => {

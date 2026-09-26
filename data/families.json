@@ -50,6 +50,42 @@
       ]
     },
     {
+      "id": "worlds-and-games",
+      "name": "Worlds & Games",
+      "subtitle": "Games, simulations and places to play in.",
+      "starName": "Ludus",
+      "color": "#c8ffb0",
+      "classification": "Green-white star",
+      "nebula": [
+        "#234a3c",
+        "#4f5a2c"
+      ]
+    },
+    {
+      "id": "places-and-maps",
+      "name": "Places & Maps",
+      "subtitle": "Architecture, geography, cities and maps.",
+      "starName": "Atlas",
+      "color": "#ffcfa0",
+      "classification": "Peach star",
+      "nebula": [
+        "#3e3a22",
+        "#5a3a2c"
+      ]
+    },
+    {
+      "id": "machines-and-minds",
+      "name": "Machines & Minds",
+      "subtitle": "AI agents, models and the harnesses around them.",
+      "starName": "Axon",
+      "color": "#9fe8ff",
+      "classification": "Cyan star",
+      "nebula": [
+        "#1f4058",
+        "#34506e"
+      ]
+    },
+    {
       "id": "frontier",
       "name": "Frontier",
       "subtitle": "New public worlds, with room to grow.",
@@ -76,18 +112,6 @@
       ]
     },
     {
-      "id": "worlds-and-games",
-      "name": "Worlds & Games",
-      "subtitle": "Games, simulations and places to play in.",
-      "starName": "Ludus",
-      "color": "#c8ffb0",
-      "classification": "Green-white star",
-      "nebula": [
-        "#234a3c",
-        "#4f5a2c"
-      ]
-    },
-    {
       "id": "images-and-motion",
       "name": "Images & Motion",
       "subtitle": "Visual art, animation, film and design.",
@@ -109,30 +133,6 @@
       "nebula": [
         "#4a3a28",
         "#5c3048"
-      ]
-    },
-    {
-      "id": "machines-and-minds",
-      "name": "Machines & Minds",
-      "subtitle": "AI agents, models and the harnesses around them.",
-      "starName": "Axon",
-      "color": "#9fe8ff",
-      "classification": "Cyan star",
-      "nebula": [
-        "#1f4058",
-        "#34506e"
-      ]
-    },
-    {
-      "id": "places-and-maps",
-      "name": "Places & Maps",
-      "subtitle": "Architecture, geography, cities and maps.",
-      "starName": "Atlas",
-      "color": "#ffcfa0",
-      "classification": "Peach star",
-      "nebula": [
-        "#3e3a22",
-        "#5a3a2c"
       ]
     },
     {

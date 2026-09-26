@@ -9,7 +9,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { PlanetRecipe, SolarSystem } from '../data/solar-systems';
-import { worldCatalog, type CatalogWorld } from '../data/worlds';
+import { worldCatalog, worldCount, type CatalogWorld } from '../data/worlds';
 import { worldComms } from '../data/world-comms';
 import { PanelFasteners, WorldPreview } from './world-comms';
 import type { SolarPhase } from '../lib/solar/scene';
@@ -177,7 +177,7 @@ function Readout({
         <strong>{system.starName}</strong>
         <span>{system.star.classification}</span>
         <span className="solar-chips">
-          <i>{system.planets.length} worlds</i>
+          <i>{worldCount(system.planets.length)}</i>
           {system.belts.some((belt) => belt.kind === 'asteroid') && (
             <i>asteroid belt</i>
           )}
@@ -537,10 +537,7 @@ export function SolarSystemHud({
                     <span>
                       <strong>{entry.name}</strong>
                       <small>
-                        {entry.starName} ·{' '}
-                        {entry.planets.length === 1
-                          ? '1 world'
-                          : `${entry.planets.length} worlds`}
+                        {entry.starName} · {worldCount(entry.planets.length)}
                       </small>
                     </span>
                   </button>
@@ -608,7 +605,7 @@ export function SolarSystemHud({
             : 'Returning to galaxy'
           : planet
             ? `${planet.name}. ${planet.kind}.`
-            : `${system.name} system. ${system.planets.length} worlds.`}
+            : `${system.name} system. ${worldCount(system.planets.length)}.`}
       </output>
     </section>
   );

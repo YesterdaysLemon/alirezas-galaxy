@@ -14,6 +14,37 @@ import { serializeWorlds, renderLlmsText } from '@/data/site';
 import { MIN_WORLD_SPACING, worldCatalog, worldDistance } from '@/data/worlds';
 import { publicUrl } from '../../scripts/refresh-worlds.mjs';
 
+describe('visible homes', () => {
+  it('keeps reviewed worlds in the system their family star opens', () => {
+    // Sister systems are only an automatic overflow the daily refresh drains.
+    // A reviewed world past its family's lanes belongs in another family (or
+    // a newly opened one), never hidden behind a star that shows eight.
+    for (const project of registry.projects)
+      if (project.systemId !== 'home')
+        expect(
+          project.orbitSlot,
+          `${project.id} sits in a hidden sister system`,
+        ).toBeLessThan(PROJECT_SLOTS_PER_SYSTEM);
+  });
+
+  it('never hands a former address to another world', () => {
+    const owners = new Map<string, string>();
+    for (const [id, entry] of Object.entries(
+      discoveryState as Record<
+        string,
+        { systemId?: string; orbitSlot?: number; formerAddresses?: string[] }
+      >,
+    ))
+      for (const address of [
+        ...(entry.systemId ? [`${entry.systemId}/${entry.orbitSlot}`] : []),
+        ...(entry.formerAddresses ?? []),
+      ]) {
+        expect(owners.get(address) ?? id, address).toBe(id);
+        owners.set(address, id);
+      }
+  });
+});
+
 describe('public catalog and bounded galaxy', () => {
   it('publishes all registry destinations without substituting family gateways', () => {
     const published = serializeWorlds();

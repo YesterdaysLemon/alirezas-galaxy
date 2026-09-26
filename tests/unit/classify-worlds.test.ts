@@ -2,14 +2,45 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyNewWorlds,
   decide,
+  FAMILY_LANES,
+  familyIsFull,
   JEV_ENDPOINT,
   JEV_MODEL,
+  LABELS,
+  labelWorlds,
   nextSlot,
+  rehomeOverflow,
   validateChoice,
 } from '../../scripts/classify-worlds.mjs';
-import familyData from '@/data/families.json';
-import { MAX_ACTIVE_FAMILIES, parseSystemRoute } from '@/data/solar-systems';
+import liveFamilies from '@/data/families.json';
+import {
+  MAX_ACTIVE_FAMILIES,
+  parseSystemRoute,
+  PROJECT_SLOTS_PER_SYSTEM,
+} from '@/data/solar-systems';
 import { generateWorlds } from '@/data/worlds';
+
+/**
+ * A fixed galaxy for these tests: the daily refresh changes the live
+ * families.json (opening themes as families), so tests never read it.
+ */
+const allFamilies = [...liveFamilies.active, ...liveFamilies.themes];
+const pick = (ids: string[]) =>
+  ids.map((id) => {
+    const family = allFamilies.find((entry) => entry.id === id);
+    if (!family) throw new Error(`Unknown family ${id}`);
+    return family;
+  });
+const familyData = {
+  maxActive: 9,
+  active: pick([
+    'patterns-and-life',
+    'curiosity-and-play',
+    'ideas-and-inquiry',
+    'frontier',
+  ]),
+  themes: pick(['sound-and-stage', 'worlds-and-games', 'images-and-motion']),
+};
 
 const choice = (probabilities: Record<string, number>) => {
   const [best] = Object.entries(probabilities).sort((a, b) => b[1] - a[1]);
@@ -20,6 +51,31 @@ const choice = (probabilities: Record<string, number>) => {
     confidence: best[1],
   };
 };
+
+/** A certain answer: `winner` takes all the weight among `options`. */
+const certain = (options: string[], winner: string) =>
+  choice(Object.fromEntries(options.map((id) => [id, id === winner ? 1 : 0])));
+
+type FakeQuestions = Record<string, { criteria: Record<string, string> }>;
+
+/** Jev answering every question in the request, with scripted winners. */
+function scriptedJev(winners: (id: string) => Partial<Record<string, string>>) {
+  return (body: { questions: Record<string, unknown>; state?: string }) => {
+    const questions = body.questions as FakeQuestions;
+    const id =
+      /A new project has appeared: ([^.]+)\./.exec(body.state ?? '')?.[1] ?? '';
+    const picks = winners(id);
+    return {
+      model: JEV_MODEL,
+      answers: Object.fromEntries(
+        Object.entries(questions).map(([name, question]) => {
+          const options = Object.keys(question.criteria);
+          return [name, certain(options, picks[name] ?? options[0])];
+        }),
+      ),
+    };
+  };
+}
 
 /** A fake network: homepages answer with a title; Jev answers as scripted. */
 function fakeFetch(
@@ -145,6 +201,7 @@ describe('autonomous world classification', () => {
             ]),
           ),
         ),
+        label: certain(Object.keys(LABELS), 'music'),
       },
     }));
     const result = await classifyNewWorlds({
@@ -172,6 +229,7 @@ describe('autonomous world classification', () => {
     ).toBe(false);
     expect((result.terrain as Record<string, unknown>)['new-world']).toEqual({
       terrain: 'gas',
+      label: 'Music and sound',
     });
     expect(JSON.stringify(result.log)).not.toContain('test-key');
     expect(calls.find((call) => call.url === JEV_ENDPOINT)?.auth).toBe(
@@ -221,6 +279,183 @@ describe('autonomous world classification', () => {
       size: 1.05,
     }));
     expect(generateWorlds(seeds)).toHaveLength(1 + MAX_ACTIVE_FAMILIES);
+  });
+
+  it('names a placed world without asking where it belongs', async () => {
+    const asked: string[][] = [];
+    const { impl } = fakeFetch((body) => {
+      asked.push(Object.keys(body.questions));
+      return scriptedJev(() => ({ label: 'journal' }))(body);
+    });
+    const { labels, log } = await labelWorlds({
+      worlds: [project],
+      key: 'test-key',
+      fetchImpl: impl,
+      now: 0,
+    });
+    expect(asked).toEqual([['label']]);
+    expect(labels).toEqual({ 'new-world': 'Research journal' });
+    expect(log[0]).toMatchObject({ labelOnly: true });
+  });
+
+  it('agrees with the scene on how many worlds a system shows', () => {
+    expect(FAMILY_LANES).toBe(PROJECT_SLOTS_PER_SYSTEM);
+  });
+
+  it('opens a theme instead of overfilling a family, and never reuses a former address', () => {
+    const kind = choice({ ocean: 1, garden: 0 });
+    const family = choice({ 'curiosity-and-play': 0.7, 'none-of-these': 0.3 });
+    const theme = choice({ 'worlds-and-games': 0.9, 'sound-and-stage': 0.1 });
+    const full = () => true;
+    expect(
+      decide({ family, kind, theme }, { canOpenFamily: true, isFull: full }),
+    ).toMatchObject({
+      place: 'new-family',
+      themeId: 'worlds-and-games',
+      reason: 'family-full',
+    });
+    // No room for another family: Frontier, whose star is visible, not a sister system.
+    expect(
+      decide({ family, kind, theme }, { canOpenFamily: false, isFull: full }),
+    ).toMatchObject({ place: 'frontier', reason: 'family-full' });
+    const addresses = [
+      { systemId: 'curiosity-and-play', orbitSlot: 7 },
+      { formerAddresses: ['curiosity-and-play/12', 'frontier/3'] },
+    ];
+    expect(nextSlot('curiosity-and-play', addresses)).toBe(13);
+    expect(nextSlot('frontier', addresses)).toBe(4);
+    expect(familyIsFull('curiosity-and-play', addresses)).toBe(true);
+    expect(familyIsFull('ideas-and-inquiry', addresses)).toBe(false);
+  });
+
+  it('shows a confident project kind and nothing when unsure', () => {
+    const base = {
+      family: choice({ 'ideas-and-inquiry': 1, 'none-of-these': 0 }),
+      kind: choice({ ocean: 1, garden: 0 }),
+    };
+    expect(
+      decide(
+        { ...base, label: choice({ journal: 0.8, essay: 0.2 }) },
+        { canOpenFamily: true },
+      ).label,
+    ).toBe('Research journal');
+    expect(
+      decide(
+        {
+          ...base,
+          label: choice({
+            journal: 0.25,
+            essay: 0.25,
+            tool: 0.25,
+            music: 0.25,
+          }),
+        },
+        { canOpenFamily: true },
+      ).label,
+    ).toBeUndefined();
+  });
+
+  it('moves overflowing worlds to a visible home and leaves the rest', async () => {
+    const worlds = [
+      {
+        ...project,
+        id: 'game',
+        name: 'Game',
+        systemId: 'curiosity-and-play',
+        orbitSlot: 9,
+      },
+      {
+        ...project,
+        id: 'drifter',
+        name: 'Drifter',
+        systemId: 'curiosity-and-play',
+        orbitSlot: 10,
+      },
+      {
+        ...project,
+        id: 'settled',
+        name: 'Settled',
+        systemId: 'curiosity-and-play',
+        orbitSlot: 2,
+      },
+    ];
+    const lanes = Array.from({ length: 8 }, (_, orbitSlot) => ({
+      systemId: 'curiosity-and-play',
+      orbitSlot,
+    }));
+    const { impl } = fakeFetch(
+      scriptedJev((name) =>
+        name === 'Game'
+          ? { family: 'curiosity-and-play', theme: 'worlds-and-games' }
+          : { family: 'worlds-and-games' },
+      ),
+    );
+    const result = await rehomeOverflow({
+      worlds,
+      familyData: { ...familyData, maxActive: familyData.active.length + 1 },
+      catalog: worlds,
+      addresses: [...lanes, ...worlds],
+      key: 'test-key',
+      fetchImpl: impl,
+      now: 0,
+    });
+    // The game opens its theme's family; the second world, asked next, joins it.
+    expect(result.moves.get('game')).toEqual({
+      from: 'curiosity-and-play/9',
+      to: { systemId: 'worlds-and-games', orbitSlot: 0 },
+    });
+    expect(result.moves.get('drifter')?.to).toEqual({
+      systemId: 'worlds-and-games',
+      orbitSlot: 1,
+    });
+    expect(result.moves.has('settled')).toBe(false);
+    // Moving never repaints a planet; only a missing project kind is filled.
+    for (const entry of Object.values(result.terrain))
+      expect(entry).not.toHaveProperty('terrain');
+    expect(
+      result.families.active.map((family: { id: string }) => family.id),
+    ).toContain('worlds-and-games');
+    expect(
+      result.log.every((entry: { rehome?: boolean }) => entry.rehome),
+    ).toBe(true);
+  });
+
+  it('sends an unsure hidden world to Frontier, and leaves Frontier worlds there', async () => {
+    const worlds = [
+      {
+        ...project,
+        id: 'stuck',
+        name: 'Stuck',
+        systemId: 'curiosity-and-play',
+        orbitSlot: 9,
+      },
+      {
+        ...project,
+        id: 'waiting',
+        name: 'Waiting',
+        systemId: 'frontier',
+        orbitSlot: 0,
+      },
+    ];
+    const { impl } = fakeFetch(
+      scriptedJev(() => ({ family: 'curiosity-and-play' })),
+    );
+    const result = await rehomeOverflow({
+      worlds,
+      familyData: { ...familyData, maxActive: familyData.active.length },
+      catalog: worlds,
+      addresses: worlds,
+      key: 'test-key',
+      fetchImpl: impl,
+      now: 0,
+    });
+    // Frontier/0 is taken, so the hidden world takes the next Frontier lane.
+    expect(result.moves.get('stuck')).toEqual({
+      from: 'curiosity-and-play/9',
+      to: { systemId: 'frontier', orbitSlot: 1 },
+    });
+    expect(result.moves.has('waiting')).toBe(false);
+    expect(result.log[1].decision).toMatchObject({ stayed: 'frontier/0' });
   });
 
   it('finds a moved world from an old address', () => {
