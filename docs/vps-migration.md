@@ -68,9 +68,16 @@ ssh -t -o HostName=107.172.137.190 -o HostKeyAlias=alirezaafshan.com `
   alirezaafshan.com 'sudo bash ~/vps-migrate.sh verify'
 ```
 
-The cutover backs up the exact Caddyfile, rewrites only the audited root block,
-validates the new config before reload, and automatically restores the old
-routing if either local hostname check fails.
+The cutover backed up the exact Caddyfile, rewrote only the audited root block,
+validated the new config before reload, and would have restored the old routing
+if either local hostname check had failed. It has run: the root serves the
+galaxy and `portfolio` the incumbent site.
+
+Caddy has since moved to one file per site: `/etc/caddy/sites/<hostname>.caddy`,
+imported by `/etc/caddy/Caddyfile`, with history in git at `/etc/caddy`. The
+root's routing is `/etc/caddy/sites/alirezaafshan.com.caddy`, the portfolio's
+`/etc/caddy/sites/portfolio.alirezaafshan.com.caddy`. `cutover` now only
+reports that routing is cut over (and refuses to rewrite the per-site layout).
 
 Emergency routing rollback:
 
@@ -79,7 +86,11 @@ ssh -t -o HostName=107.172.137.190 -o HostKeyAlias=alirezaafshan.com `
   alirezaafshan.com 'sudo bash ~/vps-migrate.sh rollback'
 ```
 
-Rollback returns the portfolio to the apex immediately. It intentionally keeps
+Rollback returns the portfolio to the apex immediately: it points the root's
+own site file back at port `3000` (keeping a copy of the previous one in
+`/var/lib/<app>-migration/`), validates, reloads, checks the root, and commits
+the change in `/etc/caddy`'s git history. It never restores a whole-config
+backup, which would drop every site added since. It intentionally keeps
 the galaxy container and deploy registration so the problem can be inspected
 without another image build.
 
