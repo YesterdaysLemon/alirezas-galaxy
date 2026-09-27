@@ -46,8 +46,9 @@ spare loopback port, and only replaces the healthy production container.
 The staged root/portfolio handoff is documented in
 [`docs/vps-migration.md`](docs/vps-migration.md). Its setup script keeps the
 current portfolio live on port `3000`, starts the galaxy on `3070`, validates
-both, and changes only the Caddy hostname mapping. The pre-cutover Caddyfile is
-retained for immediate routing rollback.
+both, and changes only the Caddy hostname mapping. Its rollback points the
+root's own Caddy site file (`/etc/caddy/sites/alirezaafshan.com.caddy`) back at
+the portfolio.
 
 ## What is in the base
 

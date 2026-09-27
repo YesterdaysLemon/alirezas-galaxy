@@ -24,10 +24,18 @@ DEPLOY_ENV="/etc/deploy-manager/apps/${APP_ID}.env"
 MANAGER_APPS="/etc/deploy-manager/apps.json"
 MANAGER_ENV="/etc/deploy-manager/deploy-manager.env"
 CADDYFILE="/etc/caddy/Caddyfile"
+# Caddy keeps one file per site (sites/<hostname>.caddy, imported by the
+# Caddyfile, history in git at /etc/caddy). The root's routing is its own file.
+CADDY_SITES="/etc/caddy/sites"
+ROOT_SITE="${CADDY_SITES}/${ROOT_DOMAIN}.caddy"
 HANDOFF="/home/ali/.${APP_ID}-webhook-secret"
 STATE_DIR="/var/lib/${APP_ID}-migration"
 BACKUP_POINTER="${STATE_DIR}/caddy-backup"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+
+caddy_config() {
+  cat "$CADDYFILE" "$CADDY_SITES"/*.caddy 2>/dev/null
+}
 
 [ "$(id -u)" -eq 0 ] || {
   echo "run with sudo: sudo bash $0 <stage>" >&2
@@ -129,7 +137,7 @@ preflight() {
     ok "candidate port ${CANDIDATE_PORT} is free"
   fi
 
-  grep -q 'reverse_proxy 127.0.0.1:3000' "$CADDYFILE" \
+  caddy_config | grep -q 'reverse_proxy 127.0.0.1:3000' \
     || die "the current portfolio route no longer matches the audited config"
   ok "current root route is still pointed at the portfolio"
 
@@ -252,11 +260,14 @@ cutover() {
   getent ahostsv4 "$PORTFOLIO_DOMAIN" >/dev/null 2>&1 \
     || die "${PORTFOLIO_DOMAIN} has no DNS record; add it before cutover"
 
-  if grep -q 'reverse_proxy 127.0.0.1:3070' "$CADDYFILE" && \
-     grep -q "$PORTFOLIO_DOMAIN" "$CADDYFILE"; then
+  if caddy_config | grep -q 'reverse_proxy 127.0.0.1:3070' && \
+     caddy_config | grep -q "$PORTFOLIO_DOMAIN"; then
     ok "routing is already cut over"
     return
   fi
+  # The rewrite below is of the old single Caddyfile; with one file per site
+  # the root's block is ${ROOT_SITE} and the portfolio gets its own file.
+  [ -d "$CADDY_SITES" ] && die "Caddy keeps one file per site now: edit ${ROOT_SITE} and add ${CADDY_SITES}/${PORTFOLIO_DOMAIN}.caddy by hand (docs/vps-migration.md)"
 
   install -d -o root -g root -m 0700 "$STATE_DIR"
   backup="${CADDYFILE}.pre-galaxy.${STAMP}"
@@ -360,17 +371,28 @@ verify() {
 
 rollback() {
   say "routing rollback"
-  [ -r "$BACKUP_POINTER" ] || die "no cutover backup pointer exists"
-  backup="$(cat "$BACKUP_POINTER")"
-  [ -f "$backup" ] || die "Caddy backup is missing: ${backup}"
-  cp -a "$CADDYFILE" "${CADDYFILE}.failed-galaxy.${STAMP}"
-  cp -a "$backup" "$CADDYFILE"
-  caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null \
-    || die "stored backup is invalid; Caddy was not reloaded"
+  # Only the root's own routing changes: it goes back to the portfolio. (Never
+  # a whole-config backup: every site added since would lose its route.)
+  [ -f "$ROOT_SITE" ] || die "no root site file: ${ROOT_SITE}"
+  grep -q "reverse_proxy 127.0.0.1:${APP_PORT}" "$ROOT_SITE" \
+    || die "${ROOT_SITE} does not route to the galaxy (${APP_PORT}); nothing to roll back"
+  install -d -o root -g root -m 0700 "$STATE_DIR"
+  saved="${STATE_DIR}/root-site.failed-galaxy.${STAMP}"
+  cp -a "$ROOT_SITE" "$saved"
+  sed -i "s/reverse_proxy 127\.0\.0\.1:${APP_PORT}/reverse_proxy 127.0.0.1:3000/" "$ROOT_SITE"
+  if ! caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null; then
+    cp -a "$saved" "$ROOT_SITE"
+    die "rolled-back config was invalid; ${ROOT_SITE} restored without reload"
+  fi
   systemctl reload caddy
   local_https_contains "$ROOT_DOMAIN" "<title>alireza afshan" \
     || die "rollback reloaded but the portfolio is not visible at root"
-  ok "portfolio restored at the root; galaxy container and deploy registration retained"
+  if [ -d /etc/caddy/.git ]; then
+    git -C /etc/caddy add "$ROOT_SITE" && \
+      git -C /etc/caddy -c user.name=vps-migrate -c user.email=vps-migrate@localhost \
+        commit -q -m "Root back to the portfolio (vps-migrate rollback)" || true
+  fi
+  ok "portfolio restored at the root (previous root routing kept at ${saved}); galaxy container and deploy registration retained"
 }
 
 case "${1:-}" in
