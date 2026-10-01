@@ -430,6 +430,19 @@
     "orbitSlot": 0
   },
   {
+    "id": "drabzin",
+    "name": "Drabzin Vectorizer",
+    "kind": "Public project",
+    "url": "https://drabzin.alirezaafshan.com",
+    "description": "Turns pictures of door and gate designs into DXF cut paths for laser and CNC cutting, entirely in the browser.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 7
+  },
+  {
     "id": "next-token-machine",
     "name": "Next-Token Machine",
     "kind": "Public project",

@@ -18,5 +18,9 @@
   "zombies": {
     "terrain": "culture",
     "label": "Browser game"
+  },
+  "drabzin": {
+    "terrain": "folds",
+    "label": "Working tool"
   }
 }

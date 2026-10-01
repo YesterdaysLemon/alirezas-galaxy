@@ -238,7 +238,7 @@
     "formerAddresses": [
       "curiosity-and-play/12"
     ],
-    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
   },
   "zombies": {
     "url": "https://zombies.alirezaafshan.com",
@@ -250,5 +250,12 @@
       "curiosity-and-play/13"
     ],
     "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
+  },
+  "drabzin": {
+    "url": "https://drabzin.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "tools-and-infrastructure",
+    "orbitSlot": 7
   }
 }
