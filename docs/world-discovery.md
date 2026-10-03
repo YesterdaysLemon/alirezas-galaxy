@@ -5,6 +5,14 @@ The `Refresh public worlds` GitHub Actions job runs daily at 10:23 UTC
 scheduled jobs. Discovery and health are deterministic; placing brand-new worlds
 uses Jev (below). No DNS credentials or infrastructure changes are involved.
 
+The owned launch alias `https://innermanagement.alirezaafshan.com` is the one
+reviewed redirect exception. Its probe requires a 301 or 308 to exactly
+`https://innermanagement.systems/`, then a successful HTTPS response within the
+same ten-second budget. Both requests use manual redirect handling; another
+hop, credentials, a different host, port, path, query or fragment fails closed.
+The alias remains the public catalog URL. All public URL and private-service
+guards still apply. Its permanent address is `ideas-and-inquiry/4`.
+
 ## Autonomous placement with Jev
 
 A new, healthy, opted-in world with no address is placed without review by Jev

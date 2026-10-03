@@ -257,5 +257,12 @@
     "failedSince": null,
     "systemId": "tools-and-infrastructure",
     "orbitSlot": 7
+  },
+  "inner-management": {
+    "url": "https://innermanagement.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 4
   }
 }

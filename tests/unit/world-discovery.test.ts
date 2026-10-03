@@ -3,6 +3,7 @@ import {
   candidates,
   reconcile,
   publicUrl,
+  probe,
   GRACE_MS,
 } from '../../scripts/refresh-worlds.mjs';
 
@@ -19,6 +20,107 @@ const registry = { version: 1, deniedIds: [], projects: [world] };
 const day = Date.parse('2026-09-08T00:00:00Z');
 
 describe('daily public world discovery', () => {
+  it('requires the exact approved permanent redirect and healthy final HTTPS', async () => {
+    for (const status of [301, 308]) {
+      const calls: string[] = [];
+      const request: typeof fetch = async (url, options) => {
+        calls.push(
+          typeof url === 'string'
+            ? url
+            : url instanceof URL
+              ? url.href
+              : url.url,
+        );
+        expect(options?.redirect).toBe('manual');
+        return calls.length === 1
+          ? new Response(null, {
+              status,
+              headers: { location: 'https://innermanagement.systems/' },
+            })
+          : new Response('Healthy');
+      };
+      expect(
+        await probe('https://innermanagement.alirezaafshan.com', request),
+      ).toBe(true);
+      expect(calls).toEqual([
+        'https://innermanagement.alirezaafshan.com/',
+        'https://innermanagement.systems/',
+      ]);
+    }
+  });
+
+  it('never requests an unapproved or unsafe redirect destination', async () => {
+    for (const location of [
+      'http://innermanagement.systems/',
+      'https://innermanagement.systems.evil.example/',
+      'https://user:pass@innermanagement.systems/',
+      'https://innermanagement.systems:8443/',
+      'https://innermanagement.systems/other',
+      'https://innermanagement.systems/?next=internal',
+      'https://innermanagement.systems/#other',
+      'https://admin.alirezaafshan.com/',
+      'https://127.0.0.1/',
+      '/loop',
+    ]) {
+      let calls = 0;
+      expect(
+        await probe('https://innermanagement.alirezaafshan.com', async () => {
+          calls++;
+          return new Response(null, { status: 301, headers: { location } });
+        }),
+      ).toBe(false);
+      expect(calls).toBe(1);
+    }
+  });
+
+  it('fails closed for temporary, missing, repeated or unhealthy redirects', async () => {
+    for (const status of [200, 302, 307, 500])
+      expect(
+        await probe(
+          'https://innermanagement.alirezaafshan.com',
+          async () =>
+            new Response(null, {
+              status,
+              headers: { location: 'https://innermanagement.systems/' },
+            }),
+        ),
+      ).toBe(false);
+    expect(
+      await probe(
+        'https://innermanagement.alirezaafshan.com',
+        async () => new Response(null, { status: 301 }),
+      ),
+    ).toBe(false);
+    for (const status of [301, 404, 500]) {
+      let calls = 0;
+      expect(
+        await probe('https://innermanagement.alirezaafshan.com', async () => {
+          calls++;
+          return new Response(null, {
+            status: calls === 1 ? 301 : status,
+            headers: { location: 'https://innermanagement.systems/' },
+          });
+        }),
+      ).toBe(false);
+      expect(calls).toBe(2);
+    }
+    expect(
+      await probe(
+        'https://example.alirezaafshan.com',
+        async () =>
+          new Response(null, {
+            status: 301,
+            headers: { location: 'https://innermanagement.systems/' },
+          }),
+      ),
+    ).toBe(false);
+    expect(
+      await probe('https://admin.alirezaafshan.com', async () => {
+        throw new Error('Must not request a private service');
+      }),
+    ).toBe(false);
+  });
+
   it('only discovers explicitly public app URLs and preserves registry authority', () => {
     expect(
       candidates(registry, {
