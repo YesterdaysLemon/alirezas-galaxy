@@ -77,12 +77,12 @@ test('Inner Management uses its fetched source favicon in the planet card and ho
   await expect(
     panel.getByRole('link', { name: 'Visit Inner Management' }),
   ).toHaveAttribute('href', 'https://innermanagement.alirezaafshan.com');
-  await page.getByRole('button', { name: 'Close world details' }).click();
+  await page.getByRole('button', { name: 'Return to system overview' }).click();
   await page
     .getByRole('button', { name: 'Explore Inner Management', exact: true })
     .hover();
   const preview = page.getByRole('button', {
-    name: 'Inspect Inner Management',
+    name: 'Approach Inner Management',
     exact: true,
   });
   await expect(preview).toBeVisible();
