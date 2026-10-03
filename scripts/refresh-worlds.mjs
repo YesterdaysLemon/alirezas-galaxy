@@ -231,15 +231,43 @@ export function reconcile(
   return { worlds, state: nextState };
 }
 
-async function probe(url) {
+// The only approved cross-origin hop. The catalog keeps the owned launch alias.
+const approvedRedirects = new Map([
+  [
+    'https://innermanagement.alirezaafshan.com',
+    'https://innermanagement.systems',
+  ],
+]);
+
+export async function probe(url, request = fetch) {
+  if (!publicUrl(url)) return false;
   try {
-    const response = await fetch(url, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(10000),
-      headers: { 'User-Agent': 'Galaxy-public-world-discovery/1.0' },
-    });
-    await response.body?.cancel();
-    return response.ok;
+    let current = new URL(url);
+    const target = approvedRedirects.get(current.origin);
+    const signal = AbortSignal.timeout(10000);
+    // At most the one explicitly approved hop; never follow redirects blindly.
+    for (let hop = 0; hop <= 1; hop++) {
+      const response = await request(current.href, {
+        redirect: 'manual',
+        signal,
+        headers: { 'User-Agent': 'Galaxy-public-world-discovery/1.0' },
+      });
+      await response.body?.cancel();
+      if (hop === 0 && target) {
+        if (![301, 308].includes(response.status)) return false;
+        const location = response.headers.get('location');
+        if (!location) return false;
+        const destination = new URL(location, current);
+        const expected = new URL(target);
+        expected.pathname = current.pathname;
+        expected.search = current.search;
+        if (destination.href !== expected.href) return false;
+        current = destination;
+      } else {
+        return response.ok;
+      }
+    }
+    return false;
   } catch {
     return false;
   }

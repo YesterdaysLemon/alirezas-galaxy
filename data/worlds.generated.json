@@ -402,6 +402,20 @@
     "orbitSlot": 1
   },
   {
+    "id": "inner-management",
+    "name": "Inner Management",
+    "kind": "Fictional enterprise platform",
+    "url": "https://innermanagement.alirezaafshan.com",
+    "description": "Second Voice and Familiars: an immersive fictional enterprise platform.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "I",
+    "color": 16761523,
+    "systemId": "ideas-and-inquiry",
+    "orbitSlot": 4
+  },
+  {
     "id": "pretty-please",
     "name": "please.",
     "kind": "Interactive essay",
