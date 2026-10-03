@@ -13,6 +13,21 @@ hop, credentials, a different host, port, path, query or fragment fails closed.
 The alias remains the public catalog URL. All public URL and private-service
 guards still apply. Its permanent address is `ideas-and-inquiry/4`.
 
+Inner Management's original published `https://innermanagement.systems/favicon.svg`
+is copied byte-for-byte to `/site-icons/inner-management.svg`. Both its registry
+entry and generated catalog use that local `iconSrc`, so cards and hover previews
+do not depend on another site's runtime DNS or image requests. The SVG selects
+its own original dark palette on Galaxy's dark console.
+
+To fetch the reviewed source again, run `node scripts/fetch-inner-management-icon.mjs`.
+This task-specific downloader requests only the alias's `/favicon.svg`, requires
+the same exact approved permanent hop as health discovery, then requires HTTP 200
+without another redirect. Requests share a ten-second deadline; the response is
+limited to 8 KiB by both declared length and streamed bytes. MIME, passive SVG
+content and the reviewed original SHA-256 are checked before any file write.
+A changed source hash requires reviewing the source branding before updating
+the pin. No general favicon crawling or unrestricted redirect following occurs.
+
 ## Autonomous placement with Jev
 
 A new, healthy, opted-in world with no address is placed without review by Jev

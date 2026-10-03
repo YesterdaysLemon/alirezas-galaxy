@@ -144,6 +144,11 @@
   box-shadow: 0 1px 4px #000c;
 }
 
+/* Let the original favicon select its own dark palette on the dark console. */
+img[src='/site-icons/inner-management.svg'] {
+  color-scheme: dark;
+}
+
 /* ---------- Console: rail, helm (left) and worlds deck (right) ---------- */
 .solar-console {
   position: absolute;

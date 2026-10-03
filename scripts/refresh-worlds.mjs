@@ -1,5 +1,6 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { hasOwnedRedirect, ownedRedirectTarget } from './owned-redirects.mjs';
 import {
   classifyNewWorlds,
   awaitingHome,
@@ -231,19 +232,11 @@ export function reconcile(
   return { worlds, state: nextState };
 }
 
-// The only approved cross-origin hop. The catalog keeps the owned launch alias.
-const approvedRedirects = new Map([
-  [
-    'https://innermanagement.alirezaafshan.com',
-    'https://innermanagement.systems',
-  ],
-]);
-
 export async function probe(url, request = fetch) {
   if (!publicUrl(url)) return false;
   try {
     let current = new URL(url);
-    const target = approvedRedirects.get(current.origin);
+    const requiresRedirect = hasOwnedRedirect(current.origin);
     const signal = AbortSignal.timeout(10000);
     // At most the one explicitly approved hop; never follow redirects blindly.
     for (let hop = 0; hop <= 1; hop++) {
@@ -253,16 +246,14 @@ export async function probe(url, request = fetch) {
         headers: { 'User-Agent': 'Galaxy-public-world-discovery/1.0' },
       });
       await response.body?.cancel();
-      if (hop === 0 && target) {
+      if (hop === 0 && requiresRedirect) {
         if (![301, 308].includes(response.status)) return false;
-        const location = response.headers.get('location');
-        if (!location) return false;
-        const destination = new URL(location, current);
-        const expected = new URL(target);
-        expected.pathname = current.pathname;
-        expected.search = current.search;
-        if (destination.href !== expected.href) return false;
-        current = destination;
+        const destination = ownedRedirectTarget(
+          current.href,
+          response.headers.get('location'),
+        );
+        if (!destination) return false;
+        current = new URL(destination);
       } else {
         return response.ok;
       }
