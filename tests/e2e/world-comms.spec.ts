@@ -52,3 +52,50 @@ test('projects with private repositories do not advertise a source reply', async
     panel.getByRole('link', { name: 'Visit Android Hell' }),
   ).toHaveAttribute('href', 'https://androidhell.alirezaafshan.com');
 });
+
+test('Inner Management uses its fetched source favicon in the planet card and hover preview', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/#system/ideas-and-inquiry/inner-management');
+  const panel = page.getByRole('article', { name: 'Planet: Inner Management' });
+  await expect(panel).toBeVisible();
+  const badge = panel.locator('.solar-comms-badge');
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveAttribute(
+    'src',
+    '/site-icons/inner-management.svg',
+  );
+  await expect
+    .poll(() =>
+      badge.evaluate((image) =>
+        image instanceof HTMLImageElement ? image.naturalWidth : 0,
+      ),
+    )
+    .toBeGreaterThan(0);
+  await expect(badge).toHaveCSS('color-scheme', 'dark');
+  await expect(
+    panel.getByRole('link', { name: 'Visit Inner Management' }),
+  ).toHaveAttribute('href', 'https://innermanagement.alirezaafshan.com');
+  await page.getByRole('button', { name: 'Return to system overview' }).click();
+  await page
+    .getByRole('button', { name: 'Explore Inner Management', exact: true })
+    .hover();
+  const preview = page.getByRole('button', {
+    name: 'Approach Inner Management',
+    exact: true,
+  });
+  await expect(preview).toBeVisible();
+  const thumbnail = preview.locator('img');
+  await expect(thumbnail).toHaveAttribute(
+    'src',
+    '/site-icons/inner-management.svg',
+  );
+  await expect
+    .poll(() =>
+      thumbnail.evaluate((image) =>
+        image instanceof HTMLImageElement ? image.naturalWidth : 0,
+      ),
+    )
+    .toBeGreaterThan(0);
+});

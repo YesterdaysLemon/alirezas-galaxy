@@ -414,6 +414,7 @@
       "relationship": "owned",
       "hosting": "first-party",
       "status": "live",
+      "iconSrc": "/site-icons/inner-management.svg",
       "glyph": "I",
       "color": 16761523,
       "systemId": "ideas-and-inquiry",
