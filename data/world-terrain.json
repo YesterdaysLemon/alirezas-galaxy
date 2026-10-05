@@ -22,5 +22,9 @@
   "drabzin": {
     "terrain": "folds",
     "label": "Working tool"
+  },
+  "share": {
+    "terrain": "folds",
+    "label": "Walkable museum"
   }
 }

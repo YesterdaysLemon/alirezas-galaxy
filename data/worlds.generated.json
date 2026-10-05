@@ -471,6 +471,19 @@
     "orbitSlot": 0
   },
   {
+    "id": "share",
+    "name": "Share",
+    "kind": "Public project",
+    "url": "https://share.alirezaafshan.com",
+    "description": "Where demos of web work get shared: a small static site with one folder per demo.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "frontier",
+    "orbitSlot": 1
+  },
+  {
     "id": "talking-cure",
     "name": "The Talking Cure",
     "kind": "Public project",

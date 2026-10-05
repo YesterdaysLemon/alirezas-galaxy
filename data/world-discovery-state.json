@@ -264,5 +264,12 @@
     "failedSince": null,
     "systemId": "ideas-and-inquiry",
     "orbitSlot": 4
+  },
+  "share": {
+    "url": "https://share.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "frontier",
+    "orbitSlot": 1
   }
 }
