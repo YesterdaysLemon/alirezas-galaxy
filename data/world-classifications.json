@@ -938,5 +938,73 @@
       "systemId": "frontier",
       "orbitSlot": 1
     }
+  },
+  {
+    "id": "share",
+    "classifiedAt": "2026-10-06T16:51:39.682Z",
+    "model": "jev-1.13.0",
+    "requestSha256": "812dd39a541ee079dc780c748f33d37d23a7b29ad952e0c376ea1f6426245682",
+    "answers": {
+      "family": {
+        "choice": "none-of-these",
+        "confidence": 0.41,
+        "probabilities": {
+          "places-and-maps": 0,
+          "machines-and-minds": 0,
+          "patterns-and-life": 0,
+          "worlds-and-games": 0.03,
+          "tools-and-infrastructure": 0.37,
+          "none-of-these": 0.49,
+          "curiosity-and-play": 0.11,
+          "ideas-and-inquiry": 0
+        }
+      },
+      "kind": {
+        "choice": "folds",
+        "confidence": 0.34,
+        "probabilities": {
+          "culture": 0.27,
+          "ocean": 0.01,
+          "desert": 0.01,
+          "gas": 0.12,
+          "garden": 0.14,
+          "folds": 0.45
+        }
+      },
+      "label": {
+        "choice": "museum",
+        "confidence": 0.98,
+        "probabilities": {
+          "atlas": 0,
+          "museum": 0.99,
+          "journal": 0,
+          "tool": 0,
+          "simulation": 0,
+          "browser-game": 0,
+          "music": 0,
+          "studio": 0,
+          "explainer": 0,
+          "essay": 0,
+          "visual": 0.01,
+          "infrastructure": 0
+        }
+      },
+      "theme": {
+        "choice": "images-and-motion",
+        "confidence": 0.99,
+        "probabilities": {
+          "sound-and-stage": 0,
+          "money-and-markets": 0,
+          "words-and-stories": 0,
+          "images-and-motion": 1,
+          "bodies-and-health": 0
+        }
+      }
+    },
+    "rehome": true,
+    "decision": {
+      "place": "frontier",
+      "stayed": "frontier/1"
+    }
   }
 ]

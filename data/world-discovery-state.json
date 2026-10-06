@@ -270,6 +270,7 @@
     "everHealthy": true,
     "failedSince": null,
     "systemId": "frontier",
-    "orbitSlot": 1
+    "orbitSlot": 1,
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
   }
 }
