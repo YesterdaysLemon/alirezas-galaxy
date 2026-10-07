@@ -46,7 +46,8 @@ test('projects with private repositories do not advertise a source reply', async
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#system/curiosity-and-play/android-hell');
   const panel = page.getByRole('article', { name: 'Planet: Android Hell' });
-  await expect(panel).toBeVisible();
+  // Cold terrain preparation plus the flight uses the system-entry allowance.
+  await expect(panel).toBeVisible({ timeout: 10_000 });
   await expect(panel.getByRole('link', { name: /View source/ })).toHaveCount(0);
   await expect(
     panel.getByRole('link', { name: 'Visit Android Hell' }),

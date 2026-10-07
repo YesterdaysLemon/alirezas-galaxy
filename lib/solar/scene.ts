@@ -85,6 +85,7 @@ export class SolarSystemScene {
       selected: number | null,
     ) => void,
     private readonly onHover: (index: number | null) => void,
+    compact = false,
   ) {
     this.canvas = renderer.domElement;
     this.group.name = 'Local solar system';
@@ -101,6 +102,7 @@ export class SolarSystemScene {
         this.radar.measure();
         if (this.active && !this.navigating) this.adoptHud();
       },
+      compact,
     );
     // oxlint-disable-next-line typescript/no-this-alias -- the host's getters read live scene state.
     const solar = this;

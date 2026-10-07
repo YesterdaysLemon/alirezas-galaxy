@@ -46,7 +46,9 @@ export class HudOverlay {
     private readonly host: HTMLElement,
     /** Called after a layout change, once the new sizes are measured. */
     private readonly onMeasure: () => void,
+    compact = false,
   ) {
+    this.size.compact = compact;
     this.mutationObserver = new MutationObserver(() => {
       this.elementsDirty = this.layoutDirty = true;
     });

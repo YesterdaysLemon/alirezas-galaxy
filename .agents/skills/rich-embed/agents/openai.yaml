@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rich Embed"
+  short_description: "Playable embeds and polished social preview cards"
+  default_prompt: "Use $rich-embed to make this website shareable with a compact interactive embed and a polished preview card for the requested platforms."

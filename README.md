@@ -15,6 +15,12 @@ npm install
 npm run dev
 ```
 
+## Compact galaxy card
+
+`/embed` keeps the real galaxy → star system → project journey in a 640×480 player, with touch controls down to 320×240. Pick a star, inspect a planet, then visit its website or open its permanent location in the full galaxy. It uses the existing scene and catalog, caps pixel ratio at 1, preserves manual pause across navigation, and suspends rendering outside view. The plain project catalog remains available without WebGL.
+
+The homepage advertises an experimental X Player Card. Its poster is a real capture of the compact view; the existing landscape Open Graph preview is retained. `next.config.ts` allows X/Twitter, the same origin, and the portfolio to frame only `/embed`. The frame can also be embedded directly on those sites. Crawler acceptance and successful playback inside an X post are separate from local implementation and deployment. Use `rich-embed` for changes and run the standard checks, including `tests/e2e/rich-embed.spec.ts`.
+
 ## Run on a VPS
 
 The production image is a self-contained Vinext Node server. Build and run it

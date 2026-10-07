@@ -37,6 +37,7 @@ import {
 } from '@/lib/galaxy/card-layout';
 import { GalaxyCanopy } from './galaxy-canopy';
 import { GalaxyDock } from './galaxy-dock';
+import { GalaxyEmbedChrome } from './galaxy-embed-chrome';
 import { WebringPortal } from './webring-portal';
 import { WorldCatalog } from './world-catalog';
 import { frameEase } from '@/lib/galaxy/math';
@@ -68,11 +69,13 @@ function returnToGalaxy(solar: SolarSystemScene | null) {
 }
 
 export function GalaxyIndex({
+  embedded = false,
   groxEncounter = false,
   groxLeaving = false,
   onGroxArrival,
   onGroxReturn,
 }: {
+  embedded?: boolean;
   groxEncounter?: boolean;
   groxLeaving?: boolean;
   onGroxArrival?: () => void;
@@ -122,6 +125,8 @@ export function GalaxyIndex({
   const expandedRef = useRef(false);
   const cameraModeRef = useRef<'default' | 'expanded' | 'manual'>('default');
   const ambientMotionRef = useRef(true);
+  const embedPausedRef = useRef(false);
+  const [embedPaused, setEmbedPaused] = useState(false);
   const coreExposureRef = useRef(0.92);
   const resetGalaxyRef = useRef<() => void>(() => undefined);
   const spinGalaxyRef = useRef<() => void>(() => undefined);
@@ -223,6 +228,13 @@ export function GalaxyIndex({
     setExpanded(false);
   };
 
+  const pauseEmbed = (paused: boolean) => {
+    embedPausedRef.current = paused;
+    setEmbedPaused(paused);
+    ambientMotionRef.current = !paused;
+    solarRef.current?.setPaused(paused);
+  };
+
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
       const solar = solarRef.current;
@@ -306,14 +318,15 @@ export function GalaxyIndex({
         alpha: false,
         depth: true,
         stencil: false,
-        powerPreference: 'high-performance',
+        powerPreference: embedded ? 'low-power' : 'high-performance',
       });
     } catch {
       fallbackFrame = requestAnimationFrame(() => setGraphicsUnavailable(true));
       return () => cancelAnimationFrame(fallbackFrame);
     }
 
-    const isCompact = window.matchMedia('(max-width: 720px)').matches;
+    const isCompact =
+      embedded || window.matchMedia('(max-width: 720px)').matches;
     let compactViewport = isCompact;
     const reducedMotionQuery = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -322,6 +335,7 @@ export function GalaxyIndex({
     const setMotionProfile = (matches: boolean) => {
       reduceMotion = matches;
       stage.dataset.motionProfile = matches ? 'gentle' : 'full';
+      if (embedded && matches) pauseEmbed(true);
     };
     const onReducedMotionChange = (event: MediaQueryListEvent) => {
       setMotionProfile(event.matches);
@@ -331,7 +345,7 @@ export function GalaxyIndex({
     const cores = navigator.hardwareConcurrency ?? 4;
     const starCount = isCompact || cores <= 4 ? 8800 : 17600;
     const backdropCount = isCompact ? 3000 : 7200;
-    const maxPixelRatio = isCompact || cores <= 4 ? 1.1 : 1.45;
+    const maxPixelRatio = embedded ? 1 : isCompact || cores <= 4 ? 1.1 : 1.45;
     const pixelRatio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020308);
@@ -345,6 +359,7 @@ export function GalaxyIndex({
     camera.lookAt(0.7, 0, 0);
 
     renderer.setPixelRatio(pixelRatio);
+    stage.dataset.pixelRatio = String(pixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
@@ -488,6 +503,8 @@ export function GalaxyIndex({
     let frame = 0;
     let animationFrame = 0;
     let isVisible = true;
+    let intersectsViewport = true;
+    let embedVisualTime = 0;
     let disposed = false;
     let previousTime = 0;
     let groxElapsed = 0;
@@ -581,11 +598,13 @@ export function GalaxyIndex({
           });
       },
       setSolarHovered,
+      embedded,
     );
     solarRef.current = solar;
     solar.onExitRequest = () => returnToGalaxy(solar);
     const solarWarmFrame = requestAnimationFrame(() => {
-      if (!groxEncounter && !solar.active) solar.prepare(solarSystems[0]);
+      if (!embedded && !groxEncounter && !solar.active)
+        solar.prepare(solarSystems[0]);
     });
     enterSolarRef.current = (
       systemId,
@@ -629,9 +648,10 @@ export function GalaxyIndex({
       // detail, as a family star's own entry does; it must not reopen later.
       if (!solar.active) collapseDestination();
       setSolarSystem(system);
-      setSolarPaused(false);
+      setSolarPaused(embedded && embedPausedRef.current);
       applyingSolarRoute = !updateHistory;
       solar.enter(system, entryStar, galaxyCenter);
+      if (embedded) solar.setPaused(embedPausedRef.current);
       applyingSolarRoute = false;
     };
 
@@ -1019,6 +1039,10 @@ export function GalaxyIndex({
       compactViewport = width <= 720 || height <= 500;
       ({ rest: defaultCameraDistance, open: expandedCameraDistance } =
         cameraDistances(width <= 720));
+      if (embedded) {
+        defaultCameraDistance = Math.max(26, 30 / (width / height));
+        expandedCameraDistance = defaultCameraDistance;
+      }
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -1029,22 +1053,24 @@ export function GalaxyIndex({
     });
     resizeObserver.observe(stage);
 
-    const intersectionObserver = new IntersectionObserver(([entry]) => {
-      isVisible = entry.isIntersecting;
-      if (isVisible && !animationFrame) {
-        previousTime = 0;
-        animationFrame = requestAnimationFrame(animate);
-      }
-    });
-    intersectionObserver.observe(stage);
-
-    const onVisibilityChange = () => {
-      isVisible = document.visibilityState === 'visible';
-      if (isVisible && !animationFrame) {
+    const syncVisibility = () => {
+      isVisible = intersectsViewport && document.visibilityState === 'visible';
+      stage.dataset.renderActive = String(isVisible);
+      if (!isVisible) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      } else if (!animationFrame) {
         previousTime = 0;
         animationFrame = requestAnimationFrame(animate);
       }
     };
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      intersectsViewport = entry.isIntersecting;
+      syncVisibility();
+    });
+    intersectionObserver.observe(stage);
+
+    const onVisibilityChange = syncVisibility;
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     // Place both galaxies for the current travel state. The first solar frame
@@ -1133,10 +1159,20 @@ export function GalaxyIndex({
       const delta = elapsedMs / 16.667;
       previousTime = time;
       frame += 1;
+      const motionPaused = embedded && embedPausedRef.current;
+      if (!motionPaused) embedVisualTime += elapsedMs;
+      if (motionPaused) {
+        angularVelocity = 0;
+        tiltVelocity = 0;
+      }
 
       if (solar.active) {
         if (!galaxiesPlaced) layoutGalaxies(delta);
-        solar.update(frameMs, reduceMotion);
+        // The embed starts paused for reduced motion; an explicit Resume opts in.
+        solar.update(
+          frameMs,
+          reduceMotion && (!embedded || embedPausedRef.current),
+        );
         // Markers and the core's glare are galaxy-scale chrome: diving past
         // them should not smear a lens sprite across the whole view.
         const keep = 1 - solar.galaxyVeil;
@@ -1416,12 +1452,13 @@ export function GalaxyIndex({
           const isPreviewed =
             !expandedRef.current && index === previewIndexRef.current;
           const isHovered = index === hoveredIndex;
-          const motionTime = time * (reduceMotion ? 0.72 : 1);
+          const animationTime = embedded ? embedVisualTime : time;
+          const motionTime = animationTime * (reduceMotion ? 0.72 : 1);
           const twinkle = reduceMotion
             ? 0.75
             : 0.75 +
-              Math.sin(time * 0.0021 + shimmerPhase) * 0.17 +
-              Math.sin(time * 0.0049 + shimmerPhase * 1.7) * 0.08;
+              Math.sin(animationTime * 0.0021 + shimmerPhase) * 0.17 +
+              Math.sin(animationTime * 0.0049 + shimmerPhase * 1.7) * 0.08;
           sparkle.material.opacity = occluded ? 0 : twinkle * luminosity;
           sparkle.scale
             .copy(marker.scale)
@@ -1449,8 +1486,9 @@ export function GalaxyIndex({
                   : 0.98) -
               marker.material.opacity) *
             0.11;
-          marker.material.rotation +=
-            (0.00016 + index * 0.000025) * (reduceMotion ? 0.72 : 1) * delta;
+          if (!motionPaused)
+            marker.material.rotation +=
+              (0.00016 + index * 0.000025) * (reduceMotion ? 0.72 : 1) * delta;
 
           signalWaves.forEach((wave, waveIndex) => {
             const progress =
@@ -1689,7 +1727,7 @@ export function GalaxyIndex({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [groxEncounter]);
+  }, [groxEncounter, embedded]);
 
   useEffect(() => {
     if (groxLeaving && !groxLeaveRef.current()) {
@@ -1716,8 +1754,10 @@ export function GalaxyIndex({
   return (
     <main
       id="galaxy"
-      className="spore-shell relative overflow-hidden"
+      className={`spore-shell relative overflow-hidden${embedded ? ' galaxy-embed' : ''}`}
       style={{ '--ui-motion-speed': UI_MOTION_SPEED } as CSSProperties}
+      data-embedded={embedded}
+      data-motion-paused={embedded && embedPaused}
       data-galaxy={galaxyId}
       data-travelling={travelling}
       data-solar-active={solarActive}
@@ -1742,7 +1782,25 @@ export function GalaxyIndex({
     >
       <div ref={stageRef} className="absolute inset-0" data-galaxy-stage />
       <div aria-hidden="true" className="spore-vignette absolute inset-0" />
-      {solarActive && (
+      {embedded && (
+        <GalaxyEmbedChrome
+          system={solarActive ? solarSystem : null}
+          selected={solarSelected}
+          directWorld={expanded && !solarActive ? active : null}
+          phase={solarPhase}
+          paused={embedPaused}
+          unavailable={graphicsUnavailable}
+          onSystem={(id) => enterSolarRef.current(id)}
+          onSelect={(index) => solarRef.current?.select(index)}
+          onGalaxy={() => {
+            if (solarRef.current?.active) leaveSolar();
+            else resetGalaxyRef.current();
+          }}
+          onRandom={expandRandomDestination}
+          onPause={() => pauseEmbed(!embedPausedRef.current)}
+        />
+      )}
+      {solarActive && !embedded && (
         <SolarSystemHud
           key={solarSystem.id}
           system={solarSystem}
@@ -1770,90 +1828,96 @@ export function GalaxyIndex({
         />
       )}
 
-      <WebringPortal
-        galaxyId={galaxyId}
-        travelling={travelling}
-        portalRef={ringPortalRef}
-        onTravel={() =>
-          travelRef.current(galaxyIdRef.current === 'home' ? 'webring' : 'home')
-        }
-      />
+      {!embedded && (
+        <>
+          <WebringPortal
+            galaxyId={galaxyId}
+            travelling={travelling}
+            portalRef={ringPortalRef}
+            onTravel={() =>
+              travelRef.current(
+                galaxyIdRef.current === 'home' ? 'webring' : 'home',
+              )
+            }
+          />
 
-      <p className="galaxy-location" aria-live="polite">
-        {solarActive
-          ? solarPhase === 'entering'
-            ? `diving toward ${solarSystem.starName.toLowerCase()}…`
-            : solarPhase === 'leaving'
-              ? 'rising back to the galaxy…'
-              : `${solarSystem.name.toLowerCase()} · ${solarSystem.starName.toLowerCase()} system`
-          : travelling
-            ? 'crossing the stars…'
-            : galaxyId === 'home'
-              ? 'my corner of the universe'
-              : 'web ring · friends & discoveries'}
-      </p>
+          <p className="galaxy-location" aria-live="polite">
+            {solarActive
+              ? solarPhase === 'entering'
+                ? `diving toward ${solarSystem.starName.toLowerCase()}…`
+                : solarPhase === 'leaving'
+                  ? 'rising back to the galaxy…'
+                  : `${solarSystem.name.toLowerCase()} · ${solarSystem.starName.toLowerCase()} system`
+              : travelling
+                ? 'crossing the stars…'
+                : galaxyId === 'home'
+                  ? 'my corner of the universe'
+                  : 'web ring · friends & discoveries'}
+          </p>
 
-      <GalaxyCanopy
-        galaxyId={galaxyId}
-        travelling={travelling}
-        solarActive={solarActive}
-        randomDisabled={travelling || solarNavigating}
-        onHome={() => {
-          if (solarRef.current?.active) leaveSolar();
-          else resetGalaxyRef.current();
-        }}
-        onRandom={expandRandomDestination}
-        onAbout={() =>
-          galaxyIdRef.current === 'home'
-            ? expandDestination(0)
-            : travelRef.current('home', true)
-        }
-      />
+          <GalaxyCanopy
+            galaxyId={galaxyId}
+            travelling={travelling}
+            solarActive={solarActive}
+            randomDisabled={travelling || solarNavigating}
+            onHome={() => {
+              if (solarRef.current?.active) leaveSolar();
+              else resetGalaxyRef.current();
+            }}
+            onRandom={expandRandomDestination}
+            onAbout={() =>
+              galaxyIdRef.current === 'home'
+                ? expandDestination(0)
+                : travelRef.current('home', true)
+            }
+          />
 
-      <CommsPresence
-        kind="preview"
-        world={!travelling && !solarActive ? floatingPreview : null}
-        anchorRef={previewRef}
-        hint={expanded}
-        onAction={() => expandDestination(floatingPreviewIndex!)}
-      />
-      <CommsPresence
-        kind="detail"
-        world={expanded && !solarActive ? active : null}
-        anchorRef={detailRef}
-        onAction={collapseDestination}
-      />
+          <CommsPresence
+            kind="preview"
+            world={!travelling && !solarActive ? floatingPreview : null}
+            anchorRef={previewRef}
+            hint={expanded}
+            onAction={() => expandDestination(floatingPreviewIndex!)}
+          />
+          <CommsPresence
+            kind="detail"
+            world={expanded && !solarActive ? active : null}
+            anchorRef={detailRef}
+            onAction={collapseDestination}
+          />
 
-      <GalaxyDock
-        galaxyId={galaxyId}
-        worlds={currentWorlds}
-        activeIndex={activeIndex}
-        expanded={expanded}
-        disabled={travelling || solarNavigating}
-        iconRef={dockGalaxyIconRef}
-        onAdvance={advanceOrSpin}
-        onNudge={() => hoverGalaxyRef.current()}
-      />
+          <GalaxyDock
+            galaxyId={galaxyId}
+            worlds={currentWorlds}
+            activeIndex={activeIndex}
+            expanded={expanded}
+            disabled={travelling || solarNavigating}
+            iconRef={dockGalaxyIconRef}
+            onAdvance={advanceOrSpin}
+            onNudge={() => hoverGalaxyRef.current()}
+          />
 
-      <nav className="sr-only" aria-label="Website worlds">
-        {currentWorlds.map((destination, index) => (
-          <button
-            type="button"
-            key={destination.url}
-            data-world-id={destination.id}
-            onFocus={() => previewDestination(index)}
-            onClick={() => expandDestination(index)}
-          >
-            {destination.name}: {destination.description}
-          </button>
-        ))}
-      </nav>
+          <nav className="sr-only" aria-label="Website worlds">
+            {currentWorlds.map((destination, index) => (
+              <button
+                type="button"
+                key={destination.url}
+                data-world-id={destination.id}
+                onFocus={() => previewDestination(index)}
+                onClick={() => expandDestination(index)}
+              >
+                {destination.name}: {destination.description}
+              </button>
+            ))}
+          </nav>
 
-      <p className="sr-only" aria-live="polite" hidden={solarActive}>
-        {expanded
-          ? `Selected world: ${active.name}. ${active.description}`
-          : `Previewing world: ${preview.name}.`}
-      </p>
+          <p className="sr-only" aria-live="polite" hidden={solarActive}>
+            {expanded
+              ? `Selected world: ${active.name}. ${active.description}`
+              : `Previewing world: ${preview.name}.`}
+          </p>
+        </>
+      )}
 
       <WorldCatalog visible={graphicsUnavailable} />
     </main>

@@ -23,3 +23,11 @@
 "source_digest" = "ca144ab4588498e2e1e046b1fc0653fcd5ae810a5dd2724754d69acfc05d97f7"
 "installed_digest" = "ca144ab4588498e2e1e046b1fc0653fcd5ae810a5dd2724754d69acfc05d97f7"
 "local_override" = false
+
+[["skills"]]
+"name" = "rich-embed"
+"source" = "local:rich-embed"
+"source_revision" = "content-addressed"
+"source_digest" = "d022fa2a651cd329e3f74b8486f876e9d3cb6da21a24d9dbd702dd08273f0df0"
+"installed_digest" = "d022fa2a651cd329e3f74b8486f876e9d3cb6da21a24d9dbd702dd08273f0df0"
+"local_override" = false

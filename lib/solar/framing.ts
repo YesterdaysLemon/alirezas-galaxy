@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { PlanetRecipe, SolarSystem } from '../../data/solar-systems';
 import { halfViewHeight, orbitDirection, wrapAngle } from './math';
 
-export type Viewport = { width: number; height: number };
+export type Viewport = { width: number; height: number; compact?: boolean };
 
 /**
  * Which ship HUD layout is showing. These breakpoints mirror the media queries
@@ -16,6 +16,12 @@ export function hudLayout({ width, height }: Viewport) {
 /** Screen room the HUD leaves for a close-up, in pixels. */
 function closeUpRoom(viewport: Viewport) {
   const { width, height } = viewport;
+  // The embed's controls sit outside the canvas, so the whole view is available.
+  if (viewport.compact)
+    return {
+      width: Math.max(48, width - 16),
+      height: Math.max(48, height - 16),
+    };
   const { short, portrait } = hudLayout(viewport);
   return {
     // Portrait stacks the comms casing below the world.
@@ -161,6 +167,7 @@ export function focusDistance(
  * half-height: left of center clear of the comms casing, lifted above the helm.
  */
 export function closeUpOffset(viewport: Viewport) {
+  if (viewport.compact) return { horizontal: 0, vertical: 0 };
   const { short, portrait } = hudLayout(viewport);
   return {
     horizontal: portrait ? 0 : short ? 0.26 : 0.24,

@@ -101,7 +101,7 @@ test('planet addresses and browser history switch systems without losing the gal
   await page.goto('/#system/patterns-and-life/plato');
   await expect(
     page.getByRole('article', { name: 'Planet: Plato' }),
-  ).toBeVisible();
+  ).toBeVisible(ARRIVAL);
   const canvas = page.locator('canvas[data-galaxy-canvas]');
   const original = await canvas.elementHandle();
   await page.evaluate(() => {
@@ -109,14 +109,14 @@ test('planet addresses and browser history switch systems without losing the gal
   });
   await expect(
     page.getByRole('article', { name: 'Planet: Valet' }),
-  ).toBeVisible();
+  ).toBeVisible(ARRIVAL);
   await expect(
     page.getByRole('link', { name: 'Visit Valet', exact: true }),
   ).toHaveAttribute('href', 'https://valet.alirezaafshan.com');
   await page.goBack();
   await expect(
     page.getByRole('article', { name: 'Planet: Plato' }),
-  ).toBeVisible();
+  ).toBeVisible(ARRIVAL);
   expect(
     await original!.evaluate(
       (element) =>
@@ -225,7 +225,7 @@ test('changing destination during entry keeps the latest route and restores gala
   });
   await expect(
     page.getByRole('article', { name: 'Planet: Valet' }),
-  ).toBeVisible();
+  ).toBeVisible(ARRIVAL);
   await expect(page).toHaveURL(/#system\/tools-and-infrastructure\/valet$/);
   await page.getByRole('button', { name: 'Return to the galaxy' }).click();
   await expect(

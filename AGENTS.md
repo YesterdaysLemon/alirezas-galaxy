@@ -1,5 +1,4 @@
 <!-- al-stack:project:start -->
-
 ## Al-stack project
 
 Project: website-overhaul. Profile: web. Status: experimental.
@@ -9,13 +8,12 @@ Alireza's Galaxy: a tactile Three.js index with explorable project solar systems
 `al-stack.toml` records this project's setup and dependencies. Work from the checkout selected for the task; other branches/worktrees are optional history. Use `al-stack register .` once when starting work here. Local registration does not change the project's lifecycle.
 
 Project commands:
-
 - dev: `npm run dev`
 - check: `npm run lint && npm run test:unit && npm run build`
 
 Project skills (load when relevant):
-
 - `frontend-quality`: `.agents/skills/frontend-quality/SKILL.md`. Claude's copy is mirrored in `.claude/skills`.
+- `rich-embed`: `.agents/skills/rich-embed/SKILL.md`. Claude's copy is mirrored in `.claude/skills`.
 
 Edit project guidance outside this managed section. Use `al-stack configure` for its fields and `al-stack check .` for setup checks. Run the actual project checks for behavioral validation.
 <!-- al-stack:project:end -->
@@ -23,6 +21,8 @@ Edit project guidance outside this managed section. Use `al-stack configure` for
 # Galaxy and solar systems
 
 Preserve the approved luminous five-arm galaxy, organic blue menu canopy, attached world communications, and utility dock. Project solar systems extend this experience with original Space Stage-inspired art and controls. Use `frontend-quality` for visual work and validate desktop, narrow, and landscape views in a browser.
+
+`/embed` presents the same `GalaxyIndex` engine with `GalaxyEmbedChrome`, keeping star systems, project worlds, permanent addresses, and one canvas. Its controls sit outside the canvas; `Viewport.compact` lets the solar camera use that room without reserving the full ship HUD. Use `rich-embed` for card changes. Check 640×480 and 320×240 frames, keyboard/touch, reduced motion, actual iframe navigation, and offscreen draw suspension. Keep user pause separate from visibility. Player metadata belongs only on the root and embed routes, with the CSP scoped to `/embed` in `next.config.ts`; other routes retain their own card metadata. Actual X playback remains a separate platform check.
 
 `components/galaxy-index.tsx` owns the single Three.js scene, renderer, camera, input routing, and visibility-aware animation loop; its pure pieces live in `lib/galaxy/` (seeded geometry, textures, the points material, galaxy layers, the portrait burst, comms card layout) and its chrome in `galaxy-canopy`, `galaxy-dock`, `webring-portal` and `world-catalog`. `lib/solar/scene.ts` is the facade for a system: it retains at most the active/recent system and the latest destination intent and coordinates `flight.ts` (the dive, unit handoff and return), `camera-rig.ts` (goal pose, easing, zoom, drag), `framing.ts` (pure framing math, whose HUD breakpoints mirror `app/solar-system.css`), `hud-overlay.ts` (the HUD's DOM, measured only on change), `radar.ts`, `resources.ts` with `sky.ts` and `bodies.ts`, and `ship.ts`. Frames must not read layout: cache sizes on resize or DOM change, and read before writing when a card needs measuring. `lib/planet-preparation.ts` prepares terrain in a worker with an abortable cooperative fallback. Entry continuously approaches the actual family star, changes units without changing the projection, and clears in-scene dust. Preserve the original galaxy camera and visibility state until return. Keep stars, planets, moons, rings and instanced asteroid belts in this same engine. Respect reduced motion and the pause control.
 

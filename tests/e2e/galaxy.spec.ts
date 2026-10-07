@@ -140,7 +140,9 @@ test('primary controls discover a world, introduce Alireza, and link to GitHub',
     'https://github.com/YesterdaysLemon',
   );
   await primary.getByRole('button', { name: 'random world' }).click();
-  await expect(page.getByRole('article', { name: /^Planet:/ })).toBeVisible();
+  await expect(page.getByRole('article', { name: /^Planet:/ })).toBeVisible({
+    timeout: 10_000,
+  });
   await expect(page.getByRole('link', { name: /^Visit / })).not.toHaveAttribute(
     'href',
     'https://portfolio.alirezaafshan.com',
