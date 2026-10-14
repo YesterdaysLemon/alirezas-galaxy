@@ -441,8 +441,8 @@
     "hosting": "first-party",
     "status": "live",
     "glyph": "✦",
-    "systemId": "frontier",
-    "orbitSlot": 0
+    "systemId": "images-and-motion",
+    "orbitSlot": 1
   },
   {
     "id": "drabzin",
@@ -468,6 +468,19 @@
     "status": "live",
     "glyph": "✦",
     "systemId": "machines-and-minds",
+    "orbitSlot": 0
+  },
+  {
+    "id": "recursa",
+    "name": "Recursa",
+    "kind": "Public project",
+    "url": "https://recursa.alirezaafshan.com",
+    "description": "The home of Recursa, a native node-canvas IDE: its front page and the signed releases installed copies update from.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "images-and-motion",
     "orbitSlot": 0
   },
   {

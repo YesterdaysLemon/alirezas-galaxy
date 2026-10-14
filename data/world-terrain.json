@@ -12,8 +12,8 @@
     "label": "Research journal"
   },
   "coolimages": {
-    "terrain": "culture",
-    "label": "Walkable museum"
+    "label": "Walkable museum",
+    "terrain": "culture"
   },
   "zombies": {
     "terrain": "culture",
@@ -26,5 +26,9 @@
   "share": {
     "terrain": "folds",
     "label": "Walkable museum"
+  },
+  "recursa": {
+    "terrain": "folds",
+    "label": "Creative studio"
   }
 }

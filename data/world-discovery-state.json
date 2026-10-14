@@ -233,12 +233,13 @@
     "url": "https://coolimages.alirezaafshan.com",
     "everHealthy": true,
     "failedSince": null,
-    "systemId": "frontier",
-    "orbitSlot": 0,
+    "systemId": "images-and-motion",
+    "orbitSlot": 1,
     "formerAddresses": [
-      "curiosity-and-play/12"
+      "curiosity-and-play/12",
+      "frontier/0"
     ],
-    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,images-and-motion,frontier"
   },
   "zombies": {
     "url": "https://zombies.alirezaafshan.com",
@@ -271,6 +272,13 @@
     "failedSince": null,
     "systemId": "frontier",
     "orbitSlot": 1,
-    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,frontier,room"
+    "rehomeSignature": "patterns-and-life,curiosity-and-play:full,tools-and-infrastructure:full,ideas-and-inquiry,worlds-and-games,places-and-maps,machines-and-minds,images-and-motion,frontier"
+  },
+  "recursa": {
+    "url": "https://recursa.alirezaafshan.com",
+    "everHealthy": true,
+    "failedSince": null,
+    "systemId": "images-and-motion",
+    "orbitSlot": 0
   }
 }
