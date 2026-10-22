@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22.22.0-slim AS build
+FROM node:22-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -12,7 +12,7 @@ COPY . .
 RUN test ! -e app/motion-lab && test ! -e app/static-lab && test ! -e app/planet-lab && test ! -e public/icon-lab.html
 RUN npm run build
 
-FROM node:22.22.0-slim AS runtime
+FROM node:22-slim AS runtime
 WORKDIR /app
 ENV HOST=0.0.0.0 \
     NODE_ENV=production \
