@@ -72,7 +72,7 @@
   "deploy-manager": {
     "url": "https://deploy.alirezaafshan.com",
     "everHealthy": true,
-    "failedSince": "2026-10-28T16:43:35.655Z",
+    "failedSince": null,
     "systemId": "tools-and-infrastructure",
     "orbitSlot": 1
   },
