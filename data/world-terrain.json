@@ -30,5 +30,9 @@
   "recursa": {
     "terrain": "folds",
     "label": "Creative studio"
+  },
+  "interface-field-guide": {
+    "terrain": "folds",
+    "label": "Walkable museum"
   }
 }

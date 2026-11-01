@@ -458,6 +458,19 @@
     "orbitSlot": 7
   },
   {
+    "id": "interface-field-guide",
+    "name": "Field Guide",
+    "kind": "Public project",
+    "url": "https://design.alirezaafshan.com",
+    "description": "An interactive museum of four design languages and twenty-four component specimens.",
+    "relationship": "owned",
+    "hosting": "first-party",
+    "status": "live",
+    "glyph": "✦",
+    "systemId": "images-and-motion",
+    "orbitSlot": 2
+  },
+  {
     "id": "next-token-machine",
     "name": "Next-Token Machine",
     "kind": "Public project",
