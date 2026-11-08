@@ -287,5 +287,12 @@
     "failedSince": null,
     "systemId": "images-and-motion",
     "orbitSlot": 2
+  },
+  "wiki": {
+    "url": "https://wiki.alirezaafshan.com",
+    "everHealthy": false,
+    "failedSince": "2026-11-08T16:43:57.576Z",
+    "systemId": "frontier",
+    "orbitSlot": 2
   }
 }
