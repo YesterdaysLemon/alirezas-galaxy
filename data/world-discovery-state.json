@@ -294,5 +294,12 @@
     "failedSince": "2026-11-08T16:43:57.576Z",
     "systemId": "frontier",
     "orbitSlot": 2
+  },
+  "chuchote": {
+    "url": "https://chuchote.alirezaafshan.com",
+    "everHealthy": false,
+    "failedSince": "2026-11-23T22:06:20.285Z",
+    "systemId": "frontier",
+    "orbitSlot": 3
   }
 }
